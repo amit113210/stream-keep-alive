@@ -27,6 +27,7 @@ NC='\033[0m' # No Color
 # =====================
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APK_PATH="$SCRIPT_DIR/apk/StreamKeepAlive.apk"
+APK_URL="https://raw.githubusercontent.com/amit113210/stream-keep-alive/main/installer/apk/StreamKeepAlive.apk"
 ADB_DIR="$SCRIPT_DIR/tools/platform-tools"
 PACKAGE_NAME="com.keepalive.yesplus"
 SERVICE_NAME="$PACKAGE_NAME/$PACKAGE_NAME.KeepAliveAccessibilityService"
@@ -138,9 +139,15 @@ check_apk() {
     if [ -f "$APK_PATH" ]; then
         print_success "APK נמצא: $APK_PATH"
     else
-        print_error "קובץ APK לא נמצא!"
-        print_info "ודא שהקובץ נמצא ב: $APK_PATH"
-        exit 1
+        print_warning "קובץ APK לא נמצא מקומית. מוריד מ-GitHub..."
+        mkdir -p "$(dirname "$APK_PATH")"
+        if curl -L -f -# -o "$APK_PATH" "$APK_URL"; then
+            print_success "APK הורד בהצלחה: $APK_PATH"
+        else
+            print_error "שגיאה בהורדת APK"
+            print_info "נסה להוריד ידנית: $APK_URL"
+            exit 1
+        fi
     fi
 }
 

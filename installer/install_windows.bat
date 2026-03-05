@@ -13,6 +13,7 @@ title Stream Keep Alive - Installer
 
 set "SCRIPT_DIR=%~dp0"
 set "APK_PATH=%SCRIPT_DIR%apk\StreamKeepAlive.apk"
+set "APK_URL=https://raw.githubusercontent.com/amit113210/stream-keep-alive/main/installer/apk/StreamKeepAlive.apk"
 set "ADB_DIR=%SCRIPT_DIR%tools\platform-tools"
 set "PACKAGE_NAME=com.keepalive.yesplus"
 set "SERVICE_NAME=%PACKAGE_NAME%/%PACKAGE_NAME%.KeepAliveAccessibilityService"
@@ -83,10 +84,17 @@ echo  [Step 2] Checking APK file...
 if exist "%APK_PATH%" (
     echo    ✅ APK found
 ) else (
-    echo    ❌ APK file not found!
-    echo    Make sure StreamKeepAlive.apk is in the apk folder
-    pause
-    exit /b 1
+    echo    ⚠️  APK file not found locally. Downloading from GitHub...
+    if not exist "%SCRIPT_DIR%apk" mkdir "%SCRIPT_DIR%apk"
+    powershell -Command "Invoke-WebRequest -Uri '%APK_URL%' -OutFile '%APK_PATH%'" >nul 2>&1
+    if %errorlevel%==0 (
+        echo    ✅ APK downloaded successfully
+    ) else (
+        echo    ❌ Failed to download APK
+        echo    Try downloading manually: %APK_URL%
+        pause
+        exit /b 1
+    )
 )
 
 :: =====================
@@ -295,4 +303,3 @@ echo.
 echo    👋 Thanks! Enjoy uninterrupted viewing!
 echo.
 pause
-
