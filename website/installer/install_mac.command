@@ -135,16 +135,15 @@ setup_adb() {
 # =====================
 check_apk() {
     print_step "2" "בדיקת קובץ APK..."
-
-    if [ -f "$APK_PATH" ]; then
-        print_success "APK נמצא: $APK_PATH"
+    mkdir -p "$(dirname "$APK_PATH")"
+    print_info "מוריד תמיד את ה-APK העדכני מ-GitHub..."
+    if curl -L -f -# -o "$APK_PATH" "$APK_URL"; then
+        print_success "APK עודכן בהצלחה: $APK_PATH"
     else
-        print_warning "קובץ APK לא נמצא מקומית. מוריד מ-GitHub..."
-        mkdir -p "$(dirname "$APK_PATH")"
-        if curl -L -f -# -o "$APK_PATH" "$APK_URL"; then
-            print_success "APK הורד בהצלחה: $APK_PATH"
+        if [ -f "$APK_PATH" ]; then
+            print_warning "הורדה נכשלה — ממשיך עם APK מקומי קיים: $APK_PATH"
         else
-            print_error "שגיאה בהורדת APK"
+            print_error "שגיאה בהורדת APK ואין קובץ מקומי זמין"
             print_info "נסה להוריד ידנית: $APK_URL"
             exit 1
         fi

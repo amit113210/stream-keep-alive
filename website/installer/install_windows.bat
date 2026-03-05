@@ -81,16 +81,16 @@ echo.
 echo.
 echo  [Step 2] Checking APK file...
 
-if exist "%APK_PATH%" (
-    echo    ✅ APK found
+echo    Downloading latest APK from GitHub...
+if not exist "%SCRIPT_DIR%apk" mkdir "%SCRIPT_DIR%apk"
+powershell -Command "Invoke-WebRequest -Uri '%APK_URL%' -OutFile '%APK_PATH%'" >nul 2>&1
+if %errorlevel%==0 (
+    echo    ✅ APK updated successfully
 ) else (
-    echo    ⚠️  APK file not found locally. Downloading from GitHub...
-    if not exist "%SCRIPT_DIR%apk" mkdir "%SCRIPT_DIR%apk"
-    powershell -Command "Invoke-WebRequest -Uri '%APK_URL%' -OutFile '%APK_PATH%'" >nul 2>&1
-    if %errorlevel%==0 (
-        echo    ✅ APK downloaded successfully
+    if exist "%APK_PATH%" (
+        echo    ⚠️  Download failed — using existing local APK
     ) else (
-        echo    ❌ Failed to download APK
+        echo    ❌ Failed to download APK and no local APK exists
         echo    Try downloading manually: %APK_URL%
         pause
         exit /b 1
