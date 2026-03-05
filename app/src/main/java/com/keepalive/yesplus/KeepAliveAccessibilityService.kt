@@ -3,6 +3,7 @@ package com.keepalive.yesplus
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.content.Context
+import android.content.Intent
 import android.graphics.Path
 import android.os.Build
 import android.os.Handler
@@ -115,8 +116,12 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         try {
             if (event == null) return
             val packageName = event.packageName?.toString() ?: return
+            val eventType = event.eventType
 
-            if (packageName != currentActivePackage) {
+            val shouldHandlePackageTransition =
+                packageName != currentActivePackage &&
+                    (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || currentActivePackage.isEmpty())
+            if (shouldHandlePackageTransition) {
                 currentActivePackage = packageName
                 handleActivePackageChanged(packageName)
             }
@@ -126,7 +131,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             touchWakeLockSafetyTimer()
             updatePlaybackSignal(event)
 
-            if (!isDialogRelevantEvent(event.eventType)) return
+            if (!isDialogRelevantEvent(eventType)) return
 
             val now = System.currentTimeMillis()
             val quickDialogHint = DialogTextMatcher.eventLooksLikeDialog(
@@ -155,15 +160,23 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() {
         Log.w(TAG, "Accessibility Service interrupted")
+        cleanupRuntimeResources(keepHandler = true, clearPackageState = true)
     }
 
     override fun onDestroy() {
         isRunning = false
-        stopPeriodicActivity()
-        releaseWakeLock()
+        cleanupRuntimeResources(keepHandler = false, clearPackageState = true)
         handler = null
         Log.i(TAG, "Accessibility Service destroyed")
         super.onDestroy()
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        isRunning = false
+        cleanupRuntimeResources(keepHandler = false, clearPackageState = true)
+        handler = null
+        Log.i(TAG, "Accessibility Service unbound")
+        return super.onUnbind(intent)
     }
 
     // ==========================================
@@ -206,13 +219,15 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     }
 
     private fun checkAndDismissDialog(rootNode: AccessibilityNodeInfo) {
-        val budget = ScanBudget(deadlineMs = System.currentTimeMillis() + SCAN_TIME_BUDGET_MS)
-        if (!containsDialogKeywords(rootNode, depth = 0, budget = budget)) return
+        val detectionBudget = ScanBudget(deadlineMs = System.currentTimeMillis() + SCAN_TIME_BUDGET_MS)
+        if (!containsDialogKeywords(rootNode, depth = 0, budget = detectionBudget)) return
 
         dialogDetectedCount++
+        logScreenInteractiveState()
         Log.i(TAG, "Detected 'still watching' dialog - dismissing")
 
-        if (findAndClickConfirmButton(rootNode, depth = 0, budget = budget)) {
+        val clickBudget = ScanBudget(deadlineMs = System.currentTimeMillis() + SCAN_TIME_BUDGET_MS)
+        if (findAndClickConfirmButton(rootNode, depth = 0, budget = clickBudget)) {
             dialogDismissedCount++
             Log.i(TAG, "Dialog dismissed with confirm keyword")
             publishTelemetrySnapshot()
@@ -226,7 +241,8 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             return
         }
 
-        if (clickFirstButton(rootNode, depth = 0, budget = budget)) {
+        val fallbackBudget = ScanBudget(deadlineMs = System.currentTimeMillis() + SCAN_TIME_BUDGET_MS)
+        if (clickFirstButton(rootNode, depth = 0, budget = fallbackBudget)) {
             dialogDismissedCount++
             Log.i(TAG, "Dialog dismissed via fallback clickable node")
             publishTelemetrySnapshot()
@@ -493,8 +509,8 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val metrics = resources.displayMetrics
             val maxX = max(1, metrics.widthPixels - 1).toFloat()
             val maxY = max(1, metrics.heightPixels - 1).toFloat()
-            val safeMinX = min(10f, maxX)
-            val safeMinY = min(10f, maxY)
+            val safeMinX = min(50f, maxX)
+            val safeMinY = min(50f, maxY)
 
             val baseX = max(metrics.widthPixels * 0.02f, safeMinX)
             val baseY = max(metrics.heightPixels * 0.02f, safeMinY)
@@ -617,6 +633,39 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
     private fun clamp(value: Float, min: Float, max: Float): Float {
         return value.coerceIn(min, max)
+    }
+
+    private fun cleanupRuntimeResources(keepHandler: Boolean, clearPackageState: Boolean) {
+        try {
+            stopPeriodicActivity()
+            releaseWakeLock()
+            if (!keepHandler) {
+                handler?.removeCallbacksAndMessages(null)
+            }
+            if (clearPackageState) {
+                currentActivePackage = ""
+                currentScheduledIntervalMs = PackagePolicy.DEFAULT_INTERVAL_MS
+                idleBackoffLevel = 0
+            }
+            publishTelemetrySnapshot()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during cleanup: ${e.message}", e)
+        }
+    }
+
+    private fun logScreenInteractiveState() {
+        try {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            val interactive = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+                pm.isInteractive
+            } else {
+                @Suppress("DEPRECATION")
+                pm.isScreenOn
+            }
+            Log.i(TAG, "Dialog detected while screenInteractive=$interactive")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed reading screen state: ${e.message}")
+        }
     }
 
     private fun logTelemetrySnapshot(reason: String) {
