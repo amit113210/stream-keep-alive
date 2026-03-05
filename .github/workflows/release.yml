@@ -26,13 +26,45 @@ jobs:
       - name: Grant execute permission for Gradle wrapper
         run: chmod +x gradlew
 
-      - name: Build debug APK
+      - name: Check signing secrets availability
+        id: signing
+        run: |
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ] && \
+             [ -n "${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}" ] && \
+             [ -n "${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}" ] && \
+             [ -n "${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}" ]; then
+            echo "has_signing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_signing=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Decode keystore
+        if: steps.signing.outputs.has_signing == 'true'
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > /tmp/release.keystore
+
+      - name: Build signed release APK
+        if: steps.signing.outputs.has_signing == 'true'
+        env:
+          ANDROID_SIGNING_STORE_FILE: /tmp/release.keystore
+          ANDROID_SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+          ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+          ANDROID_SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Build debug APK fallback
+        if: steps.signing.outputs.has_signing != 'true'
         run: ./gradlew assembleDebug --no-daemon
 
-      - name: Prepare release asset
+      - name: Prepare signed release asset
+        if: steps.signing.outputs.has_signing == 'true'
+        run: cp app/build/outputs/apk/release/app-release.apk StreamKeepAlive.apk
+
+      - name: Prepare debug fallback asset
+        if: steps.signing.outputs.has_signing != 'true'
         run: cp app/build/outputs/apk/debug/app-debug.apk StreamKeepAlive.apk
 
-      - name: Create GitHub Release
+      - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: StreamKeepAlive.apk

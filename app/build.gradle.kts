@@ -3,6 +3,16 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val signingStoreFile = System.getenv("ANDROID_SIGNING_STORE_FILE")
+val signingStorePassword = System.getenv("ANDROID_SIGNING_STORE_PASSWORD")
+val signingKeyAlias = System.getenv("ANDROID_SIGNING_KEY_ALIAS")
+val signingKeyPassword = System.getenv("ANDROID_SIGNING_KEY_PASSWORD")
+val hasReleaseSigning =
+    !signingStoreFile.isNullOrBlank() &&
+        !signingStorePassword.isNullOrBlank() &&
+        !signingKeyAlias.isNullOrBlank() &&
+        !signingKeyPassword.isNullOrBlank()
+
 android {
     namespace = "com.keepalive.yesplus"
     compileSdk = 34
@@ -15,9 +25,23 @@ android {
         versionName = "1.4"
     }
 
+    signingConfigs {
+        create("release") {
+            if (hasReleaseSigning) {
+                storeFile = file(signingStoreFile!!)
+                storePassword = signingStorePassword
+                keyAlias = signingKeyAlias
+                keyPassword = signingKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

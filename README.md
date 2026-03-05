@@ -93,4 +93,14 @@ app/src/main/
 
 ## אוטומציה ב-GitHub
 - בכל Push / PR ל-`main` רץ CI אוטומטי: בדיקות יחידה + בניית APK.
-- בכל תגית חדשה (`v*`) נוצר Release אוטומטי עם קובץ `StreamKeepAlive.apk`.
+- בכל תגית חדשה (`v*`) נוצר Release אוטומטי עם קובץ `StreamKeepAlive.apk`:
+  - אם מוגדרים Secrets לחתימה: נבנה APK חתום (Release).
+  - אם לא מוגדרים Secrets: נבנה APK Debug כגיבוי.
+
+### Secrets לחתימה (מומלץ)
+כדי לקבל APK חתום ב-Releases, הוסף ב-GitHub → `Settings` → `Secrets and variables` → `Actions`:
+
+- `ANDROID_KEYSTORE_BASE64` (ה-keystore שלך מקודד Base64)
+- `ANDROID_SIGNING_STORE_PASSWORD`
+- `ANDROID_SIGNING_KEY_ALIAS`
+- `ANDROID_SIGNING_KEY_PASSWORD`
