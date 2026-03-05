@@ -3,12 +3,15 @@ package com.keepalive.yesplus
 import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import java.util.Locale
 
 /**
  * Main Activity for Stream Keep Alive.
@@ -20,6 +23,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var descriptionText: TextView
     private lateinit var settingsButton: Button
     private lateinit var hotspotButton: Button
+    private lateinit var debugTelemetryText: TextView
+    private val telemetryHandler = Handler(Looper.getMainLooper())
+    private var telemetryRunnable: Runnable? = null
 
     // Accessibility settings needs triple-click
     private var dpadPressCount = 0
@@ -34,6 +40,7 @@ class MainActivity : AppCompatActivity() {
         descriptionText = findViewById(R.id.descriptionText)
         settingsButton = findViewById(R.id.settingsButton)
         hotspotButton = findViewById(R.id.hotspotButton)
+        debugTelemetryText = findViewById(R.id.debugTelemetryText)
 
         // Accessibility settings button requires triple click
         settingsButton.setOnClickListener {
@@ -62,6 +69,12 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         dpadPressCount = 0
         updateServiceStatus()
+        startTelemetryUpdates()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopTelemetryUpdates()
     }
 
     /**
@@ -129,5 +142,39 @@ class MainActivity : AppCompatActivity() {
 
     private fun openAccessibilitySettings() {
         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+    }
+
+    private fun startTelemetryUpdates() {
+        stopTelemetryUpdates()
+        telemetryRunnable = object : Runnable {
+            override fun run() {
+                updateTelemetryPanel()
+                telemetryHandler.postDelayed(this, 2000L)
+            }
+        }
+        telemetryHandler.post(telemetryRunnable!!)
+    }
+
+    private fun stopTelemetryUpdates() {
+        telemetryRunnable?.let { telemetryHandler.removeCallbacks(it) }
+        telemetryRunnable = null
+    }
+
+    private fun updateTelemetryPanel() {
+        val telemetry = KeepAliveAccessibilityService.getTelemetrySnapshot()
+        debugTelemetryText.text = String.format(
+            Locale.US,
+            "Package: %s\nBase/Next: %dm / %dm\nDialogs: scan=%d detect=%d dismiss=%d\nGestures: ok=%d fail=%d\nWakeLock: acquire=%d release=%d",
+            telemetry.activePackage.ifEmpty { "-" },
+            telemetry.baseIntervalMinutes,
+            telemetry.nextIntervalMinutes,
+            telemetry.dialogScans,
+            telemetry.dialogsDetected,
+            telemetry.dialogsDismissed,
+            telemetry.gesturesOk,
+            telemetry.gesturesFail,
+            telemetry.wakeAcquires,
+            telemetry.wakeReleases
+        )
     }
 }

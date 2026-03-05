@@ -11,95 +11,101 @@ import android.os.PowerManager
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.random.Random
 
 /**
- * Main Activity for Stream Keep Alive.
+ * Accessibility service that keeps streaming apps alive on Android TV devices.
  *
- * Supports ALL streaming apps: Yes, Netflix, YouTube, Disney+, Prime, and more.
- *
- * Two-layer strategy:
- * 1. Detects "Are you still watching?" dialogs and auto-dismisses them
- * 2. Periodically simulates activity to prevent dialogs from appearing
+ * Layer 1: Detect and dismiss "still watching" dialogs.
+ * Layer 2: Periodically simulate low-impact activity to prevent inactivity prompts.
  */
 class KeepAliveAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "StreamKeepAlive"
 
-        // Interval for periodic activity simulation (25 minutes in milliseconds)
-        // Reduced from 45 to 25 min to stay well within all streaming apps' timeout windows
-        private const val PERIODIC_INTERVAL_MS = 25L * 60L * 1000L
+        private const val CHECK_COOLDOWN_MS = 2500L
+        private const val CHECK_COOLDOWN_HINT_MS = 700L
+        private const val WINDOW_FINGERPRINT_COOLDOWN_MS = 3000L
 
-        // Keywords that indicate a "still watching?" dialog (Hebrew + English)
-        private val DIALOG_KEYWORDS = listOf(
-            // Hebrew
-            "עדיין צופים",
-            "האם אתם עדיין צופים",
-            "ממשיכים לצפות",
-            "האם את/ה עדיין צופה",
-            "עדיין כאן",
-            "עדיין פה",
-            "להמשיך בצפייה",
-            "האם להמשיך",
-            // English — Netflix, YouTube, Disney+, Prime, etc.
-            "still watching",
-            "are you still watching",
-            "are you still there",
-            "continue watching",
-            "continue playing",
-            "playing without asking",
-            "video paused",
-            "still there",
-            "are you still listening",
-            "inactivity"
-        )
+        private const val MAX_SCAN_NODES = 220
+        private const val MAX_SCAN_DEPTH = 14
+        private const val SCAN_TIME_BUDGET_MS = 15L
 
-        // Keywords for the confirmation/dismiss button (Hebrew + English)
-        private val CONFIRM_KEYWORDS = listOf(
-            // Hebrew
-            "כן",
-            "המשך",
-            "המשך צפייה",
-            "אישור",
-            "אוקיי",
-            "המשך לצפות",
-            "נגן מבלי לשאול שוב",
-            // English
-            "yes",
-            "continue",
-            "continue watching",
-            "keep watching",
-            "ok",
-            "i'm here",
-            "yes, continue",
-            "resume",
-            "play",
-            "still here",
-            "play without asking again"
-        )
+        private const val PLAYBACK_SIGNAL_STALE_MS = 2L * 60L * 1000L
+        private const val MAX_IDLE_BACKOFF_LEVEL = 3
 
-        // Track if service is running
+        private const val WAKELOCK_SAFETY_TIMEOUT_MS = 3L * 60L * 60L * 1000L
+
         @Volatile
         var isRunning = false
             private set
+
+        data class TelemetrySnapshot(
+            val activePackage: String = "",
+            val baseIntervalMinutes: Long = 0L,
+            val nextIntervalMinutes: Long = 0L,
+            val dialogScans: Long = 0L,
+            val dialogsDetected: Long = 0L,
+            val dialogsDismissed: Long = 0L,
+            val gesturesOk: Long = 0L,
+            val gesturesFail: Long = 0L,
+            val wakeAcquires: Long = 0L,
+            val wakeReleases: Long = 0L
+        )
+
+        @Volatile
+        private var telemetrySnapshot = TelemetrySnapshot()
+
+        fun getTelemetrySnapshot(): TelemetrySnapshot = telemetrySnapshot
+    }
+
+    private data class ScanBudget(
+        val deadlineMs: Long,
+        var visitedNodes: Int = 0
+    ) {
+        fun canVisit(depth: Int): Boolean {
+            if (depth > MAX_SCAN_DEPTH) return false
+            if (visitedNodes >= MAX_SCAN_NODES) return false
+            if (System.currentTimeMillis() > deadlineMs) return false
+            visitedNodes++
+            return true
+        }
     }
 
     private var handler: Handler? = null
     private var periodicRunnable: Runnable? = null
     private var wakeLock: PowerManager.WakeLock? = null
+    private var wakeLockSafetyRunnable: Runnable? = null
+
+    private var currentActivePackage = ""
+    private var currentBaseIntervalMs = PackagePolicy.DEFAULT_INTERVAL_MS
+    private var currentScheduledIntervalMs = PackagePolicy.DEFAULT_INTERVAL_MS
+    private var idleBackoffLevel = 0
+
+    private var lastDialogCheckTime = 0L
+    private var lastDialogWindowFingerprint = ""
+    private var lastDialogWindowFingerprintTime = 0L
+    private var lastPlaybackSignalTime = 0L
+    private var wakeLockLastTouchedAt = 0L
+    private var wakeLockHeldSince = 0L
+    private var wakeLockAcquireCount = 0
+    private var wakeLockReleaseCount = 0
+    private var dialogScanCount = 0L
+    private var dialogDetectedCount = 0L
+    private var dialogDismissedCount = 0L
+    private var gestureDispatchCount = 0L
+    private var gestureDispatchFailureCount = 0L
+    private var simulateActivityCount = 0L
 
     override fun onServiceConnected() {
         try {
             super.onServiceConnected()
             isRunning = true
             handler = Handler(Looper.getMainLooper())
-            Log.i(TAG, "Accessibility Service connected - Stream Keep Alive is active!")
-
-            // Layer 2: Acquire PARTIAL_WAKE_LOCK to keep CPU alive
-            // This ensures our timers fire even when the screen dims
-            acquireWakeLock()
-
-            startPeriodicActivity()
+            Log.i(TAG, "Accessibility Service connected - Stream Keep Alive is active")
         } catch (e: Exception) {
             Log.e(TAG, "Error in onServiceConnected: ${e.message}", e)
         }
@@ -108,74 +114,40 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         try {
             if (event == null) return
-
-            // Only process events from streaming apps
             val packageName = event.packageName?.toString() ?: return
 
-            // Streaming app packages to monitor
-            val streamingPackages = listOf(
-                // Yes (VOD/Live)
-                "il.co.yes",
-                // Netflix
-                "com.netflix",
-                // YouTube / YouTube TV
-                "com.google.android.youtube",
-                "com.google.android.apps.youtube",
-                // Disney+
-                "com.disney",
-                // Amazon Prime Video
-                "com.amazon.avod",
-                "com.amazon.firetv",
-                // Apple TV+
-                "com.apple.atve",
-                // HBO Max
-                "com.hbo",
-                "com.wbd.stream",
-                // Hulu
-                "com.hulu",
-                // Cellcom TV
-                "com.cellcom",
-                "il.co.cellcom",
-                // Partner TV
-                "com.partner",
-                "il.co.partner",
-                // HOT
-                "il.co.hot",
-                "com.hot",
-                // Spotify (audio)
-                "com.spotify",
-                // Plex
-                "com.plexapp",
-                // VLC
-                "org.videolan",
-                // Kodi
-                "org.xbmc"
-            )
-
-            // Ignore our own app and system packages
-            val ignoredPackages = listOf(
-                "com.keepalive.yesplus",
-                "com.android.settings",
-                "com.android.tv.settings",
-                "com.droidlogic.tv.settings",
-                "com.android.systemui",
-                "com.google.android.tvlauncher",
-                "com.google.android.leanbacklauncher"
-            )
-
-            if (ignoredPackages.any { packageName.startsWith(it) }) return
-
-            // Only process if from a known streaming app
-            val isFromStreamingApp = streamingPackages.any { packageName.startsWith(it) }
-            if (!isFromStreamingApp) return
-
-            when (event.eventType) {
-                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
-                AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
-                    Log.d(TAG, "Event from package: $packageName")
-                    checkAndDismissDialog()
-                }
+            if (packageName != currentActivePackage) {
+                currentActivePackage = packageName
+                handleActivePackageChanged(packageName)
             }
+
+            if (!PackagePolicy.isStreamingPackage(packageName)) return
+
+            touchWakeLockSafetyTimer()
+            updatePlaybackSignal(event)
+
+            if (!isDialogRelevantEvent(event.eventType)) return
+
+            val now = System.currentTimeMillis()
+            val quickDialogHint = DialogTextMatcher.eventLooksLikeDialog(
+                className = event.className,
+                eventText = event.text,
+                contentDescription = event.contentDescription
+            )
+            val cooldownMs = if (quickDialogHint) CHECK_COOLDOWN_HINT_MS else CHECK_COOLDOWN_MS
+            if (now - lastDialogCheckTime < cooldownMs) return
+
+            val rootNode = rootInActiveWindow ?: return
+            if (shouldSkipDialogScanByFingerprint(rootNode, now)) {
+                safeRecycle(rootNode)
+                return
+            }
+
+            lastDialogCheckTime = now
+            dialogScanCount++
+            checkAndDismissDialog(rootNode)
+            publishTelemetrySnapshot()
+            safeRecycle(rootNode)
         } catch (e: Exception) {
             Log.e(TAG, "Error in onAccessibilityEvent: ${e.message}", e)
         }
@@ -189,6 +161,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         isRunning = false
         stopPeriodicActivity()
         releaseWakeLock()
+        handler = null
         Log.i(TAG, "Accessibility Service destroyed")
         super.onDestroy()
     }
@@ -197,178 +170,202 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     // Layer 1: Dialog Detection & Auto-Dismiss
     // ==========================================
 
-    /**
-     * Check if the "still watching?" dialog is visible and dismiss it.
-     */
-    private fun checkAndDismissDialog() {
-        try {
-            val rootNode = rootInActiveWindow ?: return
+    private fun isDialogRelevantEvent(eventType: Int): Boolean {
+        return eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+            eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+    }
 
-            // Search for dialog keywords in the accessibility tree
-            if (containsDialogKeywords(rootNode)) {
-                Log.i(TAG, "Detected 'still watching' dialog! Attempting to dismiss...")
-
-                // Strategy 1: Find and click the confirmation button
-                if (findAndClickConfirmButton(rootNode)) {
-                    Log.i(TAG, "Successfully clicked confirm button!")
-                    safeRecycle(rootNode)
-                    return
-                }
-
-                // Strategy 2: Click the focused element (highly reliable on TV interfaces for dialogs)
-                if (clickFocusedElement(rootNode)) {
-                    Log.i(TAG, "Clicked the focused element in the dialog!")
-                    safeRecycle(rootNode)
-                    return
-                }
-
-                // Strategy 3: Click any clickable button in the dialog
-                if (clickFirstButton(rootNode)) {
-                    Log.i(TAG, "Clicked a generic button in the dialog!")
-                    safeRecycle(rootNode)
-                    return
-                }
-
-                // Strategy 4: Perform BACK action to dismiss the dialog
-                Log.i(TAG, "No button found, trying BACK action...")
-                performGlobalAction(GLOBAL_ACTION_BACK)
-            }
-
-            safeRecycle(rootNode)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error checking dialog: ${e.message}", e)
+    private fun updatePlaybackSignal(event: AccessibilityEvent) {
+        when (event.eventType) {
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
+            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
+            AccessibilityEvent.TYPE_VIEW_SCROLLED,
+            AccessibilityEvent.TYPE_VIEW_CLICKED -> lastPlaybackSignalTime = System.currentTimeMillis()
         }
     }
 
-    /**
-     * Recursively search the node tree for dialog keywords.
-     */
-    private fun containsDialogKeywords(node: AccessibilityNodeInfo?): Boolean {
-        if (node == null) return false
+    private fun shouldSkipDialogScanByFingerprint(rootNode: AccessibilityNodeInfo, now: Long): Boolean {
+        val fingerprint = buildWindowFingerprint(rootNode)
+        val isSameWindow = fingerprint == lastDialogWindowFingerprint
+        val isCooldownActive = now - lastDialogWindowFingerprintTime < WINDOW_FINGERPRINT_COOLDOWN_MS
+        if (isSameWindow && isCooldownActive) {
+            return true
+        }
+        lastDialogWindowFingerprint = fingerprint
+        lastDialogWindowFingerprintTime = now
+        return false
+    }
+
+    private fun buildWindowFingerprint(rootNode: AccessibilityNodeInfo): String {
+        val pkg = rootNode.packageName?.toString().orEmpty()
+        val cls = rootNode.className?.toString().orEmpty()
+        val childCount = rootNode.childCount
+        val rootText = rootNode.text?.toString()?.take(40).orEmpty()
+        val desc = rootNode.contentDescription?.toString()?.take(40).orEmpty()
+        return "$pkg|$cls|$childCount|$rootText|$desc"
+    }
+
+    private fun checkAndDismissDialog(rootNode: AccessibilityNodeInfo) {
+        val budget = ScanBudget(deadlineMs = System.currentTimeMillis() + SCAN_TIME_BUDGET_MS)
+        if (!containsDialogKeywords(rootNode, depth = 0, budget = budget)) return
+
+        dialogDetectedCount++
+        Log.i(TAG, "Detected 'still watching' dialog - dismissing")
+
+        if (findAndClickConfirmButton(rootNode, depth = 0, budget = budget)) {
+            dialogDismissedCount++
+            Log.i(TAG, "Dialog dismissed with confirm keyword")
+            publishTelemetrySnapshot()
+            return
+        }
+
+        if (clickFocusedElement(rootNode)) {
+            dialogDismissedCount++
+            Log.i(TAG, "Dialog dismissed via focused element")
+            publishTelemetrySnapshot()
+            return
+        }
+
+        if (clickFirstButton(rootNode, depth = 0, budget = budget)) {
+            dialogDismissedCount++
+            Log.i(TAG, "Dialog dismissed via fallback clickable node")
+            publishTelemetrySnapshot()
+            return
+        }
+
+        Log.i(TAG, "No actionable node found, trying BACK")
+        performGlobalAction(GLOBAL_ACTION_BACK)
+    }
+
+    private fun containsDialogKeywords(
+        node: AccessibilityNodeInfo?,
+        depth: Int,
+        budget: ScanBudget
+    ): Boolean {
+        if (node == null || !budget.canVisit(depth)) return false
 
         try {
-            val text = node.text?.toString()?.lowercase() ?: ""
-            val contentDesc = node.contentDescription?.toString()?.lowercase() ?: ""
+            if (DialogTextMatcher.containsDialogKeyword(node.text)) return true
+            if (DialogTextMatcher.containsDialogKeyword(node.contentDescription)) return true
 
-            for (keyword in DIALOG_KEYWORDS) {
-                val kw = keyword.lowercase()
-                if (text.contains(kw) || contentDesc.contains(kw)) {
-                    return true
-                }
-            }
-
-            // Recurse into children
             for (i in 0 until node.childCount) {
-                val child = try { node.getChild(i) } catch (e: Exception) { null }
+                val child = try {
+                    node.getChild(i)
+                } catch (_: Exception) {
+                    null
+                }
                 if (child != null) {
-                    val found = containsDialogKeywords(child)
+                    val found = containsDialogKeywords(child, depth + 1, budget)
                     safeRecycle(child)
                     if (found) return true
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error scanning node: ${e.message}")
+            Log.e(TAG, "Error scanning dialog keywords: ${e.message}")
         }
 
         return false
     }
 
-    /**
-     * Find and click a confirmation button by matching known keywords.
-     */
-    private fun findAndClickConfirmButton(node: AccessibilityNodeInfo?): Boolean {
-        if (node == null) return false
+    private fun findAndClickConfirmButton(
+        node: AccessibilityNodeInfo?,
+        depth: Int,
+        budget: ScanBudget
+    ): Boolean {
+        if (node == null || !budget.canVisit(depth)) return false
 
         try {
-            val text = node.text?.toString()?.lowercase() ?: ""
-            val contentDesc = node.contentDescription?.toString()?.lowercase() ?: ""
-
-            // Check if this node matches a confirm keyword and is clickable
-            for (keyword in CONFIRM_KEYWORDS) {
-                val kw = keyword.lowercase()
-                if ((text.contains(kw) || contentDesc.contains(kw)) && node.isClickable) {
-                    node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                    Log.i(TAG, "Clicked confirm button with text: '$text'")
+            if (node.isClickable && DialogTextMatcher.containsConfirmKeyword(node.text, node.contentDescription)) {
+                if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
                     return true
                 }
             }
 
-            // Recurse into children
             for (i in 0 until node.childCount) {
-                val child = try { node.getChild(i) } catch (e: Exception) { null }
+                val child = try {
+                    node.getChild(i)
+                } catch (_: Exception) {
+                    null
+                }
                 if (child != null) {
-                    val found = findAndClickConfirmButton(child)
-                    if (found) {
-                        safeRecycle(child)
-                        return true
-                    }
+                    val found = findAndClickConfirmButton(child, depth + 1, budget)
                     safeRecycle(child)
+                    if (found) return true
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error finding confirm button: ${e.message}")
         }
-
         return false
     }
 
-    /**
-     * Click the first clickable button found in the node tree.
-     * Fallback when specific button text isn't matched.
-     */
-    private fun clickFirstButton(node: AccessibilityNodeInfo?): Boolean {
-        if (node == null) return false
+    private fun clickFirstButton(
+        node: AccessibilityNodeInfo?,
+        depth: Int,
+        budget: ScanBudget
+    ): Boolean {
+        if (node == null || !budget.canVisit(depth)) return false
 
         try {
-            val className = node.className?.toString() ?: ""
-            // Include generic View and ViewGroup as long as it's clickable and we are in a dialog context
-            if (node.isClickable && (className.contains("Button", ignoreCase = true) || 
-                                     className == "android.view.View" || 
-                                     className == "android.view.ViewGroup")) {
-                node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                Log.i(TAG, "Clicked first available button/view ($className)")
-                return true
+            val className = node.className?.toString().orEmpty()
+            val looksClickableClass = className.contains("Button", ignoreCase = true) ||
+                className == "android.view.View" ||
+                className == "android.view.ViewGroup"
+            if (node.isClickable && looksClickableClass) {
+                if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                    return true
+                }
             }
 
             for (i in 0 until node.childCount) {
-                val child = try { node.getChild(i) } catch (e: Exception) { null }
+                val child = try {
+                    node.getChild(i)
+                } catch (_: Exception) {
+                    null
+                }
                 if (child != null) {
-                    val found = clickFirstButton(child)
-                    if (found) {
-                        safeRecycle(child)
-                        return true
-                    }
+                    val found = clickFirstButton(child, depth + 1, budget)
                     safeRecycle(child)
+                    if (found) return true
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error clicking button: ${e.message}")
+            Log.e(TAG, "Error clicking fallback button: ${e.message}")
         }
 
         return false
     }
 
-    /**
-     * Click the currently focused element, assuming the TV OS focused the confirm button automatically.
-     */
-    private fun clickFocusedElement(node: AccessibilityNodeInfo?): Boolean {
-        if (node == null) return false
+    private fun clickFocusedElement(rootNode: AccessibilityNodeInfo?): Boolean {
+        if (rootNode == null) return false
+
+        val toRecycle = mutableListOf<AccessibilityNodeInfo>()
         try {
-            // Check accessibility focus or input focus
-            val focusedNode = node.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) 
-                ?: node.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY)
-            
-            if (focusedNode != null) {
-                if (focusedNode.isClickable) {
-                    focusedNode.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                    Log.i(TAG, "Clicked focused element")
-                    safeRecycle(focusedNode)
+            val focusedNode = rootNode.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+                ?: rootNode.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY)
+                ?: return false
+            toRecycle.add(focusedNode)
+
+            if (focusedNode.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
+            focusedNode.performAction(AccessibilityNodeInfo.ACTION_SELECT)
+            focusedNode.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+            if (focusedNode.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
+
+            // TV UIs often wrap buttons in clickable parents.
+            var parent = focusedNode.parent
+            var depth = 0
+            while (parent != null && depth < 3) {
+                toRecycle.add(parent)
+                if (parent.isClickable && parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
                     return true
                 }
-                safeRecycle(focusedNode)
+                parent = parent.parent
+                depth++
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error clicking focused element: ${e.message}")
+        } finally {
+            toRecycle.forEach { safeRecycle(it) }
         }
         return false
     }
@@ -377,21 +374,52 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     // Layer 2: Periodic Activity Simulation
     // ==========================================
 
-    /**
-     * Start periodic activity simulation.
-     * Every ~25 minutes, simulate a gentle interaction to prevent
-     * the "still watching" timeout.
-     */
-    private fun startPeriodicActivity() {
+    private fun handleActivePackageChanged(packageName: String) {
+        val isStreaming = PackagePolicy.isStreamingPackage(packageName)
+        if (!isStreaming) {
+            idleBackoffLevel = 0
+            stopPeriodicActivity()
+            releaseWakeLock()
+            publishTelemetrySnapshot()
+            return
+        }
+
+        val desiredInterval = PackagePolicy.intervalForPackage(packageName)
+        val intervalChanged = desiredInterval != currentBaseIntervalMs
+        currentBaseIntervalMs = desiredInterval
+        currentScheduledIntervalMs = desiredInterval
+        idleBackoffLevel = 0
+
+        if (wakeLock?.isHeld != true) acquireWakeLock()
+        touchWakeLockSafetyTimer()
+
+        if (periodicRunnable == null || intervalChanged) {
+            startPeriodicActivity(currentBaseIntervalMs)
+        }
+        publishTelemetrySnapshot()
+    }
+
+    private fun startPeriodicActivity(initialIntervalMs: Long) {
         try {
+            stopPeriodicActivity()
+            currentScheduledIntervalMs = initialIntervalMs
+
             periodicRunnable = object : Runnable {
                 override fun run() {
+                    if (wakeLock?.isHeld != true && PackagePolicy.isStreamingPackage(currentActivePackage)) {
+                        acquireWakeLock()
+                    }
+
                     simulateActivity()
-                    handler?.postDelayed(this, PERIODIC_INTERVAL_MS)
+
+                    val nextInterval = computeNextIntervalMs()
+                    currentScheduledIntervalMs = nextInterval
+                    handler?.postDelayed(this, nextInterval)
                 }
             }
-            handler?.postDelayed(periodicRunnable!!, PERIODIC_INTERVAL_MS)
-            Log.i(TAG, "Periodic activity started (every ${PERIODIC_INTERVAL_MS / 60000} minutes)")
+
+            handler?.postDelayed(periodicRunnable!!, initialIntervalMs)
+            Log.i(TAG, "Periodic activity started (${initialIntervalMs / 60000} min)")
         } catch (e: Exception) {
             Log.e(TAG, "Error starting periodic activity: ${e.message}", e)
         }
@@ -403,38 +431,47 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             periodicRunnable = null
             Log.i(TAG, "Periodic activity stopped")
         } catch (e: Exception) {
-            Log.e(TAG, "Error stopping periodic: ${e.message}")
+            Log.e(TAG, "Error stopping periodic activity: ${e.message}")
         }
     }
 
-    /**
-     * Simulate user activity — TRIPLE DEFENSE.
-     * 1. PowerManager.userActivity() — resets OS screen-off timer (like touching the remote)
-     * 2. dispatchGesture — sends invisible touch to reset app-level inactivity timers
-     * 3. Benign accessibility tree query as last resort
-     */
+    private fun computeNextIntervalMs(): Long {
+        val now = System.currentTimeMillis()
+        val hasRecentPlaybackSignal = now - lastPlaybackSignalTime <= PLAYBACK_SIGNAL_STALE_MS
+        if (hasRecentPlaybackSignal) {
+            idleBackoffLevel = 0
+            return currentBaseIntervalMs
+        }
+
+        idleBackoffLevel = min(idleBackoffLevel + 1, MAX_IDLE_BACKOFF_LEVEL)
+        val multiplier = 1L shl idleBackoffLevel
+        val backedOff = currentBaseIntervalMs * multiplier
+        return min(backedOff, PackagePolicy.MAX_BACKOFF_INTERVAL_MS)
+    }
+
     private fun simulateActivity() {
         try {
-            // === Defense 1: OS-level screen-on reset ===
-            pokeUserActivity()
+            if (!PackagePolicy.isStreamingPackage(currentActivePackage)) return
 
-            // === Defense 2: App-level gesture simulation ===
+            simulateActivityCount++
+            pokeUserActivity()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 simulateGesture()
             }
 
-            Log.i(TAG, "Periodic activity simulation completed (interval: ${PERIODIC_INTERVAL_MS / 60000} min)")
+            Log.i(
+                TAG,
+                "Activity simulated (base=${currentBaseIntervalMs / 60000}m, next=${currentScheduledIntervalMs / 60000}m)"
+            )
+            if (simulateActivityCount % 5L == 0L) {
+                logTelemetrySnapshot("periodic")
+            }
+            publishTelemetrySnapshot()
         } catch (e: Exception) {
             Log.e(TAG, "Error simulating activity: ${e.message}", e)
         }
     }
 
-    /**
-     * Poke the screen to reset the screen-off countdown.
-     * Briefly acquires and releases a SCREEN_DIM_WAKE_LOCK which resets
-     * the system's screen-off timer — same effect as touching the remote.
-     * Available to all apps (no system permission needed).
-     */
     @Suppress("DEPRECATION")
     private fun pokeUserActivity() {
         try {
@@ -443,37 +480,46 @@ class KeepAliveAccessibilityService : AccessibilityService() {
                 PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
                 "StreamKeepAlive::ScreenPoke"
             )
-            screenLock.acquire(1000L) // Hold for 1 second then auto-release
-            Log.i(TAG, "Screen poke — screen-off timer reset")
+            screenLock.acquire(1000L)
         } catch (e: Exception) {
             Log.e(TAG, "Error poking screen: ${e.message}", e)
         }
     }
 
-    /**
-     * Simulate a gentle touch gesture at coordinates (1,1) — invisible corner tap.
-     * This registers as real user input at the app level, resetting per-app inactivity timers
-     * (Netflix, Yes, etc.) without visually affecting the UI.
-     * API 24+ only.
-     */
     private fun simulateGesture() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
 
         try {
-            val path = Path()
-            // Touch at the very top-left corner — invisible and non-interactive
-            path.moveTo(1f, 1f)
+            val metrics = resources.displayMetrics
+            val maxX = max(1, metrics.widthPixels - 1).toFloat()
+            val maxY = max(1, metrics.heightPixels - 1).toFloat()
+            val safeMinX = min(10f, maxX)
+            val safeMinY = min(10f, maxY)
 
-            val gestureBuilder = GestureDescription.Builder()
-            gestureBuilder.addStroke(
-                GestureDescription.StrokeDescription(path, 0, 50)
-            )
+            val baseX = max(metrics.widthPixels * 0.02f, safeMinX)
+            val baseY = max(metrics.heightPixels * 0.02f, safeMinY)
+            val jitterX = Random.nextFloat() * 2f - 1f
+            val jitterY = Random.nextFloat() * 2f - 1f
+
+            val startX = clamp(baseX + jitterX, safeMinX, maxX)
+            val startY = clamp(baseY + jitterY, safeMinY, maxY)
+            val endX = clamp(startX + 2f, safeMinX, maxX)
+            val endY = clamp(startY + 2f, safeMinY, maxY)
+
+            val path = Path().apply {
+                moveTo(startX, startY)
+                lineTo(endX, endY)
+            }
+
+            val gesture = GestureDescription.Builder()
+                .addStroke(GestureDescription.StrokeDescription(path, 0, 100))
+                .build()
 
             val dispatched = dispatchGesture(
-                gestureBuilder.build(),
+                gesture,
                 object : GestureResultCallback() {
                     override fun onCompleted(gestureDescription: GestureDescription?) {
-                        Log.i(TAG, "Gesture dispatch completed — app-level activity registered")
+                        Log.d(TAG, "Gesture dispatch completed")
                     }
 
                     override fun onCancelled(gestureDescription: GestureDescription?) {
@@ -483,11 +529,15 @@ class KeepAliveAccessibilityService : AccessibilityService() {
                 null
             )
 
-            if (!dispatched) {
+            if (dispatched) {
+                gestureDispatchCount++
+            } else {
+                gestureDispatchFailureCount++
                 Log.w(TAG, "Gesture dispatch failed")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error in gesture simulation: ${e.message}", e)
+            gestureDispatchFailureCount++
+            Log.e(TAG, "Error simulating gesture: ${e.message}", e)
         }
     }
 
@@ -495,14 +545,10 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     // WakeLock Management
     // ==========================================
 
-    /**
-     * Acquire a PARTIAL_WAKE_LOCK to keep the CPU running.
-     * This ensures our periodic timers fire even when the screen dims.
-     * Without this, Android may suspend the CPU and our Handler stops posting.
-     */
     @Suppress("DEPRECATION")
     private fun acquireWakeLock() {
         try {
+            if (wakeLock?.isHeld == true) return
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             wakeLock = pm.newWakeLock(
                 PowerManager.PARTIAL_WAKE_LOCK,
@@ -511,37 +557,98 @@ class KeepAliveAccessibilityService : AccessibilityService() {
                 setReferenceCounted(false)
                 acquire()
             }
-            Log.i(TAG, "WakeLock acquired — CPU will stay alive")
+
+            wakeLockHeldSince = System.currentTimeMillis()
+            wakeLockAcquireCount++
+            touchWakeLockSafetyTimer()
+
+            Log.i(
+                TAG,
+                "WakeLock acquired (#$wakeLockAcquireCount, held=${wakeLockHeldSince})"
+            )
+            publishTelemetrySnapshot()
         } catch (e: Exception) {
             Log.e(TAG, "Error acquiring WakeLock: ${e.message}", e)
         }
     }
 
-    /**
-     * Release the WakeLock when the service is destroyed.
-     */
+    private fun touchWakeLockSafetyTimer() {
+        wakeLockLastTouchedAt = System.currentTimeMillis()
+        wakeLockSafetyRunnable?.let { handler?.removeCallbacks(it) }
+
+        lateinit var runnable: Runnable
+        runnable = Runnable {
+            val inactiveForMs = System.currentTimeMillis() - wakeLockLastTouchedAt
+            if (wakeLock?.isHeld == true && inactiveForMs >= WAKELOCK_SAFETY_TIMEOUT_MS) {
+                Log.w(TAG, "WakeLock safety timeout reached; releasing")
+                releaseWakeLock()
+                return@Runnable
+            }
+
+            val remaining = WAKELOCK_SAFETY_TIMEOUT_MS - inactiveForMs
+            if (remaining > 0) {
+                handler?.postDelayed(runnable, remaining)
+            }
+        }
+        wakeLockSafetyRunnable = runnable
+
+        handler?.postDelayed(runnable, WAKELOCK_SAFETY_TIMEOUT_MS)
+    }
+
     private fun releaseWakeLock() {
         try {
+            wakeLockSafetyRunnable?.let { handler?.removeCallbacks(it) }
+            wakeLockSafetyRunnable = null
+
             wakeLock?.let {
                 if (it.isHeld) {
                     it.release()
-                    Log.i(TAG, "WakeLock released")
+                    wakeLockReleaseCount++
+                    val heldMs = System.currentTimeMillis() - wakeLockHeldSince
+                    Log.i(TAG, "WakeLock released (#$wakeLockReleaseCount, heldMs=$heldMs)")
                 }
             }
             wakeLock = null
+            publishTelemetrySnapshot()
         } catch (e: Exception) {
             Log.e(TAG, "Error releasing WakeLock: ${e.message}", e)
         }
     }
 
-    /**
-     * Safely recycle an AccessibilityNodeInfo without crashing.
-     */
+    private fun clamp(value: Float, min: Float, max: Float): Float {
+        return value.coerceIn(min, max)
+    }
+
+    private fun logTelemetrySnapshot(reason: String) {
+        Log.i(
+            TAG,
+            "Telemetry[$reason] scans=$dialogScanCount detected=$dialogDetectedCount " +
+                "dismissed=$dialogDismissedCount gesturesOk=$gestureDispatchCount " +
+                "gesturesFail=$gestureDispatchFailureCount wakeAcquire=$wakeLockAcquireCount " +
+                "wakeRelease=$wakeLockReleaseCount"
+        )
+    }
+
+    private fun publishTelemetrySnapshot() {
+        telemetrySnapshot = TelemetrySnapshot(
+            activePackage = currentActivePackage,
+            baseIntervalMinutes = currentBaseIntervalMs / 60000L,
+            nextIntervalMinutes = currentScheduledIntervalMs / 60000L,
+            dialogScans = dialogScanCount,
+            dialogsDetected = dialogDetectedCount,
+            dialogsDismissed = dialogDismissedCount,
+            gesturesOk = gestureDispatchCount,
+            gesturesFail = gestureDispatchFailureCount,
+            wakeAcquires = wakeLockAcquireCount.toLong(),
+            wakeReleases = wakeLockReleaseCount.toLong()
+        )
+    }
+
     private fun safeRecycle(node: AccessibilityNodeInfo?) {
         try {
             node?.recycle()
-        } catch (e: Exception) {
-            // Ignore - node may already be recycled
+        } catch (_: Exception) {
+            // Node may already be recycled by framework.
         }
     }
 }
