@@ -1,5 +1,8 @@
 # Stream Keep Alive - Android TV App
 
+[![Android CI](https://github.com/amit113210/stream-keep-alive/actions/workflows/android-ci.yml/badge.svg)](https://github.com/amit113210/stream-keep-alive/actions/workflows/android-ci.yml)
+[![Latest Release](https://img.shields.io/github/v/release/amit113210/stream-keep-alive?display_name=tag)](https://github.com/amit113210/stream-keep-alive/releases/latest)
+
 אפליקציית Android TV שמונעת הודעות "האם אתם עדיין צופים?" באפליקציות סטרימינג.
 
 ## איך זה עובד?
@@ -87,3 +90,7 @@ app/src/main/
 ## דרישות מערכת
 - Android TV עם Android 5.0 (API 21) ומעלה
 - לא צריך Root!
+
+## אוטומציה ב-GitHub
+- בכל Push / PR ל-`main` רץ CI אוטומטי: בדיקות יחידה + בניית APK.
+- בכל תגית חדשה (`v*`) נוצר Release אוטומטי עם קובץ `StreamKeepAlive.apk`.
