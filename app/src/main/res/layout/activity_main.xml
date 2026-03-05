@@ -69,43 +69,55 @@
         android:layout_marginBottom="24dp">
 
         <!-- Accessibility Settings Button -->
-        <TextView
+        <LinearLayout
             android:id="@+id/settingsButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/button_enable"
-            android:textSize="18sp"
-            android:textStyle="bold"
             android:paddingHorizontal="32dp"
             android:paddingVertical="12dp"
             android:background="@drawable/button_background"
-            android:textColor="@color/text_primary"
-            android:textAllCaps="false"
             android:minWidth="260dp"
             android:gravity="center"
             android:clickable="true"
             android:focusableInTouchMode="true"
             android:focusable="true"
-            android:layout_marginEnd="24dp" />
+            android:layout_marginEnd="24dp">
+
+            <TextView
+                android:id="@+id/settingsButtonLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/button_enable"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/white"
+                android:gravity="center" />
+        </LinearLayout>
 
         <!-- Hotspot Settings Button -->
-        <TextView
+        <LinearLayout
             android:id="@+id/hotspotButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/button_hotspot"
-            android:textSize="18sp"
-            android:textStyle="bold"
             android:paddingHorizontal="32dp"
             android:paddingVertical="12dp"
             android:background="@drawable/button_background_secondary"
-            android:textColor="@color/text_primary"
-            android:textAllCaps="false"
             android:minWidth="260dp"
             android:gravity="center"
             android:clickable="true"
             android:focusableInTouchMode="true"
-            android:focusable="true" />
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/hotspotButtonLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/button_hotspot"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/white"
+                android:gravity="center" />
+        </LinearLayout>
 
     </LinearLayout>
 

@@ -2,12 +2,12 @@ package com.keepalive.yesplus
 
 import android.content.ComponentName
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -21,8 +21,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusIndicator: ImageView
     private lateinit var statusText: TextView
     private lateinit var descriptionText: TextView
-    private lateinit var settingsButton: TextView
-    private lateinit var hotspotButton: TextView
+    private lateinit var settingsButton: LinearLayout
+    private lateinit var hotspotButton: LinearLayout
     private lateinit var debugTelemetryText: TextView
     private val telemetryHandler = Handler(Looper.getMainLooper())
     private var telemetryRunnable: Runnable? = null
@@ -41,17 +41,6 @@ class MainActivity : AppCompatActivity() {
         settingsButton = findViewById(R.id.settingsButton)
         hotspotButton = findViewById(R.id.hotspotButton)
         debugTelemetryText = findViewById(R.id.debugTelemetryText)
-
-        // Force explicit button labels and text styling for TV launchers that
-        // occasionally render custom Button backgrounds without text.
-        settingsButton.text = getString(R.string.button_enable)
-        hotspotButton.text = getString(R.string.button_hotspot)
-        settingsButton.setTextColor(Color.WHITE)
-        hotspotButton.setTextColor(Color.WHITE)
-        settingsButton.isAllCaps = false
-        hotspotButton.isAllCaps = false
-        settingsButton.isEnabled = true
-        hotspotButton.isEnabled = true
 
         // Accessibility settings button requires triple click
         settingsButton.setOnClickListener {
