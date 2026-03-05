@@ -249,6 +249,52 @@ body {
 }
 
 /* =====================
+   Cookie Consent
+   ===================== */
+.cookie-consent-banner {
+    position: fixed;
+    right: 16px;
+    left: 16px;
+    bottom: 16px;
+    z-index: 9999;
+    background: rgba(10, 10, 26, 0.96);
+    border: 1px solid rgba(99, 102, 241, 0.45);
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.cookie-consent-content {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+}
+
+.cookie-consent-content p {
+    margin: 0;
+    font-size: 14px;
+    color: #e4e4ff;
+}
+
+.cookie-consent-btn {
+    border: 0;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    font-family: 'Heebo', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 10px 16px;
+    cursor: pointer;
+}
+
+.cookie-consent-btn:hover {
+    filter: brightness(1.08);
+}
+
+/* =====================
    Before/After Section
    ===================== */
 .before-after {
