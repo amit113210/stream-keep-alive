@@ -11,6 +11,7 @@ color surface_dark
 color text_primary
 color text_secondary
 drawable app_banner
+drawable app_banner_logo
 drawable button_background
 drawable button_background_secondary
 drawable ic_launcher

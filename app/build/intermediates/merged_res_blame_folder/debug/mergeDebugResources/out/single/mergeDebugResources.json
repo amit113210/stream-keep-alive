@@ -8,16 +8,8 @@
         "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/drawable/ic_launcher.xml"
     },
     {
-        "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/mipmap-xhdpi_ic_launcher.png.flat",
-        "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/mipmap-xhdpi/ic_launcher.png"
-    },
-    {
-        "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/mipmap-xhdpi_ic_launcher_round.png.flat",
-        "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/mipmap-xhdpi/ic_launcher_round.png"
-    },
-    {
-        "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/mipmap-xxxhdpi_ic_launcher.png.flat",
-        "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/mipmap-xxxhdpi/ic_launcher.png"
+        "merged": "com.keepalive.yesplus.app-debug-24:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "com.keepalive.yesplus.app-main-26:/mipmap-mdpi/ic_launcher.png"
     },
     {
         "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/mipmap-mdpi_ic_launcher_round.png.flat",
@@ -28,24 +20,16 @@
         "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/mipmap-xxxhdpi/ic_launcher_round.png"
     },
     {
-        "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/mipmap-anydpi-v26_ic_launcher.xml.flat",
-        "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/mipmap-anydpi-v26/ic_launcher.xml"
-    },
-    {
-        "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/mipmap-hdpi_ic_launcher_round.png.flat",
-        "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/mipmap-hdpi/ic_launcher_round.png"
+        "merged": "com.keepalive.yesplus.app-debug-24:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.keepalive.yesplus.app-main-26:/mipmap-xxhdpi/ic_launcher.png"
     },
     {
         "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/drawable_ic_status_inactive.xml.flat",
         "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/drawable/ic_status_inactive.xml"
     },
     {
-        "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/mipmap-xxhdpi_ic_launcher_round.png.flat",
-        "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/mipmap-xxhdpi/ic_launcher_round.png"
-    },
-    {
-        "merged": "com.keepalive.yesplus.app-debug-24:/layout_activity_main.xml.flat",
-        "source": "com.keepalive.yesplus.app-main-26:/layout/activity_main.xml"
+        "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/mipmap-hdpi/ic_launcher_round.png"
     },
     {
         "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/drawable_button_background_secondary.xml.flat",
@@ -58,6 +42,70 @@
     {
         "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/drawable_ic_status_active.xml.flat",
         "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/drawable/ic_status_active.xml"
+    },
+    {
+        "merged": "com.keepalive.yesplus.app-debug-24:/drawable_app_banner.xml.flat",
+        "source": "com.keepalive.yesplus.app-main-26:/drawable/app_banner.xml"
+    },
+    {
+        "merged": "com.keepalive.yesplus.app-debug-24:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.keepalive.yesplus.app-main-26:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.keepalive.yesplus.app-debug-24:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "com.keepalive.yesplus.app-main-26:/mipmap-xxxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.keepalive.yesplus.app-debug-24:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.keepalive.yesplus.app-main-26:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.keepalive.yesplus.app-debug-24:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "com.keepalive.yesplus.app-main-26:/mipmap-hdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.keepalive.yesplus.app-debug-24:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.keepalive.yesplus.app-main-26:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/mipmap-xhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.keepalive.yesplus.app-debug-24:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.keepalive.yesplus.app-main-26:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.keepalive.yesplus.app-debug-24:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "com.keepalive.yesplus.app-main-26:/mipmap-xhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.keepalive.yesplus.app-debug-24:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "com.keepalive.yesplus.app-main-26:/mipmap-mdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-main-26:/mipmap-xxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.keepalive.yesplus.app-debug-24:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "com.keepalive.yesplus.app-main-26:/mipmap-xxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.keepalive.yesplus.app-debug-24:/drawable-nodpi_app_banner_logo.png.flat",
+        "source": "com.keepalive.yesplus.app-main-26:/drawable-nodpi/app_banner_logo.png"
     },
     {
         "merged": "/Users/amittabul/.gradle/daemon/8.9/com.keepalive.yesplus.app-debug-24:/drawable_button_background.xml.flat",
