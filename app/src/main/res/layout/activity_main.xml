@@ -19,6 +19,15 @@
         android:focusable="true"
         android:layout_marginBottom="16dp" />
 
+    <TextView
+        android:id="@+id/versionText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/version_placeholder"
+        android:textSize="14sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="12dp" />
+
     <!-- Subtitle -->
     <TextView
         android:layout_width="wrap_content"

@@ -280,17 +280,13 @@ install_apk() {
 
     local install_output
     local install_success=false
-
-    # Check if already installed
-    local already_installed=false
-    if "$ADB" -s "$TARGET_DEVICE" shell pm list packages 2>/dev/null | grep -q "$PACKAGE_NAME"; then
-        already_installed=true
-        print_info "האפליקציה כבר מותקנת — מעדכן..."
-    fi
+    print_info "מבצע התקנה נקייה (מסיר גרסה קודמת אם קיימת)..."
+    "$ADB" -s "$TARGET_DEVICE" uninstall "$PACKAGE_NAME" 2>/dev/null || true
+    sleep 1
 
     # Strategy 1: Install with -r (replace) -d (downgrade) -g (grant permissions)
     print_info "מנסה התקנה (ניסיון 1)..."
-    install_output=$("$ADB" -s "$TARGET_DEVICE" install -r -d -g "$APK_PATH" 2>&1) || true
+    install_output=$("$ADB" -s "$TARGET_DEVICE" install -d -g "$APK_PATH" 2>&1) || true
 
     if echo "$install_output" | grep -q "Success"; then
         install_success=true
@@ -308,11 +304,9 @@ install_apk() {
         fi
     fi
 
-    # Strategy 3: Uninstall first, then clean install
-    if [ "$install_success" = false ] && [ "$already_installed" = true ]; then
-        print_info "מסיר גרסה קודמת ומנסה מחדש (ניסיון 3)..."
-        "$ADB" -s "$TARGET_DEVICE" uninstall "$PACKAGE_NAME" 2>/dev/null || true
-        sleep 1
+    # Strategy 3: Retry clean install
+    if [ "$install_success" = false ]; then
+        print_info "מנסה התקנה נקייה מחדש (ניסיון 3)..."
         install_output=$("$ADB" -s "$TARGET_DEVICE" install -g "$APK_PATH" 2>&1) || true
 
         if echo "$install_output" | grep -q "Success"; then
@@ -351,6 +345,14 @@ install_apk() {
 
     # Re-enable verifier (good practice)
     "$ADB" -s "$TARGET_DEVICE" shell settings put global verifier_verify_adb_installs 1 2>/dev/null || true
+
+    # Print installed version for verification
+    local installed_version
+    installed_version=$("$ADB" -s "$TARGET_DEVICE" shell dumpsys package "$PACKAGE_NAME" 2>/dev/null | grep -E "versionName=|versionCode=" | tr -d '\r' | head -2 || true)
+    if [ -n "$installed_version" ]; then
+        print_info "גרסה מותקנת:"
+        echo "$installed_version" | sed 's/^/  /'
+    fi
 }
 
 # =====================

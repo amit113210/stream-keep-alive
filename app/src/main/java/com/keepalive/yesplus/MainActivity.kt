@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusIndicator: ImageView
     private lateinit var statusText: TextView
     private lateinit var descriptionText: TextView
+    private lateinit var versionText: TextView
     private lateinit var settingsButton: LinearLayout
     private lateinit var hotspotButton: LinearLayout
     private lateinit var debugTelemetryText: TextView
@@ -38,9 +39,11 @@ class MainActivity : AppCompatActivity() {
         statusIndicator = findViewById(R.id.statusIndicator)
         statusText = findViewById(R.id.statusText)
         descriptionText = findViewById(R.id.descriptionText)
+        versionText = findViewById(R.id.versionText)
         settingsButton = findViewById(R.id.settingsButton)
         hotspotButton = findViewById(R.id.hotspotButton)
         debugTelemetryText = findViewById(R.id.debugTelemetryText)
+        versionText.text = getInstalledVersionText()
 
         // Accessibility settings button requires triple click
         settingsButton.setOnClickListener {
@@ -176,5 +179,21 @@ class MainActivity : AppCompatActivity() {
             telemetry.wakeAcquires,
             telemetry.wakeReleases
         )
+    }
+
+    private fun getInstalledVersionText(): String {
+        return try {
+            val pInfo = packageManager.getPackageInfo(packageName, 0)
+            val versionName = pInfo.versionName ?: "?"
+            val versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                pInfo.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                pInfo.versionCode.toLong()
+            }
+            "גרסה $versionName ($versionCode)"
+        } catch (e: Exception) {
+            getString(R.string.version_placeholder)
+        }
     }
 }

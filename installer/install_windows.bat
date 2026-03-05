@@ -167,9 +167,14 @@ echo    Disabling Play Protect verification...
 "%ADB%" shell settings put global verifier_verify_adb_installs 0 >nul 2>&1
 "%ADB%" shell settings put global package_verifier_enable 0 >nul 2>&1
 
+:: Force clean install first
+echo    Removing previous app version (if exists)...
+"%ADB%" uninstall %PACKAGE_NAME% >nul 2>&1
+timeout /t 1 /nobreak >nul
+
 :: Strategy 1: Install with -r -d -g
 echo    Trying install (attempt 1)...
-"%ADB%" install -r -d -g "%APK_PATH%" 2>&1 | findstr /C:"Success" >nul 2>&1
+"%ADB%" install -d -g "%APK_PATH%" 2>&1 | findstr /C:"Success" >nul 2>&1
 if %errorlevel%==0 (
     echo    ✅ App installed successfully!
     goto :install_done
@@ -220,6 +225,9 @@ exit /b 1
 :install_done
 :: Re-enable verifier
 "%ADB%" shell settings put global verifier_verify_adb_installs 1 >nul 2>&1
+
+echo    Installed app version:
+"%ADB%" shell dumpsys package %PACKAGE_NAME% 2>nul | findstr /C:"versionName=" /C:"versionCode="
 
 :: =====================
 :: Step 5: Enable Accessibility
