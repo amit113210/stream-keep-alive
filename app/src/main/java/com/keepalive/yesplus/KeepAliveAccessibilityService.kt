@@ -379,7 +379,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
     /**
      * Start periodic activity simulation.
-     * Every ~45 minutes, simulate a gentle interaction to prevent
+     * Every ~25 minutes, simulate a gentle interaction to prevent
      * the "still watching" timeout.
      */
     private fun startPeriodicActivity() {
