@@ -1,4 +1,6 @@
 #!/bin/bash
+# © 2025 Stream Keep Alive. All rights reserved.
+# Licensed under the MIT License. See LICENSE file.
 #
 # ╔══════════════════════════════════════════════════════════╗
 # ║       Stream Keep Alive — מתקין אוטומטי (Mac)           ║
@@ -28,6 +30,7 @@ APK_PATH="$SCRIPT_DIR/apk/StreamKeepAlive.apk"
 ADB_DIR="$SCRIPT_DIR/tools/platform-tools"
 PACKAGE_NAME="com.keepalive.yesplus"
 SERVICE_NAME="$PACKAGE_NAME/$PACKAGE_NAME.KeepAliveAccessibilityService"
+TARGET_DEVICE=""
 
 # Detect architecture
 ARCH=$(uname -m)
@@ -153,13 +156,53 @@ connect_device() {
     devices=$("$ADB" devices 2>/dev/null | grep -v "List" | grep -v "^$" | grep "device$" || true)
 
     if [ -n "$devices" ]; then
-        print_success "מכשיר מחובר!"
-        echo -e "  ${GREEN}$devices${NC}"
-        return 0
+        # Count connected devices
+        local device_count
+        device_count=$(echo "$devices" | wc -l | tr -d ' ')
+
+        if [ "$device_count" -gt 1 ]; then
+            # Multiple devices — let user choose
+            print_warning "נמצאו $device_count מכשירים מחוברים!"
+            echo ""
+            echo -e "  ${BOLD}בחר את המכשיר להתקנה:${NC}"
+            echo ""
+
+            local i=1
+            local serials=()
+            while IFS= read -r line; do
+                local serial
+                serial=$(echo "$line" | awk '{print $1}')
+                serials+=("$serial")
+
+                # Try to get model name
+                local model
+                model=$("$ADB" -s "$serial" shell getprop ro.product.model 2>/dev/null | tr -d '\r' || echo "לא ידוע")
+                echo -e "  ${CYAN}[$i]${NC} $serial  ${BOLD}($model)${NC}"
+                i=$((i + 1))
+            done <<< "$devices"
+
+            echo ""
+            while true; do
+                echo -ne "  ${YELLOW}${BOLD}בחר מכשיר [1-$device_count]: ${NC}"
+                read -r choice
+                if [ -n "$choice" ] && [ "$choice" -ge 1 ] 2>/dev/null && [ "$choice" -le "$device_count" ] 2>/dev/null; then
+                    TARGET_DEVICE="${serials[$((choice - 1))]}"
+                    print_success "נבחר: $TARGET_DEVICE"
+                    return 0
+                else
+                    print_warning "בחירה לא תקינה"
+                fi
+            done
+        else
+            # Single device
+            TARGET_DEVICE=$(echo "$devices" | head -1 | awk '{print $1}')
+            print_success "מכשיר מחובר!"
+            echo -e "  ${GREEN}$TARGET_DEVICE${NC}"
+            return 0
+        fi
     fi
 
-    # Ask for IP address
-    echo -e "  ${BOLD}לא נמצא מכשיר מחובר.${NC}"
+    # Manual IP entry fallback
     echo ""
     echo -e "  ${CYAN}איך למצוא את ה-IP של ה-Android TV:${NC}"
     echo -e "  ב-TV: ${BOLD}Settings → Device Preferences → About → Status${NC}"
@@ -179,7 +222,10 @@ connect_device() {
         fi
 
         echo -e "  מתחבר ל-$tv_ip..."
+        "$ADB" disconnect "$tv_ip:5555" 2>/dev/null >/dev/null || true
+        
         if "$ADB" connect "$tv_ip:5555" 2>/dev/null | grep -q "connected"; then
+            TARGET_DEVICE="$tv_ip:5555"
             print_success "מחובר ל-$tv_ip!"
 
             # Wait a moment and check for authorization prompt
@@ -207,6 +253,9 @@ connect_device() {
         else
             print_error "לא ניתן להתחבר ל-$tv_ip"
             echo -e "  ודא ש-ADB Debugging מופעל וה-TV באותה רשת WiFi"
+            echo -e "  * מאפס את חיבור הרשת מנסה שוב..."
+            "$ADB" kill-server 2>/dev/null >/dev/null || true
+            "$ADB" start-server 2>/dev/null >/dev/null || true
             echo ""
         fi
     done
@@ -218,35 +267,84 @@ connect_device() {
 install_apk() {
     print_step "4" "מתקין את האפליקציה..."
 
+    # Step 0: Disable Play Protect verification via ADB
+    print_info "מכבה Play Protect verification..."
+    "$ADB" -s "$TARGET_DEVICE" shell settings put global verifier_verify_adb_installs 0 2>/dev/null || true
+    "$ADB" -s "$TARGET_DEVICE" shell settings put global package_verifier_enable 0 2>/dev/null || true
+
+    local install_output
+    local install_success=false
+
     # Check if already installed
-    if "$ADB" shell pm list packages 2>/dev/null | grep -q "$PACKAGE_NAME"; then
+    local already_installed=false
+    if "$ADB" -s "$TARGET_DEVICE" shell pm list packages 2>/dev/null | grep -q "$PACKAGE_NAME"; then
+        already_installed=true
         print_info "האפליקציה כבר מותקנת — מעדכן..."
-        if "$ADB" install -r "$APK_PATH" 2>&1 | grep -q "Success"; then
-            print_success "האפליקציה עודכנה בהצלחה!"
-        else
-            print_warning "עדכון נכשל, מנסה התקנה מחדש..."
-            "$ADB" uninstall "$PACKAGE_NAME" 2>/dev/null || true
-            if "$ADB" install "$APK_PATH" 2>&1 | grep -q "Success"; then
-                print_success "האפליקציה הותקנה בהצלחה!"
-            else
-                print_error "ההתקנה נכשלה!"
-                print_info "נסה להתקין ידנית או כבה את Google Play Protect"
-                exit 1
-            fi
-        fi
-    else
-        if "$ADB" install "$APK_PATH" 2>&1 | grep -q "Success"; then
+    fi
+
+    # Strategy 1: Install with -r (replace) -d (downgrade) -g (grant permissions)
+    print_info "מנסה התקנה (ניסיון 1)..."
+    install_output=$("$ADB" -s "$TARGET_DEVICE" install -r -d -g "$APK_PATH" 2>&1) || true
+
+    if echo "$install_output" | grep -q "Success"; then
+        install_success=true
+        print_success "האפליקציה הותקנה בהצלחה!"
+    fi
+
+    # Strategy 2: Try with --bypass-low-target-sdk-block (Android 14+)
+    if [ "$install_success" = false ]; then
+        print_info "מנסה התקנה עם bypass (ניסיון 2)..."
+        install_output=$("$ADB" -s "$TARGET_DEVICE" install -r -d -g --bypass-low-target-sdk-block "$APK_PATH" 2>&1) || true
+
+        if echo "$install_output" | grep -q "Success"; then
+            install_success=true
             print_success "האפליקציה הותקנה בהצלחה!"
-        else
-            print_error "ההתקנה נכשלה!"
-            echo ""
-            print_info "אם Google Play Protect חוסם את ההתקנה:"
-            echo -e "  1. פתח את ${BOLD}Google Play Store${NC} ב-TV"
-            echo -e "  2. ${BOLD}Settings → Play Protect → כבה סריקה${NC}"
-            echo -e "  3. הרץ את המתקין שוב"
-            exit 1
         fi
     fi
+
+    # Strategy 3: Uninstall first, then clean install
+    if [ "$install_success" = false ] && [ "$already_installed" = true ]; then
+        print_info "מסיר גרסה קודמת ומנסה מחדש (ניסיון 3)..."
+        "$ADB" -s "$TARGET_DEVICE" uninstall "$PACKAGE_NAME" 2>/dev/null || true
+        sleep 1
+        install_output=$("$ADB" -s "$TARGET_DEVICE" install -g "$APK_PATH" 2>&1) || true
+
+        if echo "$install_output" | grep -q "Success"; then
+            install_success=true
+            print_success "האפליקציה הותקנה בהצלחה!"
+        fi
+    fi
+
+    # Strategy 4: Push APK and install via pm
+    if [ "$install_success" = false ]; then
+        print_info "מנסה התקנה דרך pm install (ניסיון 4)..."
+        "$ADB" -s "$TARGET_DEVICE" push "$APK_PATH" /data/local/tmp/keepalive.apk 2>/dev/null || true
+        install_output=$("$ADB" -s "$TARGET_DEVICE" shell pm install -r -d -g /data/local/tmp/keepalive.apk 2>&1) || true
+        "$ADB" -s "$TARGET_DEVICE" shell rm /data/local/tmp/keepalive.apk 2>/dev/null || true
+
+        if echo "$install_output" | grep -q "Success"; then
+            install_success=true
+            print_success "האפליקציה הותקנה בהצלחה!"
+        fi
+    fi
+
+    # Final: show error if all strategies failed
+    if [ "$install_success" = false ]; then
+        print_error "ההתקנה נכשלה!"
+        echo ""
+        echo -e "  ${RED}שגיאת ADB:${NC}"
+        echo -e "  ${YELLOW}$install_output${NC}"
+        echo ""
+        print_info "פתרונות אפשריים:"
+        echo -e "  1. כבה ${BOLD}Play Protect${NC}: Play Store → Settings → Play Protect → כבה"
+        echo -e "  2. ${BOLD}הפעל מחדש${NC} את ה-TV ונסה שוב"
+        echo -e "  3. בדוק שיש מספיק ${BOLD}מקום פנוי${NC} ב-TV (Settings → Storage)"
+        echo -e "  4. נסה ידנית: ${BOLD}adb install -r -d -g \"$APK_PATH\"${NC}"
+        exit 1
+    fi
+
+    # Re-enable verifier (good practice)
+    "$ADB" -s "$TARGET_DEVICE" shell settings put global verifier_verify_adb_installs 1 2>/dev/null || true
 }
 
 # =====================
@@ -257,33 +355,33 @@ enable_accessibility() {
 
     # Step 1: Allow restricted settings (Android 13+)
     print_info "מאפשר הגדרות מוגבלות..."
-    "$ADB" shell appops set "$PACKAGE_NAME" ACCESS_RESTRICTED_SETTINGS allow 2>/dev/null || true
+    "$ADB" -s "$TARGET_DEVICE" shell appops set "$PACKAGE_NAME" ACCESS_RESTRICTED_SETTINGS allow 2>/dev/null || true
     print_success "הגדרות מוגבלות אושרו"
 
     # Step 2: Get current accessibility services
     local current_services
-    current_services=$("$ADB" shell settings get secure enabled_accessibility_services 2>/dev/null || echo "null")
+    current_services=$("$ADB" -s "$TARGET_DEVICE" shell settings get secure enabled_accessibility_services 2>/dev/null || echo "null")
 
     # Step 3: Enable our service (append to existing if needed)
     if [ "$current_services" = "null" ] || [ -z "$current_services" ]; then
-        "$ADB" shell settings put secure enabled_accessibility_services "$SERVICE_NAME"
+        "$ADB" -s "$TARGET_DEVICE" shell settings put secure enabled_accessibility_services "$SERVICE_NAME"
     else
         if echo "$current_services" | grep -q "$PACKAGE_NAME"; then
             print_info "שירות הנגישות כבר מוגדר"
         else
-            "$ADB" shell settings put secure enabled_accessibility_services "$current_services:$SERVICE_NAME"
+            "$ADB" -s "$TARGET_DEVICE" shell settings put secure enabled_accessibility_services "$current_services:$SERVICE_NAME"
         fi
     fi
     print_success "שירות הנגישות הוגדר"
 
     # Step 4: Enable accessibility
-    "$ADB" shell settings put secure accessibility_enabled 1
+    "$ADB" -s "$TARGET_DEVICE" shell settings put secure accessibility_enabled 1
     print_success "נגישות הופעלה"
 
     # Step 5: Verify
     sleep 1
     local verify
-    verify=$("$ADB" shell settings get secure enabled_accessibility_services 2>/dev/null || echo "")
+    verify=$("$ADB" -s "$TARGET_DEVICE" shell settings get secure enabled_accessibility_services 2>/dev/null || echo "")
 
     if echo "$verify" | grep -q "$PACKAGE_NAME"; then
         print_success "שירות הנגישות פעיל ומאומת!"
@@ -298,9 +396,9 @@ enable_accessibility() {
 grant_hotspot_permissions() {
     print_step "6" "מעניק הרשאות Hotspot..."
 
-    "$ADB" shell pm grant "$PACKAGE_NAME" android.permission.ACCESS_FINE_LOCATION 2>/dev/null || true
-    "$ADB" shell pm grant "$PACKAGE_NAME" android.permission.ACCESS_COARSE_LOCATION 2>/dev/null || true
-    "$ADB" shell pm grant "$PACKAGE_NAME" android.permission.NEARBY_WIFI_DEVICES 2>/dev/null || true
+    "$ADB" -s "$TARGET_DEVICE" shell pm grant "$PACKAGE_NAME" android.permission.ACCESS_FINE_LOCATION 2>/dev/null || true
+    "$ADB" -s "$TARGET_DEVICE" shell pm grant "$PACKAGE_NAME" android.permission.ACCESS_COARSE_LOCATION 2>/dev/null || true
+    "$ADB" -s "$TARGET_DEVICE" shell pm grant "$PACKAGE_NAME" android.permission.NEARBY_WIFI_DEVICES 2>/dev/null || true
 
     print_success "הרשאות Hotspot הוענקו"
 }
@@ -318,7 +416,7 @@ print_done() {
     echo -e "${GREEN}║${NC}  הודעת ״האם אתם עדיין צופים?״ לא תופיע יותר!          ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}  Hotspot ניתן להפעלה ישירות מהאפליקציה!                ${GREEN}║${NC}"
     echo -e "${GREEN}║                                                          ║${NC}"
-    echo -e "${GREEN}║${NC}  ${CYAN}פתח את האפליקציה ותיהנה מצפייה ללא הפרעות 🎬${NC}         ${GREEN}║${NC}"
+    echo -e "${GREEN}║${NC}  ${CYAN}פתח אפליקציית סטרימינג ותיהנה מצפייה ללא הפרעות 🎬${NC}  ${GREEN}║${NC}"
     echo -e "${GREEN}║                                                          ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════╝${NC}"
     echo ""
@@ -330,7 +428,7 @@ print_done() {
 disconnect_device() {
     echo ""
     print_info "מנתק את המכשיר..."
-    "$ADB" disconnect 2>/dev/null || true
+    "$ADB" -s "$TARGET_DEVICE" disconnect 2>/dev/null || "$ADB" disconnect 2>/dev/null || true
     print_success "המכשיר נותק"
 }
 

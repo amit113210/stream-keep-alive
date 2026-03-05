@@ -2,6 +2,9 @@
 chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
 
+:: © 2025 Stream Keep Alive. All rights reserved.
+:: Licensed under the MIT License. See LICENSE file.
+::
 :: ╔══════════════════════════════════════════════════════════╗
 :: ║       Stream Keep Alive — Automatic Installer (Win)     ║
 :: ╚══════════════════════════════════════════════════════════╝
@@ -19,7 +22,7 @@ set "ADB="
 cls
 echo.
 echo  ╔══════════════════════════════════════════════════════════╗
-echo  ║       Stream Keep Alive — Automatic Installer            ║
+echo  ║       Stream Keep Alive — Automatic Installer              ║
 echo  ║                                                          ║
 echo  ║  Prevents "Are you still watching?" on streaming apps     ║
 echo  ╚══════════════════════════════════════════════════════════╝
@@ -81,7 +84,7 @@ if exist "%APK_PATH%" (
     echo    ✅ APK found
 ) else (
     echo    ❌ APK file not found!
-    echo    Make sure YesPlusKeepAlive.apk is in the apk folder
+    echo    Make sure StreamKeepAlive.apk is in the apk folder
     pause
     exit /b 1
 )
@@ -103,45 +106,6 @@ if %errorlevel%==0 (
     goto :install
 )
 
-:: Scan network for Android TV devices
-echo    🔍 Scanning network for Android TV devices...
-echo.
-
-set DEVICE_COUNT=0
-
-:: Get IPs from ARP table via PowerShell
-for /f "tokens=*" %%i in ('powershell -Command "Get-NetNeighbor -State Reachable,Stale 2>$null | Where-Object { $_.IPAddress -match '^\d+\.\d+\.\d+\.\d+$' } | Select-Object -ExpandProperty IPAddress" 2^>nul') do (
-    :: Try ADB connect on each IP
-    "%ADB%" connect %%i:5555 2>nul | findstr /C:"connected" >nul 2>&1
-    if !errorlevel!==0 (
-        set /a DEVICE_COUNT+=1
-        :: Get device model
-        for /f "tokens=*" %%m in ('"%ADB%" -s %%i:5555 shell getprop ro.product.model 2^>nul') do (
-            set "DEVICE_!DEVICE_COUNT!_IP=%%i:5555"
-            set "DEVICE_!DEVICE_COUNT!_NAME=%%m"
-            echo    [!DEVICE_COUNT!] %%m — %%i
-        )
-        "%ADB%" disconnect %%i:5555 >nul 2>&1
-    )
-)
-
-echo.
-
-if !DEVICE_COUNT! gtr 0 (
-    set /a MANUAL_OPT=DEVICE_COUNT+1
-    echo    [!MANUAL_OPT!] ✏️  Enter IP manually
-    echo.
-    set /p "DEVICE_CHOICE=   Choose device [1-!MANUAL_OPT!]: "
-
-    if !DEVICE_CHOICE! leq !DEVICE_COUNT! (
-        set "CHOSEN_IP=!DEVICE_!DEVICE_CHOICE!_IP!"
-        echo    Connecting to !CHOSEN_IP!...
-        "%ADB%" connect !CHOSEN_IP! >nul 2>&1
-        timeout /t 1 /nobreak >nul
-        goto :install
-    )
-)
-
 :: Manual entry fallback
 echo    Enter IP address manually:
 echo.
@@ -158,6 +122,7 @@ if "%TV_IP%"=="" (
 )
 
 echo    Connecting to %TV_IP%...
+"%ADB%" disconnect %TV_IP%:5555 >nul 2>&1
 "%ADB%" connect %TV_IP%:5555 2>nul | findstr /C:"connected" >nul 2>&1
 if %errorlevel%==0 (
     echo    ✅ Connected to %TV_IP%!
@@ -175,6 +140,9 @@ if %errorlevel%==0 (
 ) else (
     echo    ❌ Cannot connect to %TV_IP%
     echo    Make sure ADB Debugging is enabled and TV is on the same WiFi
+    echo    Resetting connection...
+    "%ADB%" kill-server >nul 2>&1
+    "%ADB%" start-server >nul 2>&1
     echo.
     goto :ask_ip
 )
@@ -186,19 +154,64 @@ if %errorlevel%==0 (
 echo.
 echo  [Step 4] Installing app...
 
-"%ADB%" install -r "%APK_PATH%" 2>&1 | findstr /C:"Success" >nul 2>&1
+:: Disable Play Protect verification via ADB
+echo    Disabling Play Protect verification...
+"%ADB%" shell settings put global verifier_verify_adb_installs 0 >nul 2>&1
+"%ADB%" shell settings put global package_verifier_enable 0 >nul 2>&1
+
+:: Strategy 1: Install with -r -d -g
+echo    Trying install (attempt 1)...
+"%ADB%" install -r -d -g "%APK_PATH%" 2>&1 | findstr /C:"Success" >nul 2>&1
 if %errorlevel%==0 (
     echo    ✅ App installed successfully!
-) else (
-    echo    ❌ Installation failed!
-    echo.
-    echo    If Google Play Protect blocked it:
-    echo    1. Open Google Play Store on TV
-    echo    2. Settings → Play Protect → Disable scanning
-    echo    3. Run this installer again
-    pause
-    exit /b 1
+    goto :install_done
 )
+
+:: Strategy 2: Try with --bypass-low-target-sdk-block
+echo    Trying install with bypass (attempt 2)...
+"%ADB%" install -r -d -g --bypass-low-target-sdk-block "%APK_PATH%" 2>&1 | findstr /C:"Success" >nul 2>&1
+if %errorlevel%==0 (
+    echo    ✅ App installed successfully!
+    goto :install_done
+)
+
+:: Strategy 3: Uninstall first, then clean install
+echo    Removing old version and retrying (attempt 3)...
+"%ADB%" uninstall %PACKAGE_NAME% >nul 2>&1
+timeout /t 1 /nobreak >nul
+"%ADB%" install -g "%APK_PATH%" 2>&1 | findstr /C:"Success" >nul 2>&1
+if %errorlevel%==0 (
+    echo    ✅ App installed successfully!
+    goto :install_done
+)
+
+:: Strategy 4: Push APK and install via pm
+echo    Trying pm install (attempt 4)...
+"%ADB%" push "%APK_PATH%" /data/local/tmp/keepalive.apk >nul 2>&1
+"%ADB%" shell pm install -r -d -g /data/local/tmp/keepalive.apk 2>&1 | findstr /C:"Success" >nul 2>&1
+if %errorlevel%==0 (
+    "%ADB%" shell rm /data/local/tmp/keepalive.apk >nul 2>&1
+    echo    ✅ App installed successfully!
+    goto :install_done
+)
+"%ADB%" shell rm /data/local/tmp/keepalive.apk >nul 2>&1
+
+:: All strategies failed
+echo    ❌ Installation failed!
+echo.
+echo    Try running this command manually to see the error:
+echo    "%ADB%" install -r -d -g "%APK_PATH%"
+echo.
+echo    Possible solutions:
+echo    1. Disable Play Protect: Play Store → Settings → Play Protect → Disable
+echo    2. Restart the TV and try again
+echo    3. Check for free storage space on the TV (Settings → Storage)
+pause
+exit /b 1
+
+:install_done
+:: Re-enable verifier
+"%ADB%" shell settings put global verifier_verify_adb_installs 1 >nul 2>&1
 
 :: =====================
 :: Step 5: Enable Accessibility
@@ -252,7 +265,7 @@ echo  ║  The app is installed and accessibility service active.   ║
 echo  ║  "Are you still watching?" will no longer appear!         ║
 echo  ║  Hotspot can be toggled directly from the app!            ║
 echo  ║                                                          ║
-echo  ║  Open the app and enjoy uninterrupted viewing! 🎬         ║
+echo  ║  Open a streaming app and enjoy uninterrupted viewing! 🎬  ║
 echo  ║                                                          ║
 echo  ╚══════════════════════════════════════════════════════════╝
 
