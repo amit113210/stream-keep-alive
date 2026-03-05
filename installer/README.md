@@ -2,7 +2,7 @@
 
 Prevents the "Are you still watching?" message on all streaming apps (Android TV).
 
-מונע את הודעת "האם אתם עדיין צופים?" של יס פלוס.
+מונע את הודעת "האם אתם עדיין צופים?" באפליקציות סטרימינג.
 
 ---
 
