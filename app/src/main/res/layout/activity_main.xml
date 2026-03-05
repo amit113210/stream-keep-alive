@@ -75,10 +75,14 @@
             android:layout_height="wrap_content"
             android:text="@string/button_enable"
             android:textSize="18sp"
+            android:textStyle="bold"
             android:paddingHorizontal="32dp"
             android:paddingVertical="12dp"
             android:background="@drawable/button_background"
             android:textColor="@color/text_primary"
+            android:textAllCaps="false"
+            android:minWidth="260dp"
+            android:gravity="center"
             android:focusable="true"
             android:layout_marginEnd="24dp" />
 
@@ -89,10 +93,14 @@
             android:layout_height="wrap_content"
             android:text="@string/button_hotspot"
             android:textSize="18sp"
+            android:textStyle="bold"
             android:paddingHorizontal="32dp"
             android:paddingVertical="12dp"
             android:background="@drawable/button_background_secondary"
             android:textColor="@color/text_primary"
+            android:textAllCaps="false"
+            android:minWidth="260dp"
+            android:gravity="center"
             android:focusable="true" />
 
     </LinearLayout>

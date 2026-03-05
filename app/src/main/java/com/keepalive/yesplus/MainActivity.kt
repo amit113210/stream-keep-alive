@@ -2,6 +2,7 @@ package com.keepalive.yesplus
 
 import android.content.ComponentName
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -41,6 +42,17 @@ class MainActivity : AppCompatActivity() {
         settingsButton = findViewById(R.id.settingsButton)
         hotspotButton = findViewById(R.id.hotspotButton)
         debugTelemetryText = findViewById(R.id.debugTelemetryText)
+
+        // Force explicit button labels and text styling for TV launchers that
+        // occasionally render custom Button backgrounds without text.
+        settingsButton.text = getString(R.string.button_enable)
+        hotspotButton.text = getString(R.string.button_hotspot)
+        settingsButton.setTextColor(Color.WHITE)
+        hotspotButton.setTextColor(Color.WHITE)
+        settingsButton.isAllCaps = false
+        hotspotButton.isAllCaps = false
+        settingsButton.isEnabled = true
+        hotspotButton.isEnabled = true
 
         // Accessibility settings button requires triple click
         settingsButton.setOnClickListener {
