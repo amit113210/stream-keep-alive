@@ -130,7 +130,7 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/amittabul/.gradle/ca
 	android:allowBackup
 		ADDED from /Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:24:9-35
 	android:banner
-		ADDED from /Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:25:9-46
+		ADDED from /Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:25:9-49
 	android:theme
 		ADDED from /Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:30:9-53
 activity#com.keepalive.yesplus.MainActivity

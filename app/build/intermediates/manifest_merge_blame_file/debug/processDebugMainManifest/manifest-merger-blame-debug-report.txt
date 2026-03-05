@@ -66,8 +66,8 @@
 35-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:24:9-35
 36        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
 36-->[androidx.core:core:1.12.0] /Users/amittabul/.gradle/caches/8.9/transforms/14038c18540a5423b44da322baec3138/transformed/core-1.12.0/AndroidManifest.xml:28:18-86
-37        android:banner="@drawable/app_banner"
-37-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:25:9-46
+37        android:banner="@drawable/app_banner_tv"
+37-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:25:9-49
 38        android:debuggable="true"
 39        android:extractNativeLibs="true"
 40        android:icon="@mipmap/ic_launcher"
