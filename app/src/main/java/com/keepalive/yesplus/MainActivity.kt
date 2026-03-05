@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -22,8 +21,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusIndicator: ImageView
     private lateinit var statusText: TextView
     private lateinit var descriptionText: TextView
-    private lateinit var settingsButton: Button
-    private lateinit var hotspotButton: Button
+    private lateinit var settingsButton: TextView
+    private lateinit var hotspotButton: TextView
     private lateinit var debugTelemetryText: TextView
     private val telemetryHandler = Handler(Looper.getMainLooper())
     private var telemetryRunnable: Runnable? = null
