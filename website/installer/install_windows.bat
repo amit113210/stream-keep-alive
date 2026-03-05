@@ -9,7 +9,7 @@ setlocal enabledelayedexpansion
 title Stream Keep Alive - Installer
 
 set "SCRIPT_DIR=%~dp0"
-set "APK_PATH=%SCRIPT_DIR%apk\YesPlusKeepAlive.apk"
+set "APK_PATH=%SCRIPT_DIR%apk\StreamKeepAlive.apk"
 set "ADB_DIR=%SCRIPT_DIR%tools\platform-tools"
 set "PACKAGE_NAME=com.keepalive.yesplus"
 set "SERVICE_NAME=%PACKAGE_NAME%/%PACKAGE_NAME%.KeepAliveAccessibilityService"
@@ -19,9 +19,9 @@ set "ADB="
 cls
 echo.
 echo  ╔══════════════════════════════════════════════════════════╗
-echo  ║       Yes Plus Keep Alive — Automatic Installer          ║
+echo  ║       Stream Keep Alive — Automatic Installer            ║
 echo  ║                                                          ║
-echo  ║  Prevents "Are you still watching?" on Yes Plus          ║
+echo  ║  Prevents "Are you still watching?" on streaming apps     ║
 echo  ╚══════════════════════════════════════════════════════════╝
 echo.
 
@@ -252,7 +252,7 @@ echo  ║  The app is installed and accessibility service active.   ║
 echo  ║  "Are you still watching?" will no longer appear!         ║
 echo  ║  Hotspot can be toggled directly from the app!            ║
 echo  ║                                                          ║
-echo  ║  Open Yes Plus and enjoy uninterrupted viewing! 🎬        ║
+echo  ║  Open the app and enjoy uninterrupted viewing! 🎬         ║
 echo  ║                                                          ║
 echo  ╚══════════════════════════════════════════════════════════╝
 

@@ -24,7 +24,7 @@ NC='\033[0m' # No Color
 # Configuration
 # =====================
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-APK_PATH="$SCRIPT_DIR/apk/YesPlusKeepAlive.apk"
+APK_PATH="$SCRIPT_DIR/apk/StreamKeepAlive.apk"
 ADB_DIR="$SCRIPT_DIR/tools/platform-tools"
 PACKAGE_NAME="com.keepalive.yesplus"
 SERVICE_NAME="$PACKAGE_NAME/$PACKAGE_NAME.KeepAliveAccessibilityService"
@@ -318,7 +318,7 @@ print_done() {
     echo -e "${GREEN}║${NC}  הודעת ״האם אתם עדיין צופים?״ לא תופיע יותר!          ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}  Hotspot ניתן להפעלה ישירות מהאפליקציה!                ${GREEN}║${NC}"
     echo -e "${GREEN}║                                                          ║${NC}"
-    echo -e "${GREEN}║${NC}  ${CYAN}פתח את Yes Plus ותיהנה מצפייה ללא הפרעות 🎬${NC}         ${GREEN}║${NC}"
+    echo -e "${GREEN}║${NC}  ${CYAN}פתח את האפליקציה ותיהנה מצפייה ללא הפרעות 🎬${NC}         ${GREEN}║${NC}"
     echo -e "${GREEN}║                                                          ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════╝${NC}"
     echo ""
