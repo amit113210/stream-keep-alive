@@ -2,6 +2,7 @@
 .gradle/
 build/
 */build/
+.kotlin/
 local.properties
 
 # IDE
@@ -12,3 +13,9 @@ local.properties
 # Keystore / signing
 *.jks
 *.keystore
+
+# Local packaging artifacts
+StreamKeepAlive-Mac.zip
+StreamKeepAlive-Windows.zip
+website/installer/stream-keep-alive-mac.zip
+website/installer/stream-keep-alive-windows.zip
