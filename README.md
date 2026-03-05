@@ -5,102 +5,49 @@
 
 אפליקציית Android TV שמונעת הודעות "האם אתם עדיין צופים?" באפליקציות סטרימינג.
 
-## איך זה עובד?
+## מה זה עושה
+- מזהה אוטומטית חלונות "האם אתם עדיין צופים?" וסוגר אותם.
+- מפעיל מנגנון keep-alive חכם כדי להפחית הופעת הודעות מראש.
+- עובד מקומית על המכשיר, ללא שרת חיצוני.
+- תואם Android TV (API 21+) ללא Root.
 
-**שלוש שכבות הגנה:**
+## התקנה מהירה
+- אתר ההתקנה: [stream-keep-alive.vercel.app](https://stream-keep-alive.vercel.app/index.html)
+- הורדת סקריפטים ישירות:
+  - Mac: [install_mac.command](https://github.com/amit113210/stream-keep-alive/raw/main/installer/install_mac.command)
+  - Windows: [install_windows.bat](https://github.com/amit113210/stream-keep-alive/raw/main/installer/install_windows.bat)
 
-1. **זיהוי ודחייה אוטומטית** — שירות הנגישות מזהה כשהדיאלוג מופיע ולוחץ אוטומטית על כפתור האישור.
-2. **סימולציית פעילות (App Level)** — השירות מדמה פעילות מיקרו-סוויפ במרווחים אדפטיביים לפי האפליקציה (למשל Netflix/YouTube).
-3. **שמירה על מסך דולק (System Level)** — שימוש ב-WakeLock מנוהל דינמית (מופעל רק כשצריך, עם ניקוי lifecycle).
+## עדכון / הסרה
+- עדכון: הרץ שוב את סקריפט ההתקנה (מתקין את הגרסה העדכנית).
+- הסרה:
+  1. כבה את שירות הנגישות ב-TV.
+  2. הסר את האפליקציה דרך Settings → Apps.
+  3. או דרך ADB: `adb uninstall com.keepalive.yesplus`
 
-## מה חדש בגרסה 1.4 (versionCode 5)
+## FAQ קצר
 
-- שיפור משמעותי לעמידות השירות במקרי קצה של Android TV.
-- Debounce/Throttle חכם לסריקות דיאלוגים להפחתת עומס CPU.
-- ניקוי משאבים קשיח ב-`onInterrupt`/`onUnbind`/`onDestroy`.
-- טלמטריה ו-Logging משופרים לניטור תקלות.
-- תיקון ממשק TV: הכפתורים מעוגנים לתחתית המסך עם פריסה יציבה יותר.
+**זה בטוח?**  
+כן. האפליקציה עובדת מקומית ולא דורשת חשבון משתמש.
 
-## בניית האפליקציה (Build)
+**למה צריך ADB?**  
+ADB משמש להתקנה והגדרה ראשונית אוטומטית על Android TV.
 
-### דרישות מקדימות
-- Android Studio (Arctic Fox ומעלה)
-- Android SDK 34
-- JDK 17+
+**זה עובד על כל סטרימר?**  
+עובד על רוב מכשירי Android TV. תמיכה משתפרת לפי דיווחים מהשטח.
 
-### בנייה מ-Android Studio
-1. פתח את התיקייה `stream-keep-alive` ב-Android Studio
-2. המתן לסנכרון Gradle
-3. לחץ **Build → Build Bundle(s) / APK(s) → Build APK**
-4. קובץ ה-APK נמצא ב: `app/build/outputs/apk/debug/app-debug.apk`
+**מה עושים אם זה לא עובד מיד?**  
+הרץ את סקריפט ההתקנה שוב וודא ששירות הנגישות פעיל.
 
-### בנייה מהטרמינל
-```bash
-cd stream-keep-alive
-./gradlew assembleDebug
-```
+## קישורים חשובים
+- Releases: [Latest Release](https://github.com/amit113210/stream-keep-alive/releases/latest)
+- Issues / בקשות פיצ'ר: [GitHub Issues](https://github.com/amit113210/stream-keep-alive/issues)
+- אתר + מדריך מלא: [stream-keep-alive.vercel.app](https://stream-keep-alive.vercel.app/index.html)
+- פרטיות ותנאי שימוש: באתר הרשמי בעמוד הראשי.
 
-## התקנה על Android TV
-
-### דרך ADB (המומלץ)
-```bash
-# חבר את ה-Android TV ל-ADB (WiFi או USB)
-adb connect <TV_IP_ADDRESS>:5555
-
-# התקן את ה-APK
-adb install app/build/outputs/apk/debug/app-debug.apk
-```
-
-### דרך USB
-העתק את קובץ ה-APK ל-USB, חבר ל-TV, והתקן דרך סייר הקבצים.
-
-## הגדרה (Setup) - חד-פעמי!
-
-After installing, you must enable the Accessibility Service:
-
-1. פתח את **Stream Keep Alive** מתפריט האפליקציות ב-TV
-2. לחץ על **"הגדרות נגישות"**
-3. מצא את **"Stream Keep Alive"** ברשימה
-4. הפעל את השירות ואשר
-
-> ⚠️ **חשוב:** זהו שלב חד-פעמי. השירות ימשיך לרוץ גם אחרי הפעלה מחדש של ה-TV.
-
-## בדיקת פעולה
-
-- פתח את האפליקציה — אינדיקטור ירוק = השירות פעיל
-- צפה בלוגים: `adb logcat -s StreamKeepAlive`
-
-## מבנה הפרויקט
-
-```
-app/src/main/
-├── AndroidManifest.xml
-├── java/com/keepalive/yesplus/
-│   ├── MainActivity.kt              # מסך ראשי עם סטטוס
-│   ├── KeepAliveAccessibilityService.kt  # הלוגיקה המרכזית
-│   └── BootReceiver.kt              # הפעלה אוטומטית בהדלקה
-└── res/
-    ├── layout/activity_main.xml      # ממשק TV
-    ├── values/strings.xml            # טקסטים בעברית
-    ├── values/colors.xml
-    ├── values/themes.xml
-    └── xml/accessibility_service_config.xml
-```
-
-## דרישות מערכת
-- Android TV עם Android 5.0 (API 21) ומעלה
-- לא צריך Root!
-
-## אוטומציה ב-GitHub
-- בכל Push / PR ל-`main` רץ CI אוטומטי: בדיקות יחידה + בניית APK.
-- בכל תגית חדשה (`v*`) נוצר Release אוטומטי עם קובץ `StreamKeepAlive.apk`:
-  - אם מוגדרים Secrets לחתימה: נבנה APK חתום (Release).
-  - אם לא מוגדרים Secrets: נבנה APK Debug כגיבוי.
-
-### Secrets לחתימה (מומלץ)
-כדי לקבל APK חתום ב-Releases, הוסף ב-GitHub → `Settings` → `Secrets and variables` → `Actions`:
-
-- `ANDROID_KEYSTORE_BASE64` (ה-keystore שלך מקודד Base64)
-- `ANDROID_SIGNING_STORE_PASSWORD`
-- `ANDROID_SIGNING_KEY_ALIAS`
-- `ANDROID_SIGNING_KEY_PASSWORD`
+## למפתחים
+- Build מקומי:
+  ```bash
+  ./gradlew testDebugUnitTest assembleDebug
+  ```
+- CI רץ אוטומטית בכל Push/PR ל-`main`.
+- תגית `v*` מפעילה release workflow.
