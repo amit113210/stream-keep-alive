@@ -90,6 +90,22 @@ location of your Java installation."
     fi
 fi
 
+# Work around JDK 25 incompatibility with current Gradle/Kotlin script parsing in this project.
+# If running on macOS with Java 25, prefer Android Studio's embedded JBR when available.
+if "$darwin" ; then
+    JAVA_VERSION_RAW=$("$JAVACMD" -version 2>&1 | sed -n '1p')
+    case "$JAVA_VERSION_RAW" in
+      *\"25.*)
+        AS_JBR_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+        if [ -x "$AS_JBR_HOME/bin/java" ] ; then
+            JAVA_HOME="$AS_JBR_HOME"
+            JAVACMD="$JAVA_HOME/bin/java"
+            warn "Using Android Studio JBR for Gradle (detected incompatible Java 25 runtime)."
+        fi
+      ;;
+    esac
+fi
+
 # Increase the maximum file descriptors if we can.
 if ! "$cygwin" && ! "$darwin" && ! "$nonstop" ; then
     case $MAX_FD in #(

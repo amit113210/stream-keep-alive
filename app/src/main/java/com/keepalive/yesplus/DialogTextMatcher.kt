@@ -43,6 +43,24 @@ object DialogTextMatcher {
         "play without asking again"
     )
 
+    val negativeKeywords = listOf(
+        "ביטול",
+        "לא",
+        "לא עכשיו",
+        "סגור",
+        "סגירה",
+        "יציאה",
+        "חזור",
+        "cancel",
+        "dismiss",
+        "close",
+        "exit",
+        "no",
+        "no thanks",
+        "not now",
+        "stop"
+    )
+
     fun containsDialogKeyword(value: CharSequence?): Boolean {
         val normalized = value?.toString()?.lowercase() ?: return false
         return dialogKeywords.any { normalized.contains(it.lowercase()) }
@@ -52,6 +70,15 @@ object DialogTextMatcher {
         val normalizedText = text?.toString()?.lowercase().orEmpty()
         val normalizedDesc = contentDesc?.toString()?.lowercase().orEmpty()
         return confirmKeywords.any { keyword ->
+            val kw = keyword.lowercase()
+            normalizedText.contains(kw) || normalizedDesc.contains(kw)
+        }
+    }
+
+    fun containsNegativeKeyword(text: CharSequence?, contentDesc: CharSequence?): Boolean {
+        val normalizedText = text?.toString()?.lowercase().orEmpty()
+        val normalizedDesc = contentDesc?.toString()?.lowercase().orEmpty()
+        return negativeKeywords.any { keyword ->
             val kw = keyword.lowercase()
             normalizedText.contains(kw) || normalizedDesc.contains(kw)
         }

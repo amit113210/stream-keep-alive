@@ -27,7 +27,8 @@ NC='\033[0m' # No Color
 # =====================
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APK_PATH="$SCRIPT_DIR/apk/StreamKeepAlive.apk"
-APK_URL="https://raw.githubusercontent.com/amit113210/stream-keep-alive/main/installer/apk/StreamKeepAlive.apk"
+APK_URL_RELEASE="https://github.com/amit113210/stream-keep-alive/releases/latest/download/StreamKeepAlive.apk"
+APK_URL_FALLBACK="https://raw.githubusercontent.com/amit113210/stream-keep-alive/main/installer/apk/StreamKeepAlive.apk"
 ADB_DIR="$SCRIPT_DIR/tools/platform-tools"
 PACKAGE_NAME="com.keepalive.yesplus"
 SERVICE_NAME="$PACKAGE_NAME/$PACKAGE_NAME.KeepAliveAccessibilityService"
@@ -136,16 +137,21 @@ setup_adb() {
 check_apk() {
     print_step "2" "בדיקת קובץ APK..."
     mkdir -p "$(dirname "$APK_PATH")"
-    print_info "מוריד תמיד את ה-APK העדכני מ-GitHub..."
-    if curl -L -f -# -o "$APK_PATH" "$APK_URL"; then
+    print_info "מוריד את ה-APK העדכני מ-GitHub Releases..."
+    if curl -L -f -# -o "$APK_PATH" "$APK_URL_RELEASE"; then
         print_success "APK עודכן בהצלחה: $APK_PATH"
     else
-        if [ -f "$APK_PATH" ]; then
-            print_warning "הורדה נכשלה — ממשיך עם APK מקומי קיים: $APK_PATH"
+        print_warning "הורדה מ-Releases נכשלה, מנסה מקור חלופי..."
+        if curl -L -f -# -o "$APK_PATH" "$APK_URL_FALLBACK"; then
+            print_success "APK עודכן בהצלחה (fallback): $APK_PATH"
         else
-            print_error "שגיאה בהורדת APK ואין קובץ מקומי זמין"
-            print_info "נסה להוריד ידנית: $APK_URL"
-            exit 1
+            if [ -f "$APK_PATH" ]; then
+                print_warning "הורדה נכשלה — ממשיך עם APK מקומי קיים: $APK_PATH"
+            else
+                print_error "שגיאה בהורדת APK ואין קובץ מקומי זמין"
+                print_info "נסה להוריד ידנית: $APK_URL_RELEASE"
+                exit 1
+            fi
         fi
     fi
 }

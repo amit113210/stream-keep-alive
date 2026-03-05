@@ -291,7 +291,11 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         if (node == null || !budget.canVisit(depth)) return false
 
         try {
-            if (node.isClickable && DialogTextMatcher.containsConfirmKeyword(node.text, node.contentDescription)) {
+            if (
+                node.isClickable &&
+                DialogTextMatcher.containsConfirmKeyword(node.text, node.contentDescription) &&
+                !DialogTextMatcher.containsNegativeKeyword(node.text, node.contentDescription)
+            ) {
                 if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
                     return true
                 }
@@ -327,7 +331,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val looksClickableClass = className.contains("Button", ignoreCase = true) ||
                 className == "android.view.View" ||
                 className == "android.view.ViewGroup"
-            if (node.isClickable && looksClickableClass) {
+            if (node.isClickable && looksClickableClass && !isNegativeActionNode(node)) {
                 if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
                     return true
                 }
@@ -362,6 +366,8 @@ class KeepAliveAccessibilityService : AccessibilityService() {
                 ?: return false
             toRecycle.add(focusedNode)
 
+            if (isNegativeActionNode(focusedNode)) return false
+
             if (focusedNode.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
             focusedNode.performAction(AccessibilityNodeInfo.ACTION_SELECT)
             focusedNode.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
@@ -372,7 +378,9 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             var depth = 0
             while (parent != null && depth < 3) {
                 toRecycle.add(parent)
-                if (parent.isClickable && parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                if (parent.isClickable && !isNegativeActionNode(parent) &&
+                    parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                ) {
                     return true
                 }
                 parent = parent.parent
@@ -633,6 +641,10 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
     private fun clamp(value: Float, min: Float, max: Float): Float {
         return value.coerceIn(min, max)
+    }
+
+    private fun isNegativeActionNode(node: AccessibilityNodeInfo): Boolean {
+        return DialogTextMatcher.containsNegativeKeyword(node.text, node.contentDescription)
     }
 
     private fun cleanupRuntimeResources(keepHandler: Boolean, clearPackageState: Boolean) {

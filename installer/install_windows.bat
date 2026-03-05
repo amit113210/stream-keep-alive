@@ -13,7 +13,8 @@ title Stream Keep Alive - Installer
 
 set "SCRIPT_DIR=%~dp0"
 set "APK_PATH=%SCRIPT_DIR%apk\StreamKeepAlive.apk"
-set "APK_URL=https://raw.githubusercontent.com/amit113210/stream-keep-alive/main/installer/apk/StreamKeepAlive.apk"
+set "APK_URL_RELEASE=https://github.com/amit113210/stream-keep-alive/releases/latest/download/StreamKeepAlive.apk"
+set "APK_URL_FALLBACK=https://raw.githubusercontent.com/amit113210/stream-keep-alive/main/installer/apk/StreamKeepAlive.apk"
 set "ADB_DIR=%SCRIPT_DIR%tools\platform-tools"
 set "PACKAGE_NAME=com.keepalive.yesplus"
 set "SERVICE_NAME=%PACKAGE_NAME%/%PACKAGE_NAME%.KeepAliveAccessibilityService"
@@ -81,19 +82,25 @@ echo.
 echo.
 echo  [Step 2] Checking APK file...
 
-echo    Downloading latest APK from GitHub...
+echo    Downloading latest APK from GitHub Releases...
 if not exist "%SCRIPT_DIR%apk" mkdir "%SCRIPT_DIR%apk"
-powershell -Command "Invoke-WebRequest -Uri '%APK_URL%' -OutFile '%APK_PATH%'" >nul 2>&1
+powershell -Command "try { Invoke-WebRequest -Uri '%APK_URL_RELEASE%' -OutFile '%APK_PATH%' -ErrorAction Stop; exit 0 } catch { exit 1 }" >nul 2>&1
 if %errorlevel%==0 (
     echo    ✅ APK updated successfully
 ) else (
-    if exist "%APK_PATH%" (
-        echo    ⚠️  Download failed — using existing local APK
+    echo    ⚠️  Release download failed, trying fallback source...
+    powershell -Command "try { Invoke-WebRequest -Uri '%APK_URL_FALLBACK%' -OutFile '%APK_PATH%' -ErrorAction Stop; exit 0 } catch { exit 1 }" >nul 2>&1
+    if %errorlevel%==0 (
+        echo    ✅ APK updated successfully (fallback)
     ) else (
-        echo    ❌ Failed to download APK and no local APK exists
-        echo    Try downloading manually: %APK_URL%
-        pause
-        exit /b 1
+        if exist "%APK_PATH%" (
+            echo    ⚠️  Download failed — using existing local APK
+        ) else (
+            echo    ❌ Failed to download APK and no local APK exists
+            echo    Try downloading manually: %APK_URL_RELEASE%
+            pause
+            exit /b 1
+        )
     )
 )
 

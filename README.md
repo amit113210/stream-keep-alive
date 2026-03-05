@@ -29,14 +29,14 @@
 - JDK 17+
 
 ### בנייה מ-Android Studio
-1. פתח את התיקייה `yes-plus-keep-alive` ב-Android Studio
+1. פתח את התיקייה `stream-keep-alive` ב-Android Studio
 2. המתן לסנכרון Gradle
 3. לחץ **Build → Build Bundle(s) / APK(s) → Build APK**
 4. קובץ ה-APK נמצא ב: `app/build/outputs/apk/debug/app-debug.apk`
 
 ### בנייה מהטרמינל
 ```bash
-cd yes-plus-keep-alive
+cd stream-keep-alive
 ./gradlew assembleDebug
 ```
 

@@ -21,6 +21,13 @@ class DialogTextMatcherTest {
     }
 
     @Test
+    fun `negative action detection catches cancel like actions`() {
+        assertTrue(DialogTextMatcher.containsNegativeKeyword("ביטול", null))
+        assertTrue(DialogTextMatcher.containsNegativeKeyword("Not now", null))
+        assertFalse(DialogTextMatcher.containsNegativeKeyword("Continue", "I'm here"))
+    }
+
+    @Test
     fun `event hint detects dialog from class name and text`() {
         assertTrue(
             DialogTextMatcher.eventLooksLikeDialog(
