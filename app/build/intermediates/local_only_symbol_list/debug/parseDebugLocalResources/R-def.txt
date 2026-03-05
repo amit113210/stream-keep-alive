@@ -16,6 +16,8 @@ drawable button_background_secondary
 drawable ic_launcher
 drawable ic_status_active
 drawable ic_status_inactive
+id debugTelemetryText
+id debugTitleText
 id descriptionText
 id hotspotButton
 id settingsButton
@@ -31,10 +33,12 @@ string app_subtitle
 string button_disable
 string button_enable
 string button_hotspot
+string debug_title
+string debug_waiting
 string description_active
 string description_inactive
 string status_active
 string status_inactive
 string status_indicator_desc
-style Theme.YesPlusKeepAlive
+style Theme.StreamKeepAlive
 xml accessibility_service_config

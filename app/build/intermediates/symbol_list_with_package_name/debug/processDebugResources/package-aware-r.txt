@@ -1369,6 +1369,8 @@ id controls_dock
 id current_time
 id custom
 id customPanel
+id debugTelemetryText
+id debugTitleText
 id decor_content_parent
 id default_activity_button
 id description
@@ -1823,6 +1825,8 @@ string call_notification_hang_up_action
 string call_notification_incoming_text
 string call_notification_ongoing_text
 string call_notification_screening_text
+string debug_title
+string debug_waiting
 string description_active
 string description_inactive
 string lb_control_display_fast_forward_multiplier
@@ -2175,7 +2179,7 @@ style Theme_Leanback_GuidedStepBase
 style Theme_Leanback_Onboarding
 style Theme_Leanback_VerticalGrid
 style Theme_LeanbackBase
-style Theme_YesPlusKeepAlive
+style Theme_StreamKeepAlive
 style ThemeOverlay_AppCompat
 style ThemeOverlay_AppCompat_ActionBar
 style ThemeOverlay_AppCompat_Dark

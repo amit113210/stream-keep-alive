@@ -10,18 +10,20 @@
     <color name="surface_dark">#FF1E1E1E</color>
     <color name="text_primary">#FFFFFFFF</color>
     <color name="text_secondary">#FFB0B0B0</color>
-    <string name="accessibility_service_description">שירות זה מונע הודעות \"האם אתם עדיין צופים?\" בכל אפליקציות הסטרימינג.\nתומך ב: Yes Plus, Netflix, YouTube, Disney+, Amazon Prime, HBO, Hulu, Cellcom TV, Partner TV, HOT ועוד.\nמזהה הודעות בעברית ובאנגלית, סוגר אותן אוטומטית, ומדמה פעילות שלט כל 45 דקות.</string>
+    <string name="accessibility_service_description">שירות זה מונע הודעות \"האם אתם עדיין צופים?\" בכל אפליקציות הסטרימינג.\nתומך ב: Yes, Netflix, YouTube, Disney+, Amazon Prime, HBO, Hulu, Cellcom TV, Partner TV, HOT ועוד.\nמזהה הודעות בעברית ובאנגלית, סוגר אותן אוטומטית, ומדמה פעילות שלט חכמה לפי האפליקציה.</string>
     <string name="app_name">Stream Keep Alive</string>
     <string name="app_subtitle">צפייה ללא הפרעות בכל אפליקציית סטרימינג</string>
     <string name="button_disable">הגדרות נגישות</string>
     <string name="button_enable">הגדרות נגישות</string>
     <string name="button_hotspot">נקודת גישה (Hotspot)</string>
-    <string name="description_active">השירות פעיל ומגן עליך מהודעות המתנה.\nתומך ב: Yes Plus, Netflix, YouTube, Disney+, Prime ועוד.\nמזהה וסוגר הודעות אוטומטית + מדמה פעילות כל 45 דקות.</string>
+    <string name="debug_title">Debug Telemetry</string>
+    <string name="debug_waiting">מחכה לנתוני שירות...</string>
+    <string name="description_active">השירות פעיל ומגן עליך מהודעות המתנה.\nתומך ב: Yes, Netflix, YouTube, Disney+, Prime ועוד.\nמזהה וסוגר הודעות אוטומטית + מדמה פעילות חכמה לפי האפליקציה.</string>
     <string name="description_inactive">השירות לא פעיל.\nלחץ על הכפתור למטה כדי לעבור להגדרות הנגישות\nוהפעל את \"Stream Keep Alive\".</string>
     <string name="status_active">✅ פעיל</string>
     <string name="status_inactive">⏸ לא פעיל</string>
     <string name="status_indicator_desc">מצב השירות</string>
-    <style name="Theme.YesPlusKeepAlive" parent="Theme.AppCompat.NoActionBar">
+    <style name="Theme.StreamKeepAlive" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">@color/background_dark</item>
         <item name="android:colorPrimary">@color/accent</item>
         <item name="android:colorPrimaryDark">@color/accent_dark</item>
