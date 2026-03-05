@@ -1,6 +1,6 @@
-# Yes Plus Keep Alive — Installer
+# Stream Keep Alive — Installer
 
-Prevents the "Are you still watching?" message on Yes Plus (Android TV).
+Prevents the "Are you still watching?" message on all streaming apps (Android TV).
 
 מונע את הודעת "האם אתם עדיין צופים?" של יס פלוס.
 
@@ -36,7 +36,7 @@ installer/
 ├── install_mac.command    ← Mac installer (double-click)
 ├── install_windows.bat    ← Windows installer (double-click)
 ├── apk/
-│   └── YesPlusKeepAlive.apk   ← The app
+│   └── StreamKeepAlive.apk   ← האפליקציהThe app
 └── tools/
     └── (ADB auto-downloaded here)
 ```

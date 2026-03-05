@@ -11,7 +11,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
 /**
- * Main Activity for Yes Plus Keep Alive.
+ * Main Activity for Stream Keep Alive.
  */
 class MainActivity : AppCompatActivity() {
 

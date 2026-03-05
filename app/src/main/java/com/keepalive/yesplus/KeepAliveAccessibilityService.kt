@@ -15,7 +15,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 /**
  * Main Activity for Stream Keep Alive.
  *
- * Supports ALL streaming apps: Yes Plus, Netflix, YouTube, Disney+, Prime, and more.
+ * Supports ALL streaming apps: Yes, Netflix, YouTube, Disney+, Prime, and more.
  *
  * Two-layer strategy:
  * 1. Detects "Are you still watching?" dialogs and auto-dismisses them
@@ -114,7 +114,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
             // Streaming app packages to monitor
             val streamingPackages = listOf(
-                // Yes Plus
+                // Yes (VOD/Live)
                 "il.co.yes",
                 // Netflix
                 "com.netflix",
@@ -453,7 +453,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     /**
      * Simulate a gentle touch gesture at coordinates (1,1) — invisible corner tap.
      * This registers as real user input at the app level, resetting per-app inactivity timers
-     * (Netflix, Yes Plus, etc.) without visually affecting the UI.
+     * (Netflix, Yes, etc.) without visually affecting the UI.
      * API 24+ only.
      */
     private fun simulateGesture() {

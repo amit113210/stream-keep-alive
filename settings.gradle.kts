@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "YesPlusKeepAlive"
+rootProject.name = "StreamKeepAlive"
 include(":app")

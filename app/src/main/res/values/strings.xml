@@ -6,7 +6,7 @@
     <string name="status_active">✅ פעיל</string>
     <string name="status_inactive">⏸ לא פעיל</string>
 
-    <string name="description_active">השירות פעיל ומגן עליך מהודעות המתנה.\nתומך ב: Yes Plus, Netflix, YouTube, Disney+, Prime ועוד.\nמזהה וסוגר הודעות אוטומטית + מדמה פעילות כל 25 דקות.</string>
+    <string name="description_active">השירות פעיל ומגן עליך מהודעות המתנה.\nתומך ב: Yes, Netflix, YouTube, Disney+, Prime ועוד.\nמזהה וסוגר הודעות אוטומטית + מדמה פעילות כל 25 דקות.</string>
     <string name="description_inactive">השירות לא פעיל.\nלחץ על הכפתור למטה כדי לעבור להגדרות הנגישות\nוהפעל את \"Stream Keep Alive\".</string>
 
     <string name="button_enable">הגדרות נגישות</string>
@@ -15,5 +15,5 @@
 
     <string name="status_indicator_desc">מצב השירות</string>
 
-    <string name="accessibility_service_description">שירות זה מונע הודעות \"האם אתם עדיין צופים?\" בכל אפליקציות הסטרימינג.\nתומך ב: Yes Plus, Netflix, YouTube, Disney+, Amazon Prime, HBO, Hulu, Cellcom TV, Partner TV, HOT ועוד.\nמזהה הודעות בעברית ובאנגלית, סוגר אותן אוטומטית, ומדמה פעילות שלט כל 25 דקות.</string>
+    <string name="accessibility_service_description">שירות זה מונע הודעות \"האם אתם עדיין צופים?\" בכל אפליקציות הסטרימינג.\nתומך ב: Yes, Netflix, YouTube, Disney+, Amazon Prime, HBO, Hulu, Cellcom TV, Partner TV, HOT ועוד.\nמזהה הודעות בעברית ובאנגלית, סוגר אותן אוטומטית, ומדמה פעילות שלט כל 25 דקות.</string>
 </resources>

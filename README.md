@@ -1,4 +1,4 @@
-# Yes Plus Keep Alive - Android TV App
+# Stream Keep Alive - Android TV App
 
 אפליקציית Android TV שמונעת את הודעת "האם אתם עדיין צופים?" של יס פלוס.
 
@@ -47,9 +47,9 @@ adb install app/build/outputs/apk/debug/app-debug.apk
 
 After installing, you must enable the Accessibility Service:
 
-1. פתח את **Yes Plus Keep Alive** מתפריט האפליקציות ב-TV
+1. פתח את **Stream Keep Alive** מתפריט האפליקציות ב-TV
 2. לחץ על **"הפעל שירות נגישות"**
-3. מצא את **"Yes Plus Keep Alive"** ברשימה
+3. מצא את **"Stream Keep Alive"** ברשימה
 4. הפעל את השירות ואשר
 
 > ⚠️ **חשוב:** זהו שלב חד-פעמי. השירות ימשיך לרוץ גם אחרי הפעלה מחדש של ה-TV.
@@ -57,7 +57,7 @@ After installing, you must enable the Accessibility Service:
 ## בדיקת פעולה
 
 - פתח את האפליקציה — אינדיקטור ירוק = השירות פעיל
-- צפה בלוגים: `adb logcat -s YesPlusKeepAlive`
+- צפה בלוגים: `adb logcat -s StreamKeepAlive`
 
 ## מבנה הפרויקט
 

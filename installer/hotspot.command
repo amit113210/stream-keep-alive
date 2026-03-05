@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Yes Plus — Hotspot ON/OFF Toggle
+# Stream Keep Alive — Hotspot ON/OFF Toggle
 #
 
 RED='\033[0;31m'
@@ -13,8 +13,8 @@ NC='\033[0m'
 # =====================
 # Configuration
 # =====================
-HOTSPOT_SSID="YesPlus_Hotspot"
-HOTSPOT_PASSWORD="yesplus123"
+HOTSPOT_SSID="StreamKeepAlive_Hotspot"
+HOTSPOT_PASSWORD="streamkeepalive"
 HOTSPOT_SECURITY="wpa2"
 TV_IP="192.168.7.19"
 
@@ -100,7 +100,7 @@ stop_hotspot() {
 clear
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║${BOLD}   Yes Plus — Hotspot Control              ${NC}${CYAN}║${NC}"
+echo -e "${CYAN}║${BOLD}   Stream Keep Alive — Hotspot Control     ${NC}${CYAN}║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════╝${NC}"
 echo ""
 
