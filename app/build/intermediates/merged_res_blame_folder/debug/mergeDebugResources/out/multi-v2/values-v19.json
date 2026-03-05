@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.keepalive.yesplus.app-mergeDebugResources-22:/values-v19/values-v19.xml",
+            "map": [
+                {
+                    "source": "/Users/amittabul/.gradle/caches/8.9/transforms/920864c1f95c8069cd830fecf13ff722/transformed/leanback-1.0.0/res/values-v19/values-v19.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "10",
+                        "endColumns": "12",
+                        "endOffsets": "659"
+                    }
+                }
+            ]
+        }
+    ]
+}

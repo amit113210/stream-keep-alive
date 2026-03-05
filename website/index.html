@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Keep Alive – מבטל 'Are you still watching?' באנדרואיד TV</title>
+    <meta name="description"
+        content="Stream Keep Alive removes 'Are you still watching?' popups from Israeli streaming apps, Netflix, YouTube, Disney+, Prime Video and more on Android TV. Free, local, no data collection. | מסיר הודעות 'האם אתם עדיין צופים?' מכל אפליקציית סטרימינג באנדרואיד TV. חינם, מקומי, ללא איסוף מידע.">
+    <meta name="keywords"
+        content="stream keep alive, are you still watching, android tv, netflix, yes plus, youtube, disney plus, prime video, accessibility service, סטרימינג, עדיין צופים">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Stream Keep Alive – מבטל 'Are you still watching?' באנדרואיד TV">
+    <meta property="og:description"
+        content="מסיר הודעות 'האם אתם עדיין צופים?' מכל אפליקציית סטרימינג. חינם, מקומי, ללא איסוף מידע.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://stream-keep-alive.vercel.app/img_after.png">
+    <meta property="og:locale" content="he_IL">
+    <meta property="og:locale:alternate" content="en_US">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Stream Keep Alive – No more 'Are you still watching?'">
+    <meta name="twitter:description" content="Auto-dismiss streaming popups on Android TV. Free, local, no data.">
+    <meta name="twitter:image" content="https://stream-keep-alive.vercel.app/img_after.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3348812047145151"
+        crossorigin="anonymous"></script>
+
+    <!-- FAQ Schema (structured data for Google) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "האם האפליקציה בטוחה?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "כן. האפליקציה פועלת מקומית בלבד, לא אוספת מידע, לא שולחת נתונים, ולא דורשת הרשאות מיותרות. היא פשוט מזהה את הודעת 'האם אתם עדיין צופים?' וסוגרת אותה."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "למה צריך Accessibility Service?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "שירות הנגישות משמש רק לזיהוי חלונות מערכת וללחיצה על כפתור 'Continue' או סגירת ההודעה — זה הכול. אין גישה לתוכן, לחשבון, או לנתונים אישיים."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "למה צריך ADB?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "ADB משמש רק להתקנה והפעלה ראשונית של האפליקציה על מכשירי Android TV שבהם לא ניתן להתקין אפליקציות ישירות מקובץ. אחרי ההתקנה, אין צורך ב-ADB יותר."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "עם אילו מכשירים זה עובד?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "עם כל מכשיר Android TV — יס פלוס, Xiaomi Mi Box, NVIDIA Shield, Chromecast with Google TV ועוד. תואם Android 5.0 (API 21) ומעלה."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "What does Stream Keep Alive do?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Stream Keep Alive automatically dismisses 'Are you still watching?' popups on Android TV streaming apps like Netflix, YouTube, Disney+, Amazon Prime Video, and more. It runs locally with no data collection."
+                }
+            }
+        ]
+    }
+    </script>
+</head>
+
+<body>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="hero-bg"></div>
+        <div class="container">
+            <div class="hero-badge">🆓 חינם לגמרי · קוד פתוח</div>
+            <img src="logo.png" alt="Stream Keep Alive Logo"
+                style="width: 96px; height: 96px; object-fit: cover; border-radius: 24px; margin-bottom: 24px; filter: drop-shadow(0 8px 16px rgba(99,102,241,0.3)); display: block; margin-left: auto; margin-right: auto;" />
+            <h1 class="hero-title">
+                <span class="gradient-text">Stream</span>
+                <br>Keep Alive
+            </h1>
+            <p class="hero-subtitle">
+                מסיר הודעות <strong>״האם אתם עדיין צופים?״</strong> מכל אפליקציית סטרימינג
+                <br><span dir="ltr">Local TV Apps · Netflix · YouTube · Disney+ · Prime · ועוד 🎬</span>
+            </p>
+            <div class="hero-buttons">
+                <a href="#download" class="btn btn-primary">
+                    <span class="btn-icon">⬇️</span>
+                    הורד עכשיו
+                </a>
+                <a href="guide.html" class="btn btn-secondary">
+                    <span class="btn-icon">📖</span>
+                    מדריך מפורט
+                </a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat">
+                    <div class="stat-number" id="stat-downloads">0</div>
+                    <div class="stat-label">הורדות</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">צפייה רציפה</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">100%</div>
+                    <div class="stat-label">חינם</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Before/After Section -->
+    <section class="before-after" id="before-after">
+        <div class="container">
+            <h2 class="section-title">לפני ו<span class="gradient-text">אחרי</span></h2>
+            <p class="section-subtitle">ככה זה נראה — ההבדל ברור</p>
+            <div class="ba-grid">
+                <div class="ba-card ba-before">
+                    <div class="ba-label ba-label-before">😫 לפני</div>
+                    <img src="img_before.png" alt="מסך TV עם הודעת Are you still watching מפריעה" loading="lazy">
+                    <p>ההודעה המעצבנת קופצת וחוסמת את הצפייה</p>
+                </div>
+                <div class="ba-card ba-after">
+                    <div class="ba-label ba-label-after">✅ אחרי</div>
+                    <img src="img_after.png" alt="מסך TV עם צפייה רציפה ללא הפרעות" loading="lazy">
+                    <p>צפייה רציפה — בלי הפרעות, בלי לגעת בשלט</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Support the project — high visibility -->
+    <section class="support-section" id="support">
+        <div class="container">
+            <div class="support-box">
+                <h3>תומכים בפרויקט ❤️</h3>
+                <p>האתר והאפליקציה חינמיים לגמרי. אם זה עזר לך — אפשר לתמוך בפיתוח:</p>
+                <div class="support-buttons">
+                    <a href="https://www.paypal.com/donate/?hosted_button_id=YE4YL7S82QUJJ" target="_blank"
+                        rel="noopener" class="btn btn-support btn-paypal">💳 תרומה דרך PayPal</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+    <!-- How It Works (short explainer) -->
+    <section class="how-it-works-brief" id="how-it-works">
+        <div class="container">
+            <h2 class="section-title">איך זה <span class="gradient-text">עובד בפועל</span>?</h2>
+            <div class="explainer-box">
+                <p>האפליקציה רצה כרקע קל, ומקשיבה לאירועים של ממשק המשתמש. כשמופיעה הודעת "Are you still watching?"
+                    באחת מאפליקציות הסטרימינג, היא מזהה את החלון ולוחצת על הכפתור המתאים כדי להמשיך את הניגון —
+                    <strong>בלי
+                        להתערב בתוכן, בלי גישה לחשבון, ובלי לשלוח מידע החוצה.</strong>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">למה <span class="gradient-text">Stream Keep Alive</span>?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>מניעת הודעות</h3>
+                    <p>מזהה ומסיר אוטומטית הודעות "עדיין צופים?" ברגע שהן מופיעות — בכל אפליקציה. כולל retry אוטומטי</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⏰</div>
+                    <h3>פעילות רציפה</h3>
+                    <p>מדמה פעילות שלט כל 25 דקות כדי למנוע מההודעה להופיע מלכתחילה</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>פרטיות מלאה</h3>
+                    <p>עובד מקומית בלבד — אין שרת, אין איסוף מידע, אין גישה לחשבון או לתוכן</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔄</div>
+                    <h3>הפעלה אוטומטית</h3>
+                    <p>עובד ברקע אוטומטית — פשוט מתקינים ושוכחים</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3>התקנה קלה</h3>
+                    <p>סקריפט התקנה אוטומטי — לחיצה כפולה, הזנת IP, ומסתדר לבד</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📶</div>
+                    <h3>נקודת גישה (Hotspot)</h3>
+                    <p>גישה מהירה להגדרות נקודת גישה אישית ישירות מהאפליקציה — בלי לחפש בתפריטים</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📺</div>
+                    <h3>מותאם ל-Android TV</h3>
+                    <p>מותאם לכל מכשירי Android TV — יס פלוס, שאומי, נווידיה ועוד</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Trust Box — above downloads -->
+    <section class="trust-section" id="trust">
+        <div class="container">
+            <h2 class="section-title">שקיפות <span class="gradient-text">מלאה</span></h2>
+            <p class="section-subtitle">מה האפליקציה עושה ומה היא לא עושה</p>
+            <div class="trust-grid">
+                <div class="trust-item">
+                    <span class="trust-icon">✅</span>
+                    <div>
+                        <strong>עובד מקומית בלבד</strong>
+                        <p>האפליקציה מזהה ומסירה את חלון ה-"Are you still watching?" ישירות על המכשיר.</p>
+                    </div>
+                </div>
+                <div class="trust-item">
+                    <span class="trust-icon">✅</span>
+                    <div>
+                        <strong>בלי שרת ובלי חשבון</strong>
+                        <p>אין התחברות, אין API, אין סנכרון.</p>
+                    </div>
+                </div>
+                <div class="trust-item">
+                    <span class="trust-icon">✅</span>
+                    <div>
+                        <strong>אין איסוף מידע</strong>
+                        <p>לא נאסף מידע אישי, לא נשמרת היסטוריה, ולא נשלח מידע לשום מקום.</p>
+                    </div>
+                </div>
+                <div class="trust-item">
+                    <span class="trust-icon">ℹ️</span>
+                    <div>
+                        <strong>למה צריך Accessibility?</strong>
+                        <p>כדי לזהה את החלון וללחוץ "Continue" / לסגור אותו — זה הכול.</p>
+                    </div>
+                </div>
+                <div class="trust-item">
+                    <span class="trust-icon">ℹ️</span>
+                    <div>
+                        <strong>למה יש ADB?</strong>
+                        <p>ADB משמש רק להתקנה/הפעלה ראשונית במכשירי Android TV. אחרי ההתקנה — אין צורך בו יותר.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section class="download" id="download">
+        <div class="container">
+            <h2 class="section-title">הורד <span class="gradient-text">עכשיו</span></h2>
+            <p class="section-subtitle">חבילת ההתקנה כוללת את כל הקבצים הדרושים</p>
+            <div style="text-align: center; margin-bottom: 2rem; margin-top: 1rem;">
+                <span
+                    style="display: inline-block; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; padding: 0.5rem 1.5rem; border-radius: 2rem; font-size: 1.05rem; font-weight: 600; letter-spacing: 0.02em; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);">
+                    🔖 גרסה 1.2 — מניעת כיבוי מסך + תמיכה משופרת בנטפליקס
+                </span>
+            </div>
+
+            <div class="download-cards">
+                <div class="download-card">
+                    <div class="download-icon">🍎</div>
+                    <h3>Mac Installer</h3>
+                    <p>תואם macOS 10.15+</p>
+                    <ul class="download-features">
+                        <li>✅ התקנה אוטומטית</li>
+                        <li>✅ הורדת ADB אוטומטית</li>
+                        <li>✅ תמיכה במספר מכשירים</li>
+                        <li>✅ כולל Hotspot Control</li>
+                    </ul>
+                    <a href="installer/stream-keep-alive-mac.zip" download class="btn btn-primary btn-full"
+                        id="download-mac">
+                        ⬇️ הורד ל-Mac (ZIP)
+                    </a>
+                </div>
+
+                <div class="download-card">
+                    <div class="download-icon">🪟</div>
+                    <h3>Windows Installer</h3>
+                    <p>תואם Windows 10/11</p>
+                    <ul class="download-features">
+                        <li>✅ התקנה אוטומטית</li>
+                        <li>✅ הורדת ADB אוטומטית</li>
+                        <li>✅ תמיכה במספר מכשירים</li>
+                        <li>✅ כולל Hotspot Control</li>
+                    </ul>
+                    <a href="installer/stream-keep-alive-windows.zip" download class="btn btn-primary btn-full"
+                        id="download-win">
+                        ⬇️ הורד ל-Windows (ZIP)
+                    </a>
+                </div>
+            </div>
+
+            <div class="download-note">
+                <p>📦 <strong>מה בחבילה:</strong> סקריפט התקנה + APK + סקריפט Hotspot</p>
+                <p>⚠️ נדרש: שני המכשירים (מחשב + TV) חייבים להיות על אותה רשת WiFi</p>
+                <p>🍎 <strong>Mac:</strong> אם macOS חוסם — לחץ ימני → "Open" → "Open" שוב</p>
+                <p>🪟 <strong>Windows:</strong> אם SmartScreen חוסם — "More info" → "Run anyway"</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Steps (5 steps) -->
+    <section class="install-steps-section" id="install-steps">
+        <div class="container">
+            <h2 class="section-title">איך <span class="gradient-text">מתקינים</span>?</h2>
+            <p class="section-subtitle">6 שלבים פשוטים — הפעם חסין מטעויות!</p>
+
+            <div class="steps">
+                <!-- Step 1 -->
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>הכנת הטלוויזיה (חובה!)</h3>
+                        <p>לפני הכל, חובה להפעיל גישת מפתחים בטלוויזיה כדי שהסקריפט יוכל להתחבר אליה:</p>
+                        <ul style="margin-bottom: 12px; padding-right: 20px;">
+                            <li>לחץ 7 פעמים על שורת ה-Build תחת Settings → About.</li>
+                            <li>הפעל את מתג ה-<strong>USB Debugging</strong> תחת Developer Options.</li>
+                        </ul>
+                        <a href="guide.html" target="_blank" class="btn btn-secondary"
+                            style="font-size: 14px; padding: 6px 12px;">
+                            📖 למדריך ההכנה המפורט במלואו
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>הורדה</h3>
+                        <p>הורד את חבילת ההתקנה למחשב שלך (Mac או Windows):</p>
+                        <div class="download-buttons">
+                            <a href="installer/stream-keep-alive-mac.zip?v=1.5" class="btn btn-primary btn-block">
+                                <span class="btn-icon">⬇️</span> הורד למק
+                            </a>
+                            <a href="installer/stream-keep-alive-windows.zip?v=1.5" class="btn btn-primary btn-block">
+                                <span class="btn-icon">⬇️</span> הורד ל-Windows
+                            </a>
+                        </div>
+                        <div class="step-tip">
+                            💡 חלץ את קובץ ה-ZIP לתיקייה (לחיצה כפולה ב-Mac / Extract All ב-Windows)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>התקנה</h3>
+                        <p>לחץ לחיצה כפולה על הקובץ והכנס את כתובת ה-IP של ה-TV:</p>
+
+                        <div class="os-tabs-inline">
+                            <button class="os-tab-sm active" onclick="showInstallOS('install-mac')">🍎 Mac</button>
+                            <button class="os-tab-sm" onclick="showInstallOS('install-win')">🪟 Windows</button>
+                            <button class="os-tab-sm" onclick="showInstallOS('install-linux')">🐧 Linux</button>
+                        </div>
+
+                        <div class="os-install-content active" id="install-mac">
+                            <div class="code-block">
+                                <span class="code-text">לחץ פעמיים על install_mac.command</span>
+                            </div>
+                            <p class="is-note">אם macOS חוסם: לחץ ימני → "Open" → "Open"</p>
+                            <p class="is-note">או בטרמינל:</p>
+                            <div class="code-block">
+                                <code>chmod +x install_mac.command && ./install_mac.command</code>
+                                <button class="copy-btn" onclick="copyCommand(this)" title="העתק פקודה">📋</button>
+                            </div>
+                        </div>
+                        <div class="os-install-content" id="install-win">
+                            <div class="code-block">
+                                <span class="code-text">לחץ פעמיים על install_windows.bat</span>
+                            </div>
+                            <p class="is-note">אם SmartScreen חוסם: "More info" → "Run anyway"</p>
+                        </div>
+                        <div class="os-install-content" id="install-linux">
+                            <div class="code-block">
+                                <code>chmod +x install_mac.command && ./install_mac.command</code>
+                                <button class="copy-btn" onclick="copyCommand(this)" title="העתק פקודה">📋</button>
+                            </div>
+                            <p class="is-note">סקריפט ה-Mac תואם גם Linux</p>
+                        </div>
+
+                        <div class="step-tip">
+                            💡 <strong>איפה ה-IP?</strong> Settings → Device Preferences → About → Status → IP Address
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>הפעלה + הרשאות</h3>
+                        <p>הסקריפט מפעיל את שירות הנגישות אוטומטית. אם לא —</p>
+                        <div class="step-details">
+                            <div class="code-step">Settings → Accessibility → Stream Keep Alive → ON</div>
+                        </div>
+                        <div class="step-tip">
+                            💡 <strong>Developer Options:</strong> אם עוד לא הפעלת, לחץ 7 פעמים על "Build Number"
+                            ב-About
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5 -->
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h3>בדיקה מהירה — "איך אני יודע שזה עובד?"</h3>
+                        <p>פתח את אפליקציית Stream Keep Alive על ה-TV. אתה אמור לראות:</p>
+                        <div class="step-details">
+                            <div class="code-step success-step">✅ פעיל — השירות עובד ומגן עליך</div>
+                        </div>
+                        <p>אפשר גם לבדוק דרך לוג:</p>
+                        <div class="code-block">
+                            <code>adb logcat -s StreamKeepAlive</code>
+                            <button class="copy-btn" onclick="copyCommand(this)" title="העתק פקודה">📋</button>
+                        </div>
+                        <p class="is-note">חפש את ההודעה: "✅ Accessibility Service connected"</p>
+                    </div>
+                </div>
+
+                <!-- Step 6 -->
+                <div class="step">
+                    <div class="step-number">6</div>
+                    <div class="step-content">
+                        <h3>נתקעת? פתרון תקלות</h3>
+                        <div class="mini-troubleshoot">
+                            <div class="ts-item" onclick="toggleTs(this)">
+                                <span>❌ ההודעה עדיין מופיעה</span>
+                                <span class="ts-arrow">▼</span>
+                            </div>
+                            <div class="ts-answer">
+                                ודא שהפעלת את שירות הנגישות: Settings → Accessibility → Stream Keep Alive → ON.
+                                פתח את האפליקציה ובדוק שכתוב "✅ פעיל".
+                            </div>
+
+                            <div class="ts-item" onclick="toggleTs(this)">
+                                <span>🔋 האפליקציה "נסגרת לבד"</span>
+                                <span class="ts-arrow">▼</span>
+                            </div>
+                            <div class="ts-answer">
+                                בטל Battery Optimization לאפליקציה (אם קיים במכשיר שלך).
+                                Settings → Apps → Stream Keep Alive → Battery → Unrestricted.
+                            </div>
+
+                            <div class="ts-item" onclick="toggleTs(this)">
+                                <span>🔌 ADB לא מזהה את המכשיר</span>
+                                <span class="ts-arrow">▼</span>
+                            </div>
+                            <div class="ts-answer">
+                                <ul>
+                                    <li>ודא ש-USB Debugging מופעל (Developer Options)</li>
+                                    <li>בדוק ששני המכשירים על אותה רשת WiFi</li>
+                                    <li>הפעל מחדש את ה-TV ואת המחשב</li>
+                                </ul>
+                                <div class="code-block">
+                                    <code>adb kill-server && adb start-server</code>
+                                    <button class="copy-btn" onclick="copyCommand(this)" title="העתק פקודה">📋</button>
+                                </div>
+                            </div>
+
+                            <div class="ts-item" onclick="toggleTs(this)">
+                                <span>📱 אפליקציה מסוימת לא נתמכת</span>
+                                <span class="ts-arrow">▼</span>
+                            </div>
+                            <div class="ts-answer">
+                                לא כל אפליקציה מציגה את ההודעה באותו מבנה. שלח שם אפליקציה + דגם מכשיר ונוסיף תמיכה.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Known Issues / Tested Apps -->
+    <section class="tested-apps" id="tested-apps">
+        <div class="container">
+            <h2 class="section-title">אפליקציות <span class="gradient-text">נתמכות</span></h2>
+            <p class="section-subtitle">נבדק ומאומת על מכשירי Android TV שונים</p>
+            <div class="apps-grid">
+                <div class="app-badge tested">📺 Local TV Apps <span>✅ נבדק</span></div>
+                <div class="app-badge tested">🎬 Netflix <span>✅ נבדק</span></div>
+                <div class="app-badge tested">▶️ YouTube <span>✅ נבדק</span></div>
+                <div class="app-badge supported">✨ Disney+ <span>🟢 נתמך</span></div>
+                <div class="app-badge supported">📦 Prime Video <span>🟢 נתמך</span></div>
+                <div class="app-badge supported">🎭 HBO Max <span>🟢 נתמך</span></div>
+                <div class="app-badge supported">🟢 Hulu <span>🟢 נתמך</span></div>
+                <div class="app-badge supported">🍎 Apple TV+ <span>🟢 נתמך</span></div>
+                <div class="app-badge supported">📱 Cellcom TV <span>🟢 נתמך</span></div>
+                <div class="app-badge supported">📡 Partner TV <span>🟢 נתמך</span></div>
+                <div class="app-badge supported">🔥 HOT <span>🟢 נתמך</span></div>
+                <div class="app-badge supported">🎵 Spotify <span>🟢 נתמך</span></div>
+            </div>
+            <p class="apps-note">✅ נבדק = נבדק בפועל על מכשיר אמיתי &nbsp;|&nbsp; 🟢 נתמך = מילות המפתח מוגדרות, טרם
+                אומת על מכשיר</p>
+        </div>
+    </section>
+
+
+
+    <!-- FAQ Section -->
+    <section class="faq" id="faq">
+        <div class="container">
+            <h2 class="section-title">שאלות <span class="gradient-text">נפוצות</span></h2>
+
+            <div class="faq-list">
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-question">
+                        <span>האם האפליקציה בטוחה?</span>
+                        <span class="faq-arrow">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>כן! האפליקציה פועלת כשירות נגישות מקומי בלבד — היא לא אוספת מידע, לא שולחת נתונים, ולא
+                            דורשת הרשאות מיותרות. היא פשוט מזהה את הודעת "האם אתם עדיין צופים?" וסוגרת אותה.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-question">
+                        <span>Google Play Protect חוסם את ההתקנה</span>
+                        <span class="faq-arrow">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>זה נורמלי — Play Protect מזהיר מכל אפליקציה שלא הותקנה מהחנות. הסקריפט שלנו עוקף את זה
+                            אוטומטית. אם עדיין יש בעיה, כבה זמנית את Play Protect ב-Google Play Store → Settings →
+                            Play Protect.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-question">
+                        <span>מה אם שירות הנגישות נכבה?</span>
+                        <span class="faq-arrow">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>הסקריפט מפעיל את שירות הנגישות אוטומטית דרך ADB, כך שהוא יישאר פעיל גם אחרי אתחול. אם הוא
+                            נכבה, פשוט הרץ את הסקריפט שוב.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-question">
+                        <span>עם אילו מכשירים זה עובד?</span>
+                        <span class="faq-arrow">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>עם כל מכשיר Android TV — יס פלוס, Xiaomi Mi Box, NVIDIA Shield, Chromecast with Google TV,
+                            ועוד. תואם Android 5.0 (API 21) ומעלה.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-question">
+                        <span>אפשר להתקין על כמה מכשירים?</span>
+                        <span class="faq-arrow">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>בוודאי! הסקריפט תומך בהתקנה על מספר מכשירים ברצף — אחרי כל התקנה הוא שואל אם להתקין על מכשיר
+                            נוסף.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Legal & Privacy -->
+    <section class="legal-section" id="legal">
+        <div class="container">
+            <h2 class="section-title">מידע <span class="gradient-text">משפטי ופרטיות</span></h2>
+
+            <div class="faq-list">
+                <!-- Privacy Policy -->
+                <div class="faq-item" id="privacy" onclick="toggleFaq(this)">
+                    <div class="faq-question">
+                        <span>מדיניות פרטיות</span>
+                        <span class="faq-arrow">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <div class="privacy-box" style="margin-top: 16px;">
+                            <p>Stream Keep Alive נבנה כדי לעבוד מקומית בלבד על מכשיר ה-Android TV שלך.</p>
+                            <ul>
+                                <li><strong>איסוף מידע:</strong> האפליקציה לא אוספת מידע אישי, מזהים, היסטוריית צפייה,
+                                    תוכן מסך,
+                                    או נתוני שימוש.</li>
+                                <li><strong>שיתוף מידע:</strong> אין שיתוף מידע עם צדדים שלישיים, כי אין איסוף מידע
+                                    מלכתחילה.</li>
+                                <li><strong>תקשורת רשת:</strong> האפליקציה אינה דורשת שרת חיצוני לצורך פעילותה.</li>
+                                <li><strong>הרשאות נגישות:</strong> ההרשאה משמשת רק לזיהוי חלונות מערכת ולביצוע פעולה
+                                    ("Continue"/סגירה) כאשר מופיעה הודעת "האם אתם עדיין צופים?".</li>
+                                <li><strong>פרסומות באתר:</strong> באתר עצמו עשויות להופיע פרסומות של צד שלישי. רשתות
+                                    מודעות עשויות
+                                    להשתמש בעוגיות/מזהים לצורך הצגת מודעות — זה קשור לאתר בלבד, לא לאפליקציה.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Terms of Use -->
+                <div class="faq-item" id="terms" onclick="toggleFaq(this)">
+                    <div class="faq-question">
+                        <span>תנאי שימוש ופטור מאחריות</span>
+                        <span class="faq-arrow">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <div class="privacy-box" style="margin-top: 16px;">
+                            <p>השימוש בתוכנה "Stream Keep Alive" (להלן: "התוכנה") הוא על אחריותך הבלעדית בלבד. התוכנה
+                                מסופקת כפי ציפייתה (<strong>"AS-IS"</strong>) וללא כל אחריות מכל סוג שהוא, מפורשת או
+                                משתמעת.</p>
+                            <ul>
+                                <li><strong>היעדר אחריות:</strong> מפתח התוכנה אינו אחראי לכל נזק ישיר, עקיף, מקרי או
+                                    תוצאתי שייגרם
+                                    למכשיר הסטרימר, לטלוויזיה, לרשת הביתית או לכל ציוד אחר כתוצאה מהתקנת או שימוש
+                                    בתוכנה.</li>
+                                <li><strong>ספקי תוכן וסטרימינג:</strong> התוכנה אינה קשורה, מאושרת, או נתמכת על ידי אף
+                                    חברת
+                                    סטרימינג או חברת תקשורת. המפתח אינו נושא באחריות לכל פעולת חסימה, השהיית חשבון, או
+                                    הפרה של תנאי
+                                    השימוש (ToS) של שירותי הסטרימינג השונים מצד המשתמש.</li>
+                                <li><strong>היעדר תמיכה רשמית:</strong> התוכנה מוצעת כקוד פתוח וחינמי לחלוטין. אין
+                                    התחייבות לספק
+                                    עדכונים עתידיים, לתקן באגים, או להתאים את התוכנה לשינויים במערכות ההפעלה או
+                                    באפליקציות
+                                    הסטרימינג.</li>
+                                <li><strong>שינויים במדיניות:</strong> חברות הסטרימינג רשאיות לשנות את הדרך שבה מוצגות
+                                    הודעות המערכת
+                                    שלהן בכל עת. אין ערובה לכך שהתוכנה תמשיך לעבוד עם גרסאות עתידיות של אפליקציות אלו.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Changelog -->
+    <section class="changelog-section" id="changelog">
+        <div class="container">
+            <h2 class="section-title">עדכונים <span class="gradient-text">אחרונים</span></h2>
+            <div class="changelog-list">
+                <div class="changelog-item">
+                    <span class="changelog-version">v1.2.0</span>
+                    <span class="changelog-date">מרץ 2026</span>
+                    <ul>
+                        <li>🛡️ <b>"חסינות כדורים"</b>: שידור כפתור Play וירטואלי כל 25 דק׳</li>
+                        <li>🔋 מניעת מצב השהיה (Doze) עם Partial WakeLock</li>
+                        <li>💻 תיקון סורקי הרשת והתקנות מרובות במק ו-Windows</li>
+                        <li>🎨 עדכון לוגו ושם ל-Stream Keep Alive</li>
+                    </ul>
+                </div>
+                <div class="changelog-item">
+                    <span class="changelog-version">v1.1.0</span>
+                    <span class="changelog-date">מרץ 2026</span>
+                    <ul>
+                        <li>🎯 תיקון gesture — מרכז המסך במקום פינה</li>
+                        <li>⏱️ טיימר 25 דק׳ (במקום 45)</li>
+                        <li>🔄 retry אוטומטי ×3 לדיאלוגים</li>
+                        <li>🔘 זיהוי כפתורים משופר כולל parent traversal</li>
+                        <li>📡 debounce למניעת הצפת events</li>
+                    </ul>
+                </div>
+                <div class="changelog-item">
+                    <span class="changelog-version">v1.0.0</span>
+                    <span class="changelog-date">מרץ 2026</span>
+                    <ul>
+                        <li>🚀 גרסה ראשונה: זיהוי חלון "Are you still watching?" + פעולה אוטומטית</li>
+                        <li>📺 תמיכה ב-12+ אפליקציות סטרימינג</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <span class="gradient-text">Stream Keep Alive</span>
+                </div>
+                <p class="footer-text">צפייה רציפה ללא הפרעות — בכל אפליקציית סטרימינג 🎬</p>
+                <div class="footer-links">
+                    <a href="#support">תמיכה בפרויקט</a>
+                    <a href="#privacy">מדיניות פרטיות</a>
+                    <a href="#terms">תנאי שימוש</a>
+                    <a href="#faq">שאלות נפוצות</a>
+                    <a href="guide.html">מדריך התקנה</a>
+                    <a href="#changelog">עדכונים</a>
+                </div>
+                <div class="footer-disclaimer">
+                    <p><strong>דיסקליימר:</strong> Stream Keep Alive הוא פרויקט עצמאי ואינו מוצר רשמי של חברת תקשורת
+                        ישראלית, רשת שידור, מערכת הפעלה או שירות סטרימינג כלשהו. השימוש באפליקציה הוא באחריות המשתמש.
+                        הפרויקט נועד
+                        לשיפור נוחות שימוש בלבד.</p>
+                    <p>כל הזכויות על השמות המסחריים שייכות לבעליהן.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

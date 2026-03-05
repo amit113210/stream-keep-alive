@@ -1,0 +1,165 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.keepalive.yesplus"
+4    android:versionCode="3"
+5    android:versionName="1.2" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="21"
+9        android:targetSdkVersion="34" />
+10
+11    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+11-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:5:5-81
+11-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:5:22-78
+12    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+12-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:6:5-77
+12-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:6:22-74
+13    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+13-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:7:5-78
+13-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:7:22-75
+14    <uses-permission android:name="android.permission.WAKE_LOCK" />
+14-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:8:5-68
+14-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:8:22-65
+15    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+15-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:9:5-76
+15-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:9:22-73
+16    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+16-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:10:5-76
+16-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:10:22-73
+17    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+17-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:11:5-79
+17-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:11:22-76
+18    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+18-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:12:5-81
+18-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:12:22-78
+19    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
+19-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:13:5-78
+19-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:13:22-75
+20
+21    <uses-feature
+21-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:15:5-17:35
+22        android:name="android.software.leanback"
+22-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:16:9-49
+23        android:required="true" />
+23-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:17:9-32
+24    <uses-feature
+24-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:19:5-21:36
+25        android:name="android.hardware.touchscreen"
+25-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:20:9-52
+26        android:required="false" />
+26-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:21:9-33
+27
+28    <permission
+28-->[androidx.core:core:1.12.0] /Users/amittabul/.gradle/caches/8.9/transforms/14038c18540a5423b44da322baec3138/transformed/core-1.12.0/AndroidManifest.xml:22:5-24:47
+29        android:name="com.keepalive.yesplus.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+29-->[androidx.core:core:1.12.0] /Users/amittabul/.gradle/caches/8.9/transforms/14038c18540a5423b44da322baec3138/transformed/core-1.12.0/AndroidManifest.xml:23:9-81
+30        android:protectionLevel="signature" />
+30-->[androidx.core:core:1.12.0] /Users/amittabul/.gradle/caches/8.9/transforms/14038c18540a5423b44da322baec3138/transformed/core-1.12.0/AndroidManifest.xml:24:9-44
+31
+32    <uses-permission android:name="com.keepalive.yesplus.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+32-->[androidx.core:core:1.12.0] /Users/amittabul/.gradle/caches/8.9/transforms/14038c18540a5423b44da322baec3138/transformed/core-1.12.0/AndroidManifest.xml:26:5-97
+32-->[androidx.core:core:1.12.0] /Users/amittabul/.gradle/caches/8.9/transforms/14038c18540a5423b44da322baec3138/transformed/core-1.12.0/AndroidManifest.xml:26:22-94
+33
+34    <application
+34-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:23:5-64:19
+35        android:allowBackup="true"
+35-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:24:9-35
+36        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+36-->[androidx.core:core:1.12.0] /Users/amittabul/.gradle/caches/8.9/transforms/14038c18540a5423b44da322baec3138/transformed/core-1.12.0/AndroidManifest.xml:28:18-86
+37        android:banner="@drawable/app_banner"
+37-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:25:9-46
+38        android:debuggable="true"
+39        android:extractNativeLibs="true"
+40        android:icon="@mipmap/ic_launcher"
+40-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:26:9-43
+41        android:label="@string/app_name"
+41-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:27:9-41
+42        android:supportsRtl="true"
+42-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:28:9-35
+43        android:theme="@style/Theme.YesPlusKeepAlive" >
+43-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:29:9-54
+44
+45        <!-- Main Activity -->
+46        <activity
+46-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:32:9-40:20
+47            android:name="com.keepalive.yesplus.MainActivity"
+47-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:33:13-41
+48            android:exported="true"
+48-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:34:13-36
+49            android:screenOrientation="landscape" >
+49-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:35:13-50
+50            <intent-filter>
+50-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:36:13-39:29
+51                <action android:name="android.intent.action.MAIN" />
+51-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:37:17-69
+51-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:37:25-66
+52
+53                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+53-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:38:17-86
+53-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:38:27-83
+54            </intent-filter>
+55        </activity>
+56
+57        <!-- Accessibility Service -->
+58        <service
+58-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:43:9-53:19
+59            android:name="com.keepalive.yesplus.KeepAliveAccessibilityService"
+59-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:44:13-58
+60            android:exported="false"
+60-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:45:13-37
+61            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" >
+61-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:46:13-79
+62            <intent-filter>
+62-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:47:13-49:29
+63                <action android:name="android.accessibilityservice.AccessibilityService" />
+63-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:48:17-92
+63-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:48:25-89
+64            </intent-filter>
+65
+66            <meta-data
+66-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:50:13-52:72
+67                android:name="android.accessibilityservice"
+67-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:51:17-60
+68                android:resource="@xml/accessibility_service_config" />
+68-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:52:17-69
+69        </service>
+70
+71        <!-- Boot Receiver -->
+72        <receiver
+72-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:56:9-62:20
+73            android:name="com.keepalive.yesplus.BootReceiver"
+73-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:57:13-41
+74            android:exported="true" >
+74-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:58:13-36
+75            <intent-filter>
+75-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:59:13-61:29
+76                <action android:name="android.intent.action.BOOT_COMPLETED" />
+76-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:60:17-79
+76-->/Users/amittabul/Desktop/yes-plus-keep-alive/app/src/main/AndroidManifest.xml:60:25-76
+77            </intent-filter>
+78        </receiver>
+79
+80        <provider
+80-->[androidx.emoji2:emoji2:1.2.0] /Users/amittabul/.gradle/caches/8.9/transforms/147deee54a86f530a940b94fe7d18d9d/transformed/emoji2-1.2.0/AndroidManifest.xml:24:9-32:20
+81            android:name="androidx.startup.InitializationProvider"
+81-->[androidx.emoji2:emoji2:1.2.0] /Users/amittabul/.gradle/caches/8.9/transforms/147deee54a86f530a940b94fe7d18d9d/transformed/emoji2-1.2.0/AndroidManifest.xml:25:13-67
+82            android:authorities="com.keepalive.yesplus.androidx-startup"
+82-->[androidx.emoji2:emoji2:1.2.0] /Users/amittabul/.gradle/caches/8.9/transforms/147deee54a86f530a940b94fe7d18d9d/transformed/emoji2-1.2.0/AndroidManifest.xml:26:13-68
+83            android:exported="false" >
+83-->[androidx.emoji2:emoji2:1.2.0] /Users/amittabul/.gradle/caches/8.9/transforms/147deee54a86f530a940b94fe7d18d9d/transformed/emoji2-1.2.0/AndroidManifest.xml:27:13-37
+84            <meta-data
+84-->[androidx.emoji2:emoji2:1.2.0] /Users/amittabul/.gradle/caches/8.9/transforms/147deee54a86f530a940b94fe7d18d9d/transformed/emoji2-1.2.0/AndroidManifest.xml:29:13-31:52
+85                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+85-->[androidx.emoji2:emoji2:1.2.0] /Users/amittabul/.gradle/caches/8.9/transforms/147deee54a86f530a940b94fe7d18d9d/transformed/emoji2-1.2.0/AndroidManifest.xml:30:17-75
+86                android:value="androidx.startup" />
+86-->[androidx.emoji2:emoji2:1.2.0] /Users/amittabul/.gradle/caches/8.9/transforms/147deee54a86f530a940b94fe7d18d9d/transformed/emoji2-1.2.0/AndroidManifest.xml:31:17-49
+87            <meta-data
+87-->[androidx.lifecycle:lifecycle-process:2.4.1] /Users/amittabul/.gradle/caches/8.9/transforms/c4906e9dd9df352e59be079070862d02/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:31:13-33:52
+88                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+88-->[androidx.lifecycle:lifecycle-process:2.4.1] /Users/amittabul/.gradle/caches/8.9/transforms/c4906e9dd9df352e59be079070862d02/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:32:17-78
+89                android:value="androidx.startup" />
+89-->[androidx.lifecycle:lifecycle-process:2.4.1] /Users/amittabul/.gradle/caches/8.9/transforms/c4906e9dd9df352e59be079070862d02/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:33:17-49
+90        </provider>
+91    </application>
+92
+93</manifest>

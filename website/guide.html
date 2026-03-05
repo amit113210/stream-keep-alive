@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מדריך התקנה — Stream Keep Alive</title>
+    <meta name="description"
+        content="מדריך התקנה מפורט עבור Stream Keep Alive — כולל הפעלת Developer Options, ADB Debugging, ופתרון בעיות.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="guide.css">
+
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3348812047145151"
+        crossorigin="anonymous"></script>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="guide-header">
+        <div class="container">
+            <a href="index.html" class="back-link">← חזרה לדף הראשי</a>
+            <h1 class="guide-title">
+                📖 מדריך התקנה <span class="gradient-text">מפורט</span>
+            </h1>
+            <p class="guide-subtitle">כל מה שצריך לדעת כדי להתקין Stream Keep Alive על כל מכשיר Android TV</p>
+        </div>
+    </header>
+
+    <!-- Table of Contents -->
+    <nav class="toc">
+        <div class="container">
+            <h3>תוכן עניינים</h3>
+            <div class="toc-grid">
+                <a href="#prerequisites" class="toc-item">1. דרישות מקדימות</a>
+                <a href="#developer-options" class="toc-item">2. הפעלת Developer Options</a>
+                <a href="#adb-debugging" class="toc-item">3. הפעלת ADB Debugging</a>
+                <a href="#find-ip" class="toc-item">4. מציאת כתובת IP</a>
+                <a href="#installation" class="toc-item">5. התקנת האפליקציה</a>
+                <a href="#version-table" class="toc-item">6. הבדלים בין גרסאות</a>
+                <a href="#manufacturers" class="toc-item">7. לפי יצרן</a>
+                <a href="#troubleshooting" class="toc-item">8. פתרון בעיות</a>
+            </div>
+        </div>
+    </nav>
+
+
+
+    <!-- Prerequisites -->
+    <section class="guide-section" id="prerequisites">
+        <div class="container">
+            <h2><span class="step-badge">1</span> דרישות מקדימות</h2>
+            <div class="requirements-grid">
+                <div class="req-card">
+                    <div class="req-icon">📺</div>
+                    <h4>Android TV</h4>
+                    <p>כל מכשיר Android TV (גרסה 5.0 ומעלה)</p>
+                    <ul>
+                        <li>Local TV Apps</li>
+                        <li>שאומי Mi Box / Mi TV Stick</li>
+                        <li>NVIDIA Shield</li>
+                        <li>Google Chromecast with Google TV</li>
+                        <li>סטרימרים אחרים עם Android TV</li>
+                    </ul>
+                </div>
+                <div class="req-card">
+                    <div class="req-icon">💻</div>
+                    <h4>מחשב</h4>
+                    <p>Mac או Windows באותה רשת WiFi</p>
+                    <ul>
+                        <li>macOS 10.15+ או Windows 10/11</li>
+                        <li>חיבור לאותה רשת WiFi/LAN כמו ה-TV</li>
+                        <li>לא צריך תוכנות נוספות — הסקריפט מוריד הכל</li>
+                    </ul>
+                </div>
+                <div class="req-card">
+                    <div class="req-icon">📶</div>
+                    <h4>רשת</h4>
+                    <p>שני המכשירים על אותה רשת</p>
+                    <ul>
+                        <li>WiFi או כבל LAN — לא משנה</li>
+                        <li>חיבור אינטרנט (להורדת ADB אם צריך)</li>
+                        <li>הנתב לא חוסם תקשורת בין מכשירים</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Developer Options -->
+    <section class="guide-section alt-bg" id="developer-options">
+        <div class="container">
+            <h2><span class="step-badge">2</span> הפעלת Developer Options</h2>
+            <p class="section-desc">Developer Options נמצא מוסתר בכל מכשירי Android. כדי להפעיל אותו, צריך ללחוץ 7 פעמים
+                על "Build Number".</p>
+
+            <div class="warning-box">
+                ⚠️ <strong>חשוב:</strong> המיקום משתנה בין יצרנים וגרסאות! ראה את הטבלה למטה.
+            </div>
+
+            <!-- Version-specific instructions -->
+            <div class="version-tabs">
+                <button class="version-tab active" onclick="showVersion('android14')">Android 14</button>
+                <button class="version-tab" onclick="showVersion('android13')">Android 13</button>
+                <button class="version-tab" onclick="showVersion('android12')">Android 12</button>
+                <button class="version-tab" onclick="showVersion('older')">Android 11 ומטה</button>
+            </div>
+
+            <div class="version-content active" id="android14">
+                <div class="steps-visual">
+                    <div class="visual-step">
+                        <div class="vs-number">1</div>
+                        <div class="vs-content">
+                            <h4>פתח Settings (הגדרות)</h4>
+                            <p>לחץ על ⚙️ Settings מתפריט ה-TV הראשי</p>
+                        </div>
+                    </div>
+                    <div class="vs-arrow">→</div>
+                    <div class="visual-step">
+                        <div class="vs-number">2</div>
+                        <div class="vs-content">
+                            <h4>Device Preferences</h4>
+                            <p>או "System" בחלק מהמכשירים</p>
+                        </div>
+                    </div>
+                    <div class="vs-arrow">→</div>
+                    <div class="visual-step">
+                        <div class="vs-number">3</div>
+                        <div class="vs-content">
+                            <h4>About</h4>
+                            <p>מידע על המכשיר</p>
+                        </div>
+                    </div>
+                    <div class="vs-arrow">→</div>
+                    <div class="visual-step highlight">
+                        <div class="vs-number">4</div>
+                        <div class="vs-content">
+                            <h4>Build Number</h4>
+                            <p>לחץ 7 פעמים ← <strong>"You are now a developer!"</strong></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-box">
+                    💡 <strong>טיפ ל-Android 14:</strong> בממירים המקומיים, הנתיב הוא:
+                    <code>Settings → Device Preferences → About → Build</code>. לחץ 7 פעמים על "Build" עד שתראה הודעה
+                    "You are now a developer!".
+                </div>
+            </div>
+
+            <div class="version-content" id="android13">
+                <div class="steps-visual">
+                    <div class="visual-step">
+                        <div class="vs-number">1</div>
+                        <div class="vs-content">
+                            <h4>Settings</h4>
+                            <p>פתח הגדרות</p>
+                        </div>
+                    </div>
+                    <div class="vs-arrow">→</div>
+                    <div class="visual-step">
+                        <div class="vs-number">2</div>
+                        <div class="vs-content">
+                            <h4>System</h4>
+                            <p>או Device Preferences</p>
+                        </div>
+                    </div>
+                    <div class="vs-arrow">→</div>
+                    <div class="visual-step">
+                        <div class="vs-number">3</div>
+                        <div class="vs-content">
+                            <h4>About</h4>
+                            <p>מידע על המכשיר</p>
+                        </div>
+                    </div>
+                    <div class="vs-arrow">→</div>
+                    <div class="visual-step highlight">
+                        <div class="vs-number">4</div>
+                        <div class="vs-content">
+                            <h4>Build Number</h4>
+                            <p>לחץ 7 פעמים</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-box">
+                    ⚠️ <strong>Android 13 — Restricted Settings:</strong> אחרי ההתקנה, ייתכן שתצטרך לאשר "Restricted
+                    Settings" בהגדרות האפליקציה. <strong>הסקריפט שלנו עושה את זה אוטומטית!</strong>
+                </div>
+            </div>
+
+            <div class="version-content" id="android12">
+                <div class="steps-visual">
+                    <div class="visual-step">
+                        <div class="vs-number">1</div>
+                        <div class="vs-content">
+                            <h4>Settings</h4>
+                            <p>פתח הגדרות</p>
+                        </div>
+                    </div>
+                    <div class="vs-arrow">→</div>
+                    <div class="visual-step">
+                        <div class="vs-number">2</div>
+                        <div class="vs-content">
+                            <h4>Device Preferences / System</h4>
+                            <p>תלוי ביצרן</p>
+                        </div>
+                    </div>
+                    <div class="vs-arrow">→</div>
+                    <div class="visual-step">
+                        <div class="vs-number">3</div>
+                        <div class="vs-content">
+                            <h4>About</h4>
+                            <p>מידע על המכשיר</p>
+                        </div>
+                    </div>
+                    <div class="vs-arrow">→</div>
+                    <div class="visual-step highlight">
+                        <div class="vs-number">4</div>
+                        <div class="vs-content">
+                            <h4>Build Number</h4>
+                            <p>לחץ 7 פעמים</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-box">
+                    ✅ <strong>Android 12:</strong> אין מגבלת Restricted Settings — ההתקנה פשוטה יותר.
+                </div>
+            </div>
+
+            <div class="version-content" id="older">
+                <div class="steps-visual">
+                    <div class="visual-step">
+                        <div class="vs-number">1</div>
+                        <div class="vs-content">
+                            <h4>Settings</h4>
+                            <p>פתח הגדרות</p>
+                        </div>
+                    </div>
+                    <div class="vs-arrow">→</div>
+                    <div class="visual-step">
+                        <div class="vs-number">2</div>
+                        <div class="vs-content">
+                            <h4>About</h4>
+                            <p>ישירות בתפריט הראשי</p>
+                        </div>
+                    </div>
+                    <div class="vs-arrow">→</div>
+                    <div class="visual-step highlight">
+                        <div class="vs-number">3</div>
+                        <div class="vs-content">
+                            <h4>Build Number</h4>
+                            <p>לחץ 7 פעמים</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-box">
+                    ✅ <strong>Android 11 ומטה:</strong> ההתקנה הכי פשוטה. אין צורך באישורים מיוחדים.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ADB Debugging -->
+    <section class="guide-section" id="adb-debugging">
+        <div class="container">
+            <h2><span class="step-badge">3</span> הפעלת ADB Debugging</h2>
+            <p class="section-desc">אחרי שה-Developer Options מופעל, צריך להפעיל את ADB Debugging:</p>
+
+            <div class="steps-visual">
+                <div class="visual-step">
+                    <div class="vs-number">1</div>
+                    <div class="vs-content">
+                        <h4>Settings</h4>
+                        <p>חזור להגדרות</p>
+                    </div>
+                </div>
+                <div class="vs-arrow">→</div>
+                <div class="visual-step">
+                    <div class="vs-number">2</div>
+                    <div class="vs-content">
+                        <h4>Device Preferences / System</h4>
+                        <p>תלוי ביצרן</p>
+                    </div>
+                </div>
+                <div class="vs-arrow">→</div>
+                <div class="visual-step">
+                    <div class="vs-number">3</div>
+                    <div class="vs-content">
+                        <h4>Developer Options</h4>
+                        <p>התפריט שהפעלת בשלב הקודם</p>
+                    </div>
+                </div>
+                <div class="vs-arrow">→</div>
+                <div class="visual-step highlight">
+                    <div class="vs-number">4</div>
+                    <div class="vs-content">
+                        <h4>USB Debugging → ON</h4>
+                        <p>או "ADB Debugging" — <strong>הפעל</strong></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="warning-box">
+                🔐 <strong>אישור חיבור:</strong> בפעם הראשונה שהמחשב יתחבר, תופיע הודעה ב-TV:
+                <br>"Allow USB debugging from this computer?"
+                <br>סמן <strong>"Always allow"</strong> ולחץ <strong>OK</strong>.
+            </div>
+        </div>
+    </section>
+
+    <!-- Find IP -->
+    <section class="guide-section alt-bg" id="find-ip">
+        <div class="container">
+            <h2><span class="step-badge">4</span> מציאת כתובת IP</h2>
+            <p class="section-desc">הסקריפט שלנו סורק את הרשת אוטומטית! אבל אם צריך ידנית:</p>
+
+            <div class="steps-visual">
+                <div class="visual-step">
+                    <div class="vs-number">1</div>
+                    <div class="vs-content">
+                        <h4>Settings</h4>
+                        <p>פתח הגדרות</p>
+                    </div>
+                </div>
+                <div class="vs-arrow">→</div>
+                <div class="visual-step">
+                    <div class="vs-number">2</div>
+                    <div class="vs-content">
+                        <h4>Network & Internet / About</h4>
+                        <p>תלוי ביצרן</p>
+                    </div>
+                </div>
+                <div class="vs-arrow">→</div>
+                <div class="visual-step highlight">
+                    <div class="vs-number">3</div>
+                    <div class="vs-content">
+                        <h4>IP Address</h4>
+                        <p>למשל: <code>192.168.1.45</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-box">
+                🔍 <strong>סריקה אוטומטית:</strong> ה-Installer שלנו סורק את הרשת ומציג רשימת מכשירים שזוהו. פשוט בחר
+                מהרשימה!
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation -->
+    <section class="guide-section" id="installation">
+        <div class="container">
+            <h2><span class="step-badge">5</span> התקנת האפליקציה</h2>
+            <p class="section-desc">לחץ פעמיים על הסקריפט והכל אוטומטי!</p>
+
+            <div class="os-tabs">
+                <button class="os-tab active" onclick="showOS('mac')">🍎 Mac</button>
+                <button class="os-tab" onclick="showOS('win')">🪟 Windows</button>
+            </div>
+
+            <div class="os-content active" id="mac">
+                <div class="install-steps">
+                    <div class="install-step">
+                        <span class="is-num">1</span>
+                        <div>
+                            <strong>לחץ פעמיים</strong> על <code>install_mac.command</code>
+                            <p class="is-note">אם macOS חוסם: העבר ל-System Preferences → Security → "Allow Anyway"</p>
+                        </div>
+                    </div>
+                    <div class="install-step">
+                        <span class="is-num">2</span>
+                        <div>
+                            <strong>הסקריפט סורק</strong> את הרשת ומציג מכשירים שזוהו
+                            <p class="is-note">או הקלד כתובת IP ידנית</p>
+                        </div>
+                    </div>
+                    <div class="install-step">
+                        <span class="is-num">3</span>
+                        <div>
+                            <strong>אשר</strong> את החיבור על מסך ה-TV
+                            <p class="is-note">סמן "Always allow" כדי לא להידרש שוב</p>
+                        </div>
+                    </div>
+                    <div class="install-step">
+                        <span class="is-num">4</span>
+                        <div>
+                            <strong>הכל אוטומטי!</strong> — אפליקציה מותקנת, שירות נגישות פעיל, הרשאות Hotspot
+                            <p class="is-note">בסיום, הסקריפט שואל אם להתקין על מכשיר נוסף</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="os-content" id="win">
+                <div class="install-steps">
+                    <div class="install-step">
+                        <span class="is-num">1</span>
+                        <div>
+                            <strong>לחץ פעמיים</strong> על <code>install_windows.bat</code>
+                            <p class="is-note">Windows Defender עשוי להזהיר — לחץ "Run Anyway"</p>
+                        </div>
+                    </div>
+                    <div class="install-step">
+                        <span class="is-num">2</span>
+                        <div>
+                            <strong>הסקריפט סורק</strong> את הרשת ומציג מכשירים שזוהו
+                            <p class="is-note">או הקלד כתובת IP ידנית</p>
+                        </div>
+                    </div>
+                    <div class="install-step">
+                        <span class="is-num">3</span>
+                        <div>
+                            <strong>אשר</strong> את החיבור על מסך ה-TV
+                        </div>
+                    </div>
+                    <div class="install-step">
+                        <span class="is-num">4</span>
+                        <div>
+                            <strong>הכל אוטומטי!</strong> — אותו תהליך כמו Mac
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+    <!-- Version Comparison Table -->
+    <section class="guide-section alt-bg" id="version-table">
+        <div class="container">
+            <h2><span class="step-badge">6</span> הבדלים בין <span class="gradient-text">גרסאות Android</span></h2>
+
+            <div class="table-wrapper">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>תכונה</th>
+                            <th>Android 14</th>
+                            <th>Android 13</th>
+                            <th>Android 12</th>
+                            <th>Android 11 ומטה</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Developer Options</strong></td>
+                            <td>Settings → Device Preferences → About → Build</td>
+                            <td>Settings → System → About → Build</td>
+                            <td>Settings → Device Preferences → About → Build</td>
+                            <td>Settings → About → Build</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ADB Debugging</strong></td>
+                            <td>Developer Options → USB Debugging</td>
+                            <td>Developer Options → USB Debugging</td>
+                            <td>Developer Options → USB Debugging</td>
+                            <td>Developer Options → USB Debugging</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Restricted Settings</strong></td>
+                            <td class="cell-warning">⚠️ נדרש — הסקריפט מטפל</td>
+                            <td class="cell-warning">⚠️ נדרש — הסקריפט מטפל</td>
+                            <td class="cell-ok">✅ לא נדרש</td>
+                            <td class="cell-ok">✅ לא נדרש</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Accessibility Service</strong></td>
+                            <td>ADB מפעיל אוטומטית</td>
+                            <td>ADB מפעיל אוטומטית</td>
+                            <td>ADB מפעיל אוטומטית</td>
+                            <td>ADB מפעיל אוטומטית</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Hotspot</strong></td>
+                            <td>כפתור ישיר (HotSpotActivity)</td>
+                            <td>פותח הגדרות רשת</td>
+                            <td>פותח הגדרות רשת</td>
+                            <td>פותח הגדרות רשת</td>
+                        </tr>
+                        <tr>
+                            <td><strong>רמת קושי</strong></td>
+                            <td>קל (אוטומטי)</td>
+                            <td>קל (אוטומטי)</td>
+                            <td>מאוד קל</td>
+                            <td>מאוד קל</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Manufacturer Guide -->
+    <section class="guide-section" id="manufacturers">
+        <div class="container">
+            <h2><span class="step-badge">7</span> לפי <span class="gradient-text">יצרן</span></h2>
+
+            <div class="manufacturer-grid">
+                <div class="mfr-card">
+                    <h4>📺 Local TV Apps (ממירים)</h4>
+                    <div class="mfr-path">
+                        <code>Settings → Device Preferences → About → Build</code>
+                    </div>
+                    <p>לחץ 7 פעמים על "Build". אחר כך:</p>
+                    <div class="mfr-path">
+                        <code>Settings → Device Preferences → Developer Options → USB Debugging</code>
+                    </div>
+                    <p class="mfr-note">💡 IP נמצא ב: Settings → Device Preferences → About → Status</p>
+                </div>
+
+                <div class="mfr-card">
+                    <h4>📺 Xiaomi Mi Box / Mi TV Stick</h4>
+                    <div class="mfr-path">
+                        <code>Settings → About → Build</code>
+                    </div>
+                    <p>לחץ 7 פעמים. אחר כך:</p>
+                    <div class="mfr-path">
+                        <code>Settings → Developer Options → USB Debugging</code>
+                    </div>
+                    <p class="mfr-note">💡 IP נמצא ב: Settings → Network & Internet → [שם הרשת]</p>
+                </div>
+
+                <div class="mfr-card">
+                    <h4>📺 NVIDIA Shield</h4>
+                    <div class="mfr-path">
+                        <code>Settings → Device Preferences → About → Build</code>
+                    </div>
+                    <p>לחץ 7 פעמים. אחר כך:</p>
+                    <div class="mfr-path">
+                        <code>Settings → Device Preferences → Developer Options → Network Debugging</code>
+                    </div>
+                    <p class="mfr-note">⚠️ ב-NVIDIA Shield זה נקרא "Network Debugging" ולא USB Debugging</p>
+                </div>
+
+                <div class="mfr-card">
+                    <h4>📺 Google Chromecast / Google TV</h4>
+                    <div class="mfr-path">
+                        <code>Settings → System → About → Android TV OS Build</code>
+                    </div>
+                    <p>לחץ 7 פעמים. אחר כך:</p>
+                    <div class="mfr-path">
+                        <code>Settings → System → Developer Options → USB Debugging</code>
+                    </div>
+                    <p class="mfr-note">💡 IP: Settings → Network & Internet → [שם הרשת] → Status</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Troubleshooting -->
+    <section class="guide-section alt-bg" id="troubleshooting">
+        <div class="container">
+            <h2><span class="step-badge">8</span> פתרון <span class="gradient-text">בעיות</span></h2>
+
+            <div class="trouble-list">
+                <div class="trouble-item">
+                    <div class="trouble-q" onclick="toggleTrouble(this)">
+                        <span>❌ "Cannot connect" — לא מצליח להתחבר</span>
+                        <span class="trouble-arrow">▼</span>
+                    </div>
+                    <div class="trouble-a">
+                        <ul>
+                            <li><strong>בדוק שה-TV והמחשב על אותה רשת WiFi</strong></li>
+                            <li>בדוק שה-ADB Debugging מופעל ב-Developer Options</li>
+                            <li>נסה לכבות ולהפעיל מחדש את ה-TV</li>
+                            <li>חלק מהנתבים חוסמים תקשורת בין מכשירים — בדוק "AP Isolation" בהגדרות הנתב</li>
+                            <li>נסה פורט אחר: <code>adb connect IP:41635</code> במקום <code>:5555</code></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="trouble-item">
+                    <div class="trouble-q" onclick="toggleTrouble(this)">
+                        <span>⚠️ "Unauthorized" — דורש אישור</span>
+                        <span class="trouble-arrow">▼</span>
+                    </div>
+                    <div class="trouble-a">
+                        <ul>
+                            <li>חפש הודעת אישור על <strong>מסך ה-TV</strong></li>
+                            <li>בחר "Always allow from this computer"</li>
+                            <li>אם אין הודעה — כבה ADB Debugging, הפעל מחדש, ונסה שוב</li>
+                            <li>Run: <code>adb kill-server && adb start-server</code></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="trouble-item">
+                    <div class="trouble-q" onclick="toggleTrouble(this)">
+                        <span>🛡️ Play Protect חוסם את ההתקנה</span>
+                        <span class="trouble-arrow">▼</span>
+                    </div>
+                    <div class="trouble-a">
+                        <ul>
+                            <li>פתח <strong>Google Play Store</strong> ב-TV</li>
+                            <li>לך ל-<strong>Settings → Play Protect</strong></li>
+                            <li>כבה את <strong>"Scan apps with Play Protect"</strong></li>
+                            <li>הרץ את ה-Installer שוב</li>
+                            <li>אחרי ההתקנה — מומלץ להפעיל חזרה</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="trouble-item">
+                    <div class="trouble-q" onclick="toggleTrouble(this)">
+                        <span>🔄 שירות הנגישות לא עובד</span>
+                        <span class="trouble-arrow">▼</span>
+                    </div>
+                    <div class="trouble-a">
+                        <ul>
+                            <li>הרץ את ה-Installer שוב — הוא מפעיל את השירות אוטומטית</li>
+                            <li>בדוק שהאפליקציה מותקנת: חפש "Stream Keep Alive" ב-Apps</li>
+                            <li>פתח את האפליקציה ובדוק אם כתוב "✅ פעיל"</li>
+                            <li>אם לא — לחץ 3 פעמים על "הגדרות נגישות" והפעל ידנית</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="trouble-item">
+                    <div class="trouble-q" onclick="toggleTrouble(this)">
+                        <span>🍎 macOS חוסם את הסקריפט</span>
+                        <span class="trouble-arrow">▼</span>
+                    </div>
+                    <div class="trouble-a">
+                        <ul>
+                            <li>לחץ ימני על הקובץ → "Open" (במקום לחיצה כפולה)</li>
+                            <li>או: System Preferences → Security & Privacy → "Allow Anyway"</li>
+                            <li>או הרץ בטרמינל: <code>chmod +x install_mac.command && ./install_mac.command</code></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="trouble-item">
+                    <div class="trouble-q" onclick="toggleTrouble(this)">
+                        <span>🪟 Windows SmartScreen חוסם</span>
+                        <span class="trouble-arrow">▼</span>
+                    </div>
+                    <div class="trouble-a">
+                        <ul>
+                            <li>לחץ על "More info"</li>
+                            <li>לחץ על "Run anyway"</li>
+                            <li>הסקריפט בטוח — הוא רק מריץ ADB commands</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="trouble-item">
+                    <div class="trouble-q" onclick="toggleTrouble(this)">
+                        <span>📺 ההודעה עדיין מופיעה</span>
+                        <span class="trouble-arrow">▼</span>
+                    </div>
+                    <div class="trouble-a">
+                        <ul>
+                            <li>ודא שהאפליקציה מציגה "✅ פעיל"</li>
+                            <li>חכה — השירות מזהה את ההודעה וסוגר אותה תוך 1-2 שניות</li>
+                            <li>אם לא עובד — הסגנון של ההודעה ייתכן ושונה מהצפוי. <strong>פנה אלינו</strong> עם צילום
+                                מסך</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Supported Apps Table -->
+    <section class="guide-section" id="supported-apps">
+        <div class="container">
+            <h2>אפליקציות <span class="gradient-text">נתמכות</span></h2>
+            <div class="table-wrapper">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>אפליקציה</th>
+                            <th>הודעה</th>
+                            <th>שפה</th>
+                            <th>סטטוס</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>📺 Local TV Apps</td>
+                            <td>"האם אתם עדיין צופים?"</td>
+                            <td>עברית</td>
+                            <td class="cell-ok">✅ נתמך</td>
+                        </tr>
+                        <tr>
+                            <td>🎬 Netflix</td>
+                            <td>"Are you still watching?"</td>
+                            <td>אנגלית</td>
+                            <td class="cell-ok">✅ נתמך</td>
+                        </tr>
+                        <tr>
+                            <td>▶️ YouTube</td>
+                            <td>"Video paused. Continue?"</td>
+                            <td>אנגלית</td>
+                            <td class="cell-ok">✅ נתמך</td>
+                        </tr>
+                        <tr>
+                            <td>✨ Disney+</td>
+                            <td>"Still watching?"</td>
+                            <td>אנגלית</td>
+                            <td class="cell-ok">✅ נתמך</td>
+                        </tr>
+                        <tr>
+                            <td>📦 Prime Video</td>
+                            <td>"Are you still watching?"</td>
+                            <td>אנגלית</td>
+                            <td class="cell-ok">✅ נתמך</td>
+                        </tr>
+                        <tr>
+                            <td>🎭 HBO Max</td>
+                            <td>"Are you still there?"</td>
+                            <td>אנגלית</td>
+                            <td class="cell-ok">✅ נתמך</td>
+                        </tr>
+                        <tr>
+                            <td>🟢 Hulu</td>
+                            <td>"Are you still watching?"</td>
+                            <td>אנגלית</td>
+                            <td class="cell-ok">✅ נתמך</td>
+                        </tr>
+                        <tr>
+                            <td>🍎 Apple TV+</td>
+                            <td>"Still watching?"</td>
+                            <td>אנגלית</td>
+                            <td class="cell-ok">✅ נתמך</td>
+                        </tr>
+                        <tr>
+                            <td>📱 Cellcom TV</td>
+                            <td>"עדיין צופים?"</td>
+                            <td>עברית</td>
+                            <td class="cell-ok">✅ נתמך</td>
+                        </tr>
+                        <tr>
+                            <td>📡 Partner TV</td>
+                            <td>"עדיין צופים?"</td>
+                            <td>עברית</td>
+                            <td class="cell-ok">✅ נתמך</td>
+                        </tr>
+                        <tr>
+                            <td>🔥 HOT</td>
+                            <td>"עדיין צופים?"</td>
+                            <td>עברית</td>
+                            <td class="cell-ok">✅ נתמך</td>
+                        </tr>
+                        <tr>
+                            <td>🎵 Spotify</td>
+                            <td>"Are you still listening?"</td>
+                            <td>אנגלית</td>
+                            <td class="cell-ok">✅ נתמך</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Support the project -->
+    <section style="padding: 48px 0;">
+        <div class="container" style="text-align: center;">
+            <div
+                style="max-width: 500px; margin: 0 auto; background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.08)); border: 2px solid rgba(99,102,241,0.25); border-radius: 16px; padding: 40px;">
+                <h3
+                    style="font-size: 24px; font-weight: 800; margin-bottom: 12px; background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                    תומכים בפרויקט ❤️</h3>
+                <p style="color: #b0b0d0; margin-bottom: 16px;">האתר והאפליקציה חינמיים לגמרי. אם זה עזר לך — אפשר לתמוך
+                    בפיתוח:</p>
+                <a href="https://www.paypal.com/donate/?hosted_button_id=YE4YL7S82QUJJ" target="_blank" rel="noopener"
+                    class="btn btn-secondary"
+                    style="display: inline-flex; gap: 8px; background: linear-gradient(135deg, rgba(0,112,186,0.2), rgba(0,48,135,0.2)); border: 1px solid rgba(0,112,186,0.4); font-size: 18px; padding: 14px 28px;">💳
+                    תרומה דרך PayPal</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo"><span class="gradient-text">Stream Keep Alive</span></div>
+                <p class="footer-text">צפייה רציפה ללא הפרעות — בכל אפליקציית סטרימינג 🎬</p>
+                <a href="index.html" class="btn btn-secondary" style="margin-top:16px">← חזרה לדף הראשי</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // Version tabs
+        function showVersion(id) {
+            document.querySelectorAll('.version-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.version-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // OS tabs
+        function showOS(id) {
+            document.querySelectorAll('.os-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.os-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Troubleshooting accordion
+        function toggleTrouble(el) {
+            const item = el.parentElement;
+            item.classList.toggle('active');
+        }
+    </script>
+</body>
+
+</html>
