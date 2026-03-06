@@ -66,6 +66,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var descriptionText: TextView
     private lateinit var versionText: TextView
     private lateinit var debugTitleText: TextView
+    private lateinit var detailsToggleButton: Button
     private lateinit var settingsButton: Button
     private lateinit var hotspotButton: Button
     private lateinit var powerSettingsButton: Button
@@ -82,6 +83,7 @@ class MainActivity : AppCompatActivity() {
     private var pendingStartAfterPermission = false
     private var activeCalibration: CalibrationRunState? = null
     private var debugVisible = false
+    private var runtimeDetailsVisible = false
 
     private var dpadPressCount = 0
     private val requiredPresses = 3
@@ -96,6 +98,7 @@ class MainActivity : AppCompatActivity() {
         descriptionText = findViewById(R.id.descriptionText)
         versionText = findViewById(R.id.versionText)
         debugTitleText = findViewById(R.id.debugTitleText)
+        detailsToggleButton = findViewById(R.id.detailsToggleButton)
         settingsButton = findViewById(R.id.settingsButton)
         hotspotButton = findViewById(R.id.hotspotButton)
         powerSettingsButton = findViewById(R.id.powerSettingsButton)
@@ -118,9 +121,11 @@ class MainActivity : AppCompatActivity() {
         notificationAccessButton.setOnClickListener { openNotificationListenerSettings() }
         powerSettingsButton.setOnClickListener { openPowerSettingsHelper() }
         debugToggleButton.setOnClickListener { toggleDebugPanel() }
+        detailsToggleButton.setOnClickListener { toggleRuntimeDetails() }
 
         updateModeButtonLabel(ProtectionSessionManager.currentMode(this))
         applyDebugVisibility()
+        applyRuntimeDetailsToggleLabel()
         updateServiceStatus()
     }
 
@@ -365,42 +370,64 @@ class MainActivity : AppCompatActivity() {
         val heartbeatAllowed = telemetry.shouldRunHeartbeatNow
         val heartbeatReason = telemetry.heartbeatSuppressedReason.ifEmpty { "-" }
 
-        descriptionText.text = String.format(
-            Locale.US,
-            "Checklist\n" +
-                "• Accessibility: %s\n" +
-                "• Protection Session: %s\n" +
-                "• Notification Access: %s\n" +
-                "• Foreground Companion: %s\n" +
-                "• Battery Optimization Exempt: %s\n" +
-                "• Playback Signals Available: %s\n" +
-                "• Active Playback: %s\n\n" +
-                "Runtime\n" +
-                "• Selected Mode: %s\n" +
-                "• Heartbeat Allowed: %s\n" +
-                "• Heartbeat Gate Reason: %s\n" +
-                "• Package: %s\n" +
-                "• Profile: %s\n" +
-                "• Mode: %s\n" +
-                "• Playback Source: %s\n" +
-                "• Playback Confidence: %s",
-            if (accessibilityEnabled) getString(R.string.status_yes) else getString(R.string.status_no),
-            if (protectionActive) getString(R.string.status_yes) else getString(R.string.status_no),
-            if (notificationAccessEnabled) getString(R.string.status_yes) else getString(R.string.status_no),
-            if (telemetry.foregroundServiceRunning) getString(R.string.status_yes) else getString(R.string.status_no),
-            if (batteryExempt) getString(R.string.status_yes) else getString(R.string.status_no),
-            if (playbackSignalsAvailable) getString(R.string.status_yes) else getString(R.string.status_no),
-            if (playbackActive) getString(R.string.status_yes) else getString(R.string.status_no),
-            selectedMode.name,
-            if (heartbeatAllowed) getString(R.string.status_yes) else getString(R.string.status_no),
-            heartbeatReason,
-            telemetry.currentPackage.ifEmpty { "-" },
-            telemetry.currentProfile.ifEmpty { "-" },
-            telemetry.currentMode,
-            telemetry.playbackSignalSource,
-            telemetry.playbackConfidence
-        )
+        val accessibilityText = if (accessibilityEnabled) getString(R.string.status_yes) else getString(R.string.status_no)
+        val protectionText = if (protectionActive) getString(R.string.status_yes) else getString(R.string.status_no)
+        val notificationText = if (notificationAccessEnabled) getString(R.string.status_yes) else getString(R.string.status_no)
+        val foregroundText = if (telemetry.foregroundServiceRunning) getString(R.string.status_yes) else getString(R.string.status_no)
+        val batteryText = if (batteryExempt) getString(R.string.status_yes) else getString(R.string.status_no)
+        val playbackSignalsText = if (playbackSignalsAvailable) getString(R.string.status_yes) else getString(R.string.status_no)
+        val playbackText = if (playbackActive) getString(R.string.status_yes) else getString(R.string.status_no)
+        val heartbeatAllowedText = if (heartbeatAllowed) getString(R.string.status_yes) else getString(R.string.status_no)
+
+        descriptionText.text = if (runtimeDetailsVisible) {
+            String.format(
+                Locale.US,
+                "Checklist\n" +
+                    "• Accessibility: %s\n" +
+                    "• Protection Session: %s\n" +
+                    "• Notification Access: %s\n" +
+                    "• Foreground Companion: %s\n" +
+                    "• Battery Optimization Exempt: %s\n" +
+                    "• Playback Signals Available: %s\n" +
+                    "• Active Playback: %s\n\n" +
+                    "Runtime\n" +
+                    "• Selected Mode: %s\n" +
+                    "• Heartbeat Allowed: %s\n" +
+                    "• Heartbeat Gate Reason: %s\n" +
+                    "• Package: %s\n" +
+                    "• Profile: %s\n" +
+                    "• Mode: %s\n" +
+                    "• Playback Source: %s\n" +
+                    "• Playback Confidence: %s",
+                accessibilityText,
+                protectionText,
+                notificationText,
+                foregroundText,
+                batteryText,
+                playbackSignalsText,
+                playbackText,
+                selectedMode.name,
+                heartbeatAllowedText,
+                heartbeatReason,
+                telemetry.currentPackage.ifEmpty { "-" },
+                telemetry.currentProfile.ifEmpty { "-" },
+                telemetry.currentMode,
+                telemetry.playbackSignalSource,
+                telemetry.playbackConfidence
+            )
+        } else {
+            String.format(
+                Locale.US,
+                "Quick Status: Accessibility %s  |  Protection %s  |  Mode %s  |  Playback %s  |  Heartbeat %s",
+                accessibilityText,
+                protectionText,
+                selectedMode.name,
+                playbackText,
+                heartbeatAllowedText
+            )
+        }
         updateModeButtonLabel(selectedMode)
+        applyRuntimeDetailsToggleLabel()
 
         startProtectionButton.isEnabled = !protectionActive
         stopProtectionButton.isEnabled = protectionActive
@@ -458,10 +485,20 @@ class MainActivity : AppCompatActivity() {
         applyDebugVisibility()
     }
 
+    private fun toggleRuntimeDetails() {
+        runtimeDetailsVisible = !runtimeDetailsVisible
+        applyRuntimeDetailsToggleLabel()
+        updateServiceStatus()
+    }
+
     private fun applyDebugVisibility() {
         debugTitleText.visibility = if (debugVisible) View.VISIBLE else View.GONE
         debugTelemetryText.visibility = if (debugVisible) View.VISIBLE else View.GONE
         debugToggleButton.text = getString(if (debugVisible) R.string.debug_hide else R.string.debug_show)
+    }
+
+    private fun applyRuntimeDetailsToggleLabel() {
+        detailsToggleButton.text = getString(if (runtimeDetailsVisible) R.string.details_hide else R.string.details_show)
     }
 
     private fun updateTelemetryPanel() {

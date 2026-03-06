@@ -214,6 +214,22 @@
                 android:textSize="20sp"
                 android:textStyle="bold" />
 
+            <Button
+                android:id="@+id/detailsToggleButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/button_background_secondary"
+                android:paddingStart="14dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="8dp"
+                android:text="@string/details_show"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
             <ImageView
                 android:id="@+id/statusIndicator"
                 android:layout_width="80dp"
