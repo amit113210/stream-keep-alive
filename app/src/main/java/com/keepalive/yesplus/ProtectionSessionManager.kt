@@ -49,12 +49,6 @@ object ProtectionSessionManager {
             .apply()
     }
 
-    fun setMode(context: Context, mode: ServiceMode) {
-        prefs(context).edit()
-            .putString(KEY_MODE, mode.name)
-            .apply()
-    }
-
     fun stopProtection(context: Context) {
         prefs(context).edit()
             .putBoolean(KEY_ACTIVE, false)

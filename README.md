@@ -8,8 +8,15 @@
 ## מה זה עושה
 - מזהה אוטומטית חלונות "האם אתם עדיין צופים?" וסוגר אותם.
 - מפעיל מנגנון keep-alive חכם כדי להפחית הופעת הודעות מראש.
+- כולל מצב הגנה מפורש עם בחירת Mode ישירה מהמסך: `NORMAL` / `AGGRESSIVE` / `MAXIMUM`.
 - עובד מקומית על המכשיר, ללא שרת חיצוני.
 - תואם Android TV (API 21+) ללא Root.
+
+## חדש ב-1.7
+- כפתור מצב ייעודי במסך הראשי (ללא Long-Press נסתר).
+- `MAXIMUM` זמין ונגיש ישירות עם השלט.
+- Protection Session + Telemetry משופרים לניטור מצב בזמן אמת.
+- שיפורי יציבות וניהול צריכת חשמל במכשירי Android TV.
 
 ## התקנה מהירה
 - אתר ההתקנה: [stream-keep-alive.vercel.app](https://stream-keep-alive.vercel.app/index.html)

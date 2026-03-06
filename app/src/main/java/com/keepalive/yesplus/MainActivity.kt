@@ -68,6 +68,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var settingsButton: Button
     private lateinit var hotspotButton: Button
     private lateinit var powerSettingsButton: Button
+    private lateinit var modeSelectorButton: Button
     private lateinit var startProtectionButton: Button
     private lateinit var stopProtectionButton: Button
     private lateinit var calibrationButton: Button
@@ -94,6 +95,7 @@ class MainActivity : AppCompatActivity() {
         settingsButton = findViewById(R.id.settingsButton)
         hotspotButton = findViewById(R.id.hotspotButton)
         powerSettingsButton = findViewById(R.id.powerSettingsButton)
+        modeSelectorButton = findViewById(R.id.modeSelectorButton)
         startProtectionButton = findViewById(R.id.startProtectionButton)
         stopProtectionButton = findViewById(R.id.stopProtectionButton)
         calibrationButton = findViewById(R.id.calibrationButton)
@@ -105,15 +107,13 @@ class MainActivity : AppCompatActivity() {
         settingsButton.setOnClickListener { onSettingsClicked() }
         hotspotButton.setOnClickListener { openNetworkSettings() }
         startProtectionButton.setOnClickListener { onStartProtectionClicked() }
-        startProtectionButton.setOnLongClickListener {
-            cycleProtectionMode()
-            true
-        }
+        modeSelectorButton.setOnClickListener { cycleProtectionMode() }
         stopProtectionButton.setOnClickListener { stopProtectionSession() }
         calibrationButton.setOnClickListener { openCalibrationPackagePicker() }
         notificationAccessButton.setOnClickListener { openNotificationListenerSettings() }
         powerSettingsButton.setOnClickListener { openPowerSettingsHelper() }
 
+        updateModeButtonLabel(ProtectionSessionManager.currentMode(this))
         updateServiceStatus()
     }
 
@@ -265,8 +265,20 @@ class MainActivity : AppCompatActivity() {
             ServiceMode.DIALOG_ONLY -> ServiceMode.NORMAL
         }
         ProtectionSessionManager.setMode(this, next)
+        updateModeButtonLabel(next)
+        if (ProtectionSessionManager.isProtectionActive(this)) {
+            try {
+                ContextCompat.startForegroundService(this, ProtectionSessionService.createRefreshIntent(this))
+            } catch (_: Exception) {
+                // no-op
+            }
+        }
         Toast.makeText(this, getString(R.string.mode_changed_to, next.name), Toast.LENGTH_SHORT).show()
         updateServiceStatus()
+    }
+
+    private fun updateModeButtonLabel(mode: ServiceMode) {
+        modeSelectorButton.text = getString(R.string.mode_selector_format, mode.name)
     }
 
     private fun startProtectionSession(mode: ServiceMode, durationTargetMinutes: Int = 0) {
@@ -338,6 +350,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val telemetry = KeepAliveAccessibilityService.getTelemetrySnapshot()
+        val selectedMode = ProtectionSessionManager.currentMode(this)
         val notificationAccessEnabled = isNotificationListenerEnabled()
         val batteryExempt = isBatteryOptimizationExempt()
         val playbackSignalsAvailable = telemetry.mediaSessionAccessAvailable || telemetry.notificationListenerEnabled
@@ -356,6 +369,7 @@ class MainActivity : AppCompatActivity() {
                 "• Playback Signals Available: %s\n" +
                 "• Active Playback: %s\n\n" +
                 "Runtime\n" +
+                "• Selected Mode: %s\n" +
                 "• Heartbeat Allowed: %s\n" +
                 "• Heartbeat Gate Reason: %s\n" +
                 "• Package: %s\n" +
@@ -370,6 +384,7 @@ class MainActivity : AppCompatActivity() {
             if (batteryExempt) getString(R.string.status_yes) else getString(R.string.status_no),
             if (playbackSignalsAvailable) getString(R.string.status_yes) else getString(R.string.status_no),
             if (playbackActive) getString(R.string.status_yes) else getString(R.string.status_no),
+            selectedMode.name,
             if (heartbeatAllowed) getString(R.string.status_yes) else getString(R.string.status_no),
             heartbeatReason,
             telemetry.currentPackage.ifEmpty { "-" },
@@ -378,6 +393,7 @@ class MainActivity : AppCompatActivity() {
             telemetry.playbackSignalSource,
             telemetry.playbackConfidence
         )
+        updateModeButtonLabel(selectedMode)
 
         startProtectionButton.isEnabled = !protectionActive
         stopProtectionButton.isEnabled = protectionActive

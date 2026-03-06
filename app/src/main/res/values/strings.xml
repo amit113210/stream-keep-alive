@@ -18,6 +18,8 @@
     <string name="button_start_calibration">Calibration Run (12 min)</string>
     <string name="button_notification_access">Notification Access</string>
     <string name="button_power_settings">Power &amp; System Settings</string>
+    <string name="button_mode_selector">Mode: NORMAL</string>
+    <string name="mode_selector_format">Mode: %1$s</string>
 
     <string name="protection_status_on">Protection: ON</string>
     <string name="protection_status_off">Protection: OFF</string>
