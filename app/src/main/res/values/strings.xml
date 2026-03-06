@@ -45,11 +45,15 @@
     <string name="more_show_debug">Show debug telemetry</string>
     <string name="more_hide_debug">Hide debug telemetry</string>
     <string name="more_app_info">App info</string>
+    <string name="power_option_timeout_guidance">Display timeout guidance</string>
     <string name="power_option_battery_optimization">Battery optimization</string>
     <string name="power_option_screen_timeout_permission">Screen timeout permission</string>
     <string name="power_option_accessibility_settings">Accessibility settings</string>
     <string name="power_option_notification_access">Notification access</string>
     <string name="power_option_app_info">App info</string>
+    <string name="power_guidance_title">Display timeout hardening guidance</string>
+    <string name="power_guidance_message">To improve the chance that the TV display stays on during protection sessions:\n\n1) Allow \"Screen timeout permission\" (WRITE_SETTINGS) so the app can temporarily extend timeout and restore it later.\n2) Disable battery optimization for this app for better reliability.\n3) If your TV has a display timeout option, consider setting it to Never.\n\nThis is best-effort hardening and not a guaranteed Netflix fix.</string>
+    <string name="power_guidance_open_settings">Open TV settings</string>
 
     <string name="notification_channel_name">Streaming protection</string>
     <string name="notification_channel_description">Persistent session notification for active streaming protection</string>

@@ -238,6 +238,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun openPowerSettingsHelper() {
         val options = arrayOf(
+            getString(R.string.power_option_timeout_guidance),
             getString(R.string.power_option_battery_optimization),
             getString(R.string.power_option_screen_timeout_permission),
             getString(R.string.power_option_accessibility_settings),
@@ -249,14 +250,30 @@ class MainActivity : AppCompatActivity() {
             .setTitle(getString(R.string.button_power_settings))
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> openBatteryOptimizationSettings()
-                    1 -> openWriteSettingsScreen()
-                    2 -> openAccessibilitySettings()
-                    3 -> openNotificationListenerSettings()
-                    4 -> openAppDetailsSettings()
+                    0 -> showPowerTimeoutGuidanceDialog()
+                    1 -> openBatteryOptimizationSettings()
+                    2 -> openWriteSettingsScreen()
+                    3 -> openAccessibilitySettings()
+                    4 -> openNotificationListenerSettings()
+                    5 -> openAppDetailsSettings()
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showPowerTimeoutGuidanceDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.power_guidance_title))
+            .setMessage(getString(R.string.power_guidance_message))
+            .setPositiveButton(getString(R.string.power_guidance_open_settings)) { _, _ ->
+                try {
+                    startActivity(Intent(Settings.ACTION_SETTINGS))
+                } catch (_: Exception) {
+                    // no-op
+                }
+            }
+            .setNeutralButton(android.R.string.ok, null)
             .show()
     }
 
@@ -481,6 +498,7 @@ class MainActivity : AppCompatActivity() {
                     "• Playback Signals Available: %s\n" +
                     "• Active Playback: %s\n\n" +
                     "Runtime\n" +
+                    "• Display hardening: best effort only (not a guaranteed Netflix fix)\n" +
                     "• Selected Mode: %s\n" +
                     "• Heartbeat Allowed: %s\n" +
                     "• Heartbeat Gate Reason: %s\n" +
