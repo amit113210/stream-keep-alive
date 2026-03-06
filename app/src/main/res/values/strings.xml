@@ -17,6 +17,7 @@
     <string name="button_stop_protection">Stop Protection</string>
     <string name="button_start_calibration">Calibration Run (12 min)</string>
     <string name="button_notification_access">Notification Access</string>
+    <string name="button_power_settings">Power &amp; System Settings</string>
 
     <string name="protection_status_on">Protection: ON</string>
     <string name="protection_status_off">Protection: OFF</string>
@@ -40,4 +41,7 @@
     <string name="status_yes">YES</string>
     <string name="status_no">NO</string>
     <string name="playback_fallback_mode">Package-only fallback mode</string>
+    <string name="battery_optimization_required">Battery optimization exemption is strongly recommended so Stream Keep Alive can keep running while the TV is idle.</string>
+    <string name="battery_optimization_title">Battery optimization</string>
+    <string name="mode_changed_to">Mode changed to %1$s</string>
 </resources>

@@ -9,6 +9,10 @@ enum class HeartbeatAction {
 enum class ServiceMode {
     NORMAL,
     AGGRESSIVE,
+    /**
+     * Personal-use ultra mode: shorter intervals and more aggressive behavior.
+     */
+    MAXIMUM,
     DIALOG_ONLY
 }
 
@@ -36,6 +40,7 @@ object PackagePolicy {
     private const val YOUTUBE_AGGRESSIVE_MS = 90_000L
     private const val DEFAULT_NORMAL_MS = 135_000L
     private const val DEFAULT_AGGRESSIVE_MS = 105_000L
+    private const val DEFAULT_MAXIMUM_MIN_MS = 45_000L
     private const val JITTER_6S_MS = 6_000L
     private const val JITTER_8S_MS = 8_000L
 
@@ -258,6 +263,10 @@ object PackagePolicy {
         return when (mode) {
             ServiceMode.NORMAL -> profile.heartbeatIntervalMs
             ServiceMode.AGGRESSIVE -> profile.aggressiveHeartbeatIntervalMs
+            ServiceMode.MAXIMUM -> maxOf(
+                DEFAULT_MAXIMUM_MIN_MS,
+                (profile.aggressiveHeartbeatIntervalMs * 0.6f).toLong()
+            )
             ServiceMode.DIALOG_ONLY -> profile.heartbeatIntervalMs
         }
     }

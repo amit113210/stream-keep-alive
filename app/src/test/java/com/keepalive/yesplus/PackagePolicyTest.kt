@@ -32,6 +32,10 @@ class PackagePolicyTest {
 
         assertEquals(profile.heartbeatIntervalMs, PackagePolicy.intervalFor(profile, ServiceMode.NORMAL))
         assertEquals(profile.aggressiveHeartbeatIntervalMs, PackagePolicy.intervalFor(profile, ServiceMode.AGGRESSIVE))
+        val maximum = PackagePolicy.intervalFor(profile, ServiceMode.MAXIMUM)
+        // MAXIMUM should be at least the minimum guard and no longer than aggressive.
+        assertTrue(maximum <= profile.aggressiveHeartbeatIntervalMs)
+        assertTrue(maximum >= 45_000L)
         assertEquals(profile.heartbeatIntervalMs, PackagePolicy.intervalFor(profile, ServiceMode.DIALOG_ONLY))
     }
 }

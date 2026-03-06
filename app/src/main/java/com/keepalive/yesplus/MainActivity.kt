@@ -4,10 +4,12 @@ import android.Manifest
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.provider.Settings
 import android.view.View
 import android.widget.Button
@@ -65,6 +67,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var versionText: TextView
     private lateinit var settingsButton: Button
     private lateinit var hotspotButton: Button
+    private lateinit var powerSettingsButton: Button
     private lateinit var startProtectionButton: Button
     private lateinit var stopProtectionButton: Button
     private lateinit var calibrationButton: Button
@@ -90,6 +93,7 @@ class MainActivity : AppCompatActivity() {
         versionText = findViewById(R.id.versionText)
         settingsButton = findViewById(R.id.settingsButton)
         hotspotButton = findViewById(R.id.hotspotButton)
+        powerSettingsButton = findViewById(R.id.powerSettingsButton)
         startProtectionButton = findViewById(R.id.startProtectionButton)
         stopProtectionButton = findViewById(R.id.stopProtectionButton)
         calibrationButton = findViewById(R.id.calibrationButton)
@@ -101,9 +105,14 @@ class MainActivity : AppCompatActivity() {
         settingsButton.setOnClickListener { onSettingsClicked() }
         hotspotButton.setOnClickListener { openNetworkSettings() }
         startProtectionButton.setOnClickListener { onStartProtectionClicked() }
+        startProtectionButton.setOnLongClickListener {
+            cycleProtectionMode()
+            true
+        }
         stopProtectionButton.setOnClickListener { stopProtectionSession() }
         calibrationButton.setOnClickListener { openCalibrationPackagePicker() }
         notificationAccessButton.setOnClickListener { openNotificationListenerSettings() }
+        powerSettingsButton.setOnClickListener { openPowerSettingsHelper() }
 
         updateServiceStatus()
     }
@@ -163,7 +172,90 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        if (!ensureBatteryOptimizationExemption()) return
+
         startProtectionSession(ProtectionSessionManager.currentMode(this))
+    }
+
+    private fun ensureBatteryOptimizationExemption(): Boolean {
+        if (isBatteryOptimizationExempt()) return true
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.battery_optimization_title))
+            .setMessage(getString(R.string.battery_optimization_required))
+            .setPositiveButton("Allow") { _, _ ->
+                openBatteryOptimizationSettings()
+            }
+            .setNeutralButton("Continue anyway") { _, _ ->
+                startProtectionSession(ProtectionSessionManager.currentMode(this))
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+
+        return false
+    }
+
+    private fun openBatteryOptimizationSettings() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+
+        try {
+            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                data = Uri.parse("package:$packageName")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_SETTINGS))
+        }
+    }
+
+    private fun isBatteryOptimizationExempt(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
+        val pm = getSystemService(PowerManager::class.java) ?: return true
+        return try {
+            pm.isIgnoringBatteryOptimizations(packageName)
+        } catch (_: Exception) {
+            true
+        }
+    }
+
+    private fun cycleProtectionMode() {
+        val current = ProtectionSessionManager.currentMode(this)
+        val next = when (current) {
+            ServiceMode.NORMAL -> ServiceMode.AGGRESSIVE
+            ServiceMode.AGGRESSIVE -> ServiceMode.MAXIMUM
+            ServiceMode.MAXIMUM,
+            ServiceMode.DIALOG_ONLY -> ServiceMode.NORMAL
+        }
+        ProtectionSessionManager.setMode(this, next)
+        Toast.makeText(this, getString(R.string.mode_changed_to, next.name), Toast.LENGTH_SHORT).show()
+        updateServiceStatus()
+    }
+
+    private fun openPowerSettingsHelper() {
+        val options = mutableListOf<Pair<String, () -> Unit>>()
+        options.add("Battery optimization") { openBatteryOptimizationSettings() }
+        options.add("Accessibility settings") { openAccessibilitySettings() }
+        options.add("Notification access") { openNotificationListenerSettings() }
+        options.add("App info") {
+            try {
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:$packageName")
+                }
+                startActivity(intent)
+            } catch (_: Exception) {
+                startActivity(Intent(Settings.ACTION_SETTINGS))
+            }
+        }
+
+        val labels = options.map { it.first }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("Power & system helpers")
+            .setItems(labels) { _, which ->
+                options.getOrNull(which)?.second?.invoke()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun startProtectionSession(mode: ServiceMode, durationTargetMinutes: Int = 0) {
@@ -217,6 +309,7 @@ class MainActivity : AppCompatActivity() {
     private fun updateServiceStatus() {
         val accessibilityEnabled = isAccessibilityServiceEnabled()
         val protectionActive = ProtectionSessionManager.isProtectionActive(this)
+        val batteryExempt = isBatteryOptimizationExempt()
 
         if (accessibilityEnabled) {
             statusIndicator.setImageResource(R.drawable.ic_status_active)
@@ -239,6 +332,9 @@ class MainActivity : AppCompatActivity() {
         val playbackActive = telemetry.playbackStateFriendly == PlaybackFriendlyState.PLAYING_ACTIVE.name
         val fallbackMode = telemetry.playbackSignalSource == PlaybackSignalSource.FALLBACK.name ||
             telemetry.playbackSignalSource == PlaybackSignalSource.NONE.name
+        val playbackSignalsAvailable = telemetry.mediaSessionAccessAvailable || telemetry.notificationListenerEnabled
+        val heartbeatAllowed = telemetry.shouldRunHeartbeatNow
+        val heartbeatReason = telemetry.heartbeatSuppressedReason.ifEmpty { "-" }
         descriptionText.text = String.format(
             Locale.US,
             "Checklist\n" +
@@ -246,7 +342,11 @@ class MainActivity : AppCompatActivity() {
                 "• Protection Session: %s\n" +
                 "• Notification Access: %s\n" +
                 "• Foreground Companion: %s\n" +
-                "• Active Playback: %s\n\n" +
+            "• Battery Optimization Exempt: %s\n" +
+            "• Playback Signals Available: %s\n" +
+            "• Active Playback: %s\n" +
+            "• Heartbeat Allowed: %s\n" +
+            "• Heartbeat Gate Reason: %s\n\n" +
                 "Runtime\n" +
                 "• Package: %s\n" +
                 "• Profile: %s\n" +
@@ -256,7 +356,11 @@ class MainActivity : AppCompatActivity() {
             if (protectionActive) getString(R.string.status_yes) else getString(R.string.status_no),
             if (notificationAccessEnabled) getString(R.string.status_yes) else getString(R.string.status_no),
             if (telemetry.foregroundServiceRunning) getString(R.string.status_yes) else getString(R.string.status_no),
+            if (batteryExempt) getString(R.string.status_yes) else getString(R.string.status_no),
+            if (playbackSignalsAvailable) getString(R.string.status_yes) else getString(R.string.status_no),
             if (playbackActive) getString(R.string.status_yes) else getString(R.string.status_no),
+            if (heartbeatAllowed) getString(R.string.status_yes) else getString(R.string.status_no),
+            heartbeatReason,
             telemetry.currentPackage.ifEmpty { "-" },
             telemetry.currentProfile.ifEmpty { "-" },
             telemetry.currentMode,
@@ -329,7 +433,8 @@ class MainActivity : AppCompatActivity() {
                 "Dialog: detectedAt=%d dismissedAt=%d strategy=%s stats=%d/%d/%d\n" +
                 "Gestures: sent=%d done=%d cancel=%d reject=%d\n" +
                 "Calibration: mode=%s action=%s zone=%d\n" +
-                "Wake: acquire=%d release=%d",
+                "Wake: acquire=%d release=%d held=%s\n" +
+                "Power: batteryExempt=%s",
             t.protectionSessionActive,
             t.protectionSessionStartedAt,
             t.foregroundServiceRunning,
@@ -370,7 +475,9 @@ class MainActivity : AppCompatActivity() {
             t.calibrationRecommendedGesture.ifEmpty { "-" },
             t.calibrationRecommendedZone,
             t.wakeAcquires,
-            t.wakeReleases
+            t.wakeReleases,
+            t.wakeLockHeld,
+            t.batteryOptimizationExempt
         )
     }
 

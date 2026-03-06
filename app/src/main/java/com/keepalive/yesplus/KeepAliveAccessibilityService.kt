@@ -17,6 +17,7 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
@@ -100,6 +101,8 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val consecutiveGestureCancels: Int = 0,
             val wakeAcquires: Long = 0L,
             val wakeReleases: Long = 0L,
+            val batteryOptimizationExempt: Boolean = true,
+            val wakeLockHeld: Boolean = false,
             val calibrationRecommendedMode: String = "",
             val calibrationRecommendedGesture: String = "",
             val calibrationRecommendedZone: Int = -1
@@ -267,6 +270,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
                 probePackageFromActiveWindow()
                 updatePlaybackSignals("probe")
                 refreshSessionState(reason = "probe")
+                runWatchdogChecks()
                 localHandler.postDelayed(this, PACKAGE_PROBE_INTERVAL_MS)
             }
         }
@@ -596,6 +600,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             }
         }
 
+        Log.w(TAG, "[DIALOG] netflix-specific strategy failed to find target; visible=${visibleTexts.take(20)}")
         return null
     }
 
@@ -1233,6 +1238,20 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         publishTelemetrySnapshot()
     }
 
+    private fun runWatchdogChecks() {
+        val ctx = this
+        val sessionActive = isProtectionSessionActive()
+        val fgRunning = ProtectionSessionManager.isForegroundServiceRunning(ctx)
+        if (sessionActive && !fgRunning) {
+            Log.w(TAG, "[WATCHDOG] protection active but foreground companion not marked running; requesting refresh")
+            try {
+                ContextCompat.startForegroundService(ctx, ProtectionSessionService.createRefreshIntent(ctx))
+            } catch (e: Exception) {
+                Log.e(TAG, "[WATCHDOG] failed to refresh foreground companion: ${e.message}")
+            }
+        }
+    }
+
     private fun publishTelemetrySnapshot() {
         val protectionActive = isProtectionSessionActive()
         val activeProfile = currentProfile?.packagePrefix.orEmpty()
@@ -1282,10 +1301,22 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             consecutiveGestureCancels = consecutiveGestureCancels,
             wakeAcquires = wakeLockAcquireCount,
             wakeReleases = wakeLockReleaseCount,
+            batteryOptimizationExempt = isBatteryOptimizationExempt(),
+            wakeLockHeld = wakeLock?.isHeld == true,
             calibrationRecommendedMode = calibration?.preferredMode?.name.orEmpty(),
             calibrationRecommendedGesture = calibration?.preferredAction?.name.orEmpty(),
             calibrationRecommendedZone = calibration?.preferredSafeZoneIndex ?: -1
         )
+    }
+
+    private fun isBatteryOptimizationExempt(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
+        val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return true
+        return try {
+            pm.isIgnoringBatteryOptimizations(packageName)
+        } catch (_: Exception) {
+            true
+        }
     }
 
     private fun safeRecycle(node: AccessibilityNodeInfo?) {
