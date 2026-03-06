@@ -289,9 +289,15 @@ extract_expected_apk_version() {
     fi
 
     if [ -z "$EXPECTED_VERSION_CODE" ] || [ -z "$EXPECTED_VERSION_NAME" ]; then
-        print_warning "לא ניתן לפענח versionName/versionCode מה-APK שהורד (ממשיך בכל זאת)"
-        EXPECTED_VERSION_CODE=""
-        EXPECTED_VERSION_NAME=""
+        if [ "$APK_CHANNEL_RESOLVED" = "main" ] && [ -n "$MAIN_VERSION_CODE" ] && [ -n "$MAIN_VERSION_NAME" ]; then
+            EXPECTED_VERSION_CODE="$MAIN_VERSION_CODE"
+            EXPECTED_VERSION_NAME="$MAIN_VERSION_NAME"
+            print_warning "לא ניתן לפענח גרסה ישירות מה-APK; משתמש במטא-דאטה של main בתור fallback"
+        else
+            print_warning "לא ניתן לפענח versionName/versionCode מה-APK שהורד (ממשיך בכל זאת)"
+            EXPECTED_VERSION_CODE=""
+            EXPECTED_VERSION_NAME=""
+        fi
     fi
 }
 
@@ -625,8 +631,20 @@ install_apk() {
 
     local installed_version_name
     local installed_version_code
-    installed_version_name=$(echo "$version_dump" | sed -n "s/.*versionName=\([A-Za-z0-9._-]*\).*/\1/p" | head -1)
-    installed_version_code=$(echo "$version_dump" | sed -n "s/.*versionCode=\([0-9]\+\).*/\1/p" | head -1)
+    installed_version_name=$(
+        echo "$version_dump" \
+            | grep -m1 "versionName=" \
+            | sed -n 's/.*versionName=\([^[:space:]]\+\).*/\1/p' \
+            | tr -d '\r' \
+            | head -1
+    )
+    installed_version_code=$(
+        echo "$version_dump" \
+            | grep -m1 "versionCode=" \
+            | sed -n 's/.*versionCode=\([0-9]\+\).*/\1/p' \
+            | tr -d '\r' \
+            | head -1
+    )
 
     if [ -z "$installed_version_code" ] || [ -z "$installed_version_name" ]; then
         print_warning "לא ניתן לפענח versionName/versionCode מהמכשיר לאחר ההתקנה"
