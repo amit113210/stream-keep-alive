@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
@@ -39,9 +40,11 @@ class MainActivity : AppCompatActivity() {
     private data class CalibrationScore(
         var completed: Long = 0,
         var cancelled: Long = 0,
-        var rejected: Long = 0
+        var rejected: Long = 0,
+        var playbackSignals: Long = 0,
+        var dialogsDismissed: Long = 0
     ) {
-        fun score(): Long = completed * 2L - cancelled - rejected
+        fun score(): Long = completed * 2L + playbackSignals + dialogsDismissed - cancelled - rejected
     }
 
     private data class CalibrationRunState(
@@ -51,6 +54,7 @@ class MainActivity : AppCompatActivity() {
         var baselineCompleted: Long = 0L,
         var baselineCancelled: Long = 0L,
         var baselineRejected: Long = 0L,
+        var baselineDialogsDismissed: Long = 0L,
         val scores: MutableMap<String, CalibrationScore> = mutableMapOf()
     )
 
@@ -64,6 +68,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var startProtectionButton: Button
     private lateinit var stopProtectionButton: Button
     private lateinit var calibrationButton: Button
+    private lateinit var notificationAccessButton: Button
     private lateinit var debugTelemetryText: TextView
 
     private val uiHandler = Handler(Looper.getMainLooper())
@@ -88,6 +93,7 @@ class MainActivity : AppCompatActivity() {
         startProtectionButton = findViewById(R.id.startProtectionButton)
         stopProtectionButton = findViewById(R.id.stopProtectionButton)
         calibrationButton = findViewById(R.id.calibrationButton)
+        notificationAccessButton = findViewById(R.id.notificationAccessButton)
         debugTelemetryText = findViewById(R.id.debugTelemetryText)
 
         versionText.text = getInstalledVersionText()
@@ -97,6 +103,7 @@ class MainActivity : AppCompatActivity() {
         startProtectionButton.setOnClickListener { onStartProtectionClicked() }
         stopProtectionButton.setOnClickListener { stopProtectionSession() }
         calibrationButton.setOnClickListener { openCalibrationPackagePicker() }
+        notificationAccessButton.setOnClickListener { openNotificationListenerSettings() }
 
         updateServiceStatus()
     }
@@ -214,11 +221,11 @@ class MainActivity : AppCompatActivity() {
         if (accessibilityEnabled) {
             statusIndicator.setImageResource(R.drawable.ic_status_active)
             statusText.text = getString(R.string.status_active)
-            statusText.setTextColor(getColor(R.color.status_active))
+            statusText.setTextColor(ContextCompat.getColor(this, R.color.status_active))
         } else {
             statusIndicator.setImageResource(R.drawable.ic_status_inactive)
             statusText.text = getString(R.string.status_inactive)
-            statusText.setTextColor(getColor(R.color.status_inactive))
+            statusText.setTextColor(ContextCompat.getColor(this, R.color.status_inactive))
         }
 
         protectionStatusText.text = if (protectionActive) {
@@ -228,18 +235,39 @@ class MainActivity : AppCompatActivity() {
         }
 
         val telemetry = KeepAliveAccessibilityService.getTelemetrySnapshot()
+        val notificationAccessEnabled = isNotificationListenerEnabled()
+        val playbackActive = telemetry.playbackStateFriendly == PlaybackFriendlyState.PLAYING_ACTIVE.name
+        val fallbackMode = telemetry.playbackSignalSource == PlaybackSignalSource.FALLBACK.name ||
+            telemetry.playbackSignalSource == PlaybackSignalSource.NONE.name
         descriptionText.text = String.format(
             Locale.US,
-            "Accessibility: %s\nProtection: %s\nPackage: %s\nProfile: %s\nMode: %s",
-            if (accessibilityEnabled) "ON" else "OFF",
-            if (protectionActive) "ON" else "OFF",
+            "Checklist\n" +
+                "• Accessibility: %s\n" +
+                "• Protection Session: %s\n" +
+                "• Notification Access: %s\n" +
+                "• Foreground Companion: %s\n" +
+                "• Active Playback: %s\n\n" +
+                "Runtime\n" +
+                "• Package: %s\n" +
+                "• Profile: %s\n" +
+                "• Mode: %s\n" +
+                "• Playback Source: %s (%s)%s",
+            if (accessibilityEnabled) getString(R.string.status_yes) else getString(R.string.status_no),
+            if (protectionActive) getString(R.string.status_yes) else getString(R.string.status_no),
+            if (notificationAccessEnabled) getString(R.string.status_yes) else getString(R.string.status_no),
+            if (telemetry.foregroundServiceRunning) getString(R.string.status_yes) else getString(R.string.status_no),
+            if (playbackActive) getString(R.string.status_yes) else getString(R.string.status_no),
             telemetry.currentPackage.ifEmpty { "-" },
             telemetry.currentProfile.ifEmpty { "-" },
-            telemetry.currentMode
+            telemetry.currentMode,
+            telemetry.playbackSignalSource,
+            telemetry.playbackConfidence,
+            if (fallbackMode) "\n• ${getString(R.string.playback_fallback_mode)}" else ""
         )
 
         startProtectionButton.isEnabled = !protectionActive
         stopProtectionButton.isEnabled = protectionActive
+        notificationAccessButton.visibility = if (notificationAccessEnabled) View.GONE else View.VISIBLE
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
@@ -257,6 +285,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun openAccessibilitySettings() {
         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+    }
+
+    private fun isNotificationListenerEnabled(): Boolean {
+        return PlaybackStateNotificationListenerService.isNotificationAccessEnabled(this)
+    }
+
+    private fun openNotificationListenerSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_SETTINGS))
+        }
     }
 
     private fun startTelemetryUpdates() {
@@ -280,39 +320,55 @@ class MainActivity : AppCompatActivity() {
         val t = KeepAliveAccessibilityService.getTelemetrySnapshot()
         debugTelemetryText.text = String.format(
             Locale.US,
-            "Session: active=%s startedAt=%d fgs=%s notif=%s\n" +
-                "Current: pkg=%s profile=%s mode=%s interval=%dms esc=%d\n" +
+            "Session: active=%s startedAt=%d fgs=%s notifPerm=%s notifAccess=%s\n" +
+                "Playback: pkg=%s state=%s src=%s conf=%s changedAt=%d mediaAccess=%s\n" +
+                "Gate: runNow=%s reason=%s\n" +
+                "Current: pkg=%s profile=%s mode=%s interval=%dms esc=%d burst=%s\n" +
                 "Heartbeat: scheduled=%d executed=%d\n" +
-                "Gesture: result=%s action=%s completion=%d\n" +
-                "Dialog: detectedAt=%d dismissedAt=%d stats=%d/%d/%d\n" +
-                "Failures: dispatchFail=%d cancel=%d\n" +
+                "Gesture: result=%s action=%s completion=%d fail=%d cancel=%d\n" +
+                "Dialog: detectedAt=%d dismissedAt=%d strategy=%s stats=%d/%d/%d\n" +
                 "Gestures: sent=%d done=%d cancel=%d reject=%d\n" +
+                "Calibration: mode=%s action=%s zone=%d\n" +
                 "Wake: acquire=%d release=%d",
             t.protectionSessionActive,
             t.protectionSessionStartedAt,
             t.foregroundServiceRunning,
             t.notificationPermissionGranted,
+            t.notificationListenerEnabled,
+            t.activePlaybackPackage.ifEmpty { "-" },
+            t.playbackStateFriendly,
+            t.playbackSignalSource,
+            t.playbackConfidence,
+            t.lastPlaybackStateChangeAt,
+            t.mediaSessionAccessAvailable,
+            t.shouldRunHeartbeatNow,
+            t.heartbeatSuppressedReason.ifEmpty { "-" },
             t.currentPackage.ifEmpty { "-" },
             t.currentProfile.ifEmpty { "-" },
             t.currentMode,
             t.currentHeartbeatIntervalMs,
             t.currentEscalationStep,
+            t.dialogBurstModeActive,
             t.lastHeartbeatScheduledAt,
             t.lastHeartbeatExecutedAt,
             t.lastGestureDispatchResult.ifEmpty { "-" },
             t.lastGestureAction.ifEmpty { "-" },
             t.lastGestureCompletionAt,
+            t.consecutiveGestureFailures,
+            t.consecutiveGestureCancels,
             t.lastDialogDetectionAt,
             t.lastDialogDismissAt,
+            t.lastDialogDismissStrategy.ifEmpty { "-" },
             t.dialogScans,
             t.dialogsDetected,
             t.dialogsDismissed,
-            t.consecutiveGestureFailures,
-            t.consecutiveGestureCancels,
             t.gesturesDispatched,
             t.gesturesCompleted,
             t.gesturesCancelled,
             t.gesturesDispatchRejected,
+            t.calibrationRecommendedMode.ifEmpty { "-" },
+            t.calibrationRecommendedGesture.ifEmpty { "-" },
+            t.calibrationRecommendedZone,
             t.wakeAcquires,
             t.wakeReleases
         )
@@ -387,6 +443,7 @@ class MainActivity : AppCompatActivity() {
         run.baselineCompleted = baseline.gesturesCompleted
         run.baselineCancelled = baseline.gesturesCancelled
         run.baselineRejected = baseline.gesturesDispatchRejected
+        run.baselineDialogsDismissed = baseline.dialogsDismissed
 
         val stepDurationMs = max(60_000L, CALIBRATION_TOTAL_MS / run.steps.size.toLong())
         Toast.makeText(
@@ -413,6 +470,10 @@ class MainActivity : AppCompatActivity() {
         score.completed += max(0L, completed.gesturesCompleted - run.baselineCompleted)
         score.cancelled += max(0L, completed.gesturesCancelled - run.baselineCancelled)
         score.rejected += max(0L, completed.gesturesDispatchRejected - run.baselineRejected)
+        if (completed.activePlaybackPackage.startsWith(run.packagePrefix)) {
+            score.playbackSignals++
+        }
+        score.dialogsDismissed += max(0L, completed.dialogsDismissed - run.baselineDialogsDismissed)
     }
 
     private fun finishCalibration() {

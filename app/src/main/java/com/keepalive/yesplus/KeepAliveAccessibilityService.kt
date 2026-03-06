@@ -2,6 +2,7 @@ package com.keepalive.yesplus
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -11,6 +12,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -23,7 +25,7 @@ import kotlin.random.Random
  * Accessibility service for Android TV keep-alive and still-watching dialog dismissal.
  *
  * Layer A: dialog detection/dismissal.
- * Layer B: package-aware heartbeat (active only during user-initiated protection session).
+ * Layer B: playback-aware heartbeat (requires session + supported foreground + playback gate).
  */
 class KeepAliveAccessibilityService : AccessibilityService() {
 
@@ -33,14 +35,19 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         private const val DIALOG_SCAN_COOLDOWN_MS = 2500L
         private const val DIALOG_HINT_COOLDOWN_MS = 700L
         private const val DIALOG_PERIODIC_SCAN_MS = 20_000L
+        private const val DIALOG_NETFLIX_PLAYBACK_SCAN_MS = 3_000L
         private const val PACKAGE_PROBE_INTERVAL_MS = 10_000L
         private const val DIALOG_POST_DISMISS_HEARTBEAT_COOLDOWN_MS = 6000L
         private const val PACKAGE_TRANSITION_HEARTBEAT_COOLDOWN_MS = 4000L
         private const val WINDOW_FINGERPRINT_COOLDOWN_MS = 3000L
 
-        private const val MAX_SCAN_NODES = 220
-        private const val MAX_SCAN_DEPTH = 14
-        private const val SCAN_TIME_BUDGET_MS = 16L
+        private const val DIALOG_BURST_DURATION_MS = 25_000L
+        private const val DIALOG_BURST_SCAN_MS = 2_500L
+        private const val DIALOG_BURST_INACTIVE_MS = 90_000L
+
+        private const val MAX_SCAN_NODES = 260
+        private const val MAX_SCAN_DEPTH = 16
+        private const val SCAN_TIME_BUDGET_MS = 18L
 
         private const val MIN_HEARTBEAT_DELAY_MS = 45_000L
         private const val DOUBLE_ATTEMPT_DELAY_MS = 1400L
@@ -59,9 +66,18 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val protectionSessionStartedAt: Long = 0L,
             val foregroundServiceRunning: Boolean = false,
             val notificationPermissionGranted: Boolean = true,
+            val notificationListenerEnabled: Boolean = false,
+            val mediaSessionAccessAvailable: Boolean = false,
             val currentPackage: String = "",
             val currentProfile: String = "",
             val currentMode: String = ServiceMode.NORMAL.name,
+            val activePlaybackPackage: String = "",
+            val playbackStateFriendly: String = PlaybackFriendlyState.UNKNOWN.name,
+            val playbackSignalSource: String = PlaybackSignalSource.NONE.name,
+            val playbackConfidence: String = PlaybackConfidence.LOW.name,
+            val lastPlaybackStateChangeAt: Long = 0L,
+            val shouldRunHeartbeatNow: Boolean = false,
+            val heartbeatSuppressedReason: String = "",
             val currentHeartbeatIntervalMs: Long = 0L,
             val currentEscalationStep: Int = 0,
             val lastHeartbeatScheduledAt: Long = 0L,
@@ -71,6 +87,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val lastGestureCompletionAt: Long = 0L,
             val lastDialogDetectionAt: Long = 0L,
             val lastDialogDismissAt: Long = 0L,
+            val dialogBurstModeActive: Boolean = false,
             val dialogScans: Long = 0L,
             val dialogsDetected: Long = 0L,
             val dialogsDismissed: Long = 0L,
@@ -82,7 +99,10 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val consecutiveGestureFailures: Int = 0,
             val consecutiveGestureCancels: Int = 0,
             val wakeAcquires: Long = 0L,
-            val wakeReleases: Long = 0L
+            val wakeReleases: Long = 0L,
+            val calibrationRecommendedMode: String = "",
+            val calibrationRecommendedGesture: String = "",
+            val calibrationRecommendedZone: Int = -1
         )
 
         @Volatile
@@ -104,12 +124,18 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         }
     }
 
+    private data class HeartbeatGateDecision(
+        val allow: Boolean,
+        val reason: String
+    )
+
     private var handler: Handler? = null
     private var heartbeatRunnable: Runnable? = null
     private var dialogScanRunnable: Runnable? = null
     private var packageProbeRunnable: Runnable? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var wakeLockSafetyRunnable: Runnable? = null
+
     private val sessionPrefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key == null) return@OnSharedPreferenceChangeListener
         if (key == "active" || key == "mode" || key == "foreground_running") {
@@ -133,6 +159,9 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     private var lastDialogDismissAtMs = 0L
     private var lastDialogDismissStrategy = ""
     private var lastPackageTransitionTimestampMs = 0L
+
+    private var dialogBurstModeActive = false
+    private var dialogBurstUntilMs = 0L
 
     private var wakeLockLastTouchedAt = 0L
     private var wakeLockHeldSince = 0L
@@ -158,6 +187,9 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     private var consecutiveGestureCancels = 0
     private var escalationStep = 0
 
+    private var shouldRunHeartbeatNowFlag = false
+    private var heartbeatSuppressedReason = ""
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         isRunning = true
@@ -169,15 +201,16 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null) return
-        val packageName = event.packageName?.toString() ?: return
+        val safeEvent = event ?: return
+        val packageName = safeEvent.packageName?.toString() ?: return
 
-        if (shouldHandlePackageTransition(packageName, event.eventType)) {
+        if (shouldHandlePackageTransition(packageName, safeEvent.eventType)) {
             onPackageChanged(packageName)
         }
 
+        updatePlaybackSignals("event")
         refreshSessionState(reason = "event")
-        maybeProcessDialog(event, packageName)
+        maybeProcessDialog(safeEvent, packageName)
     }
 
     override fun onInterrupt() {
@@ -220,6 +253,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             "[PKG] transition package=$newPackage streaming=${currentProfile != null} ignored=${PackagePolicy.isIgnoredPackage(newPackage)}"
         )
 
+        updatePlaybackSignals("package-change")
         refreshSessionState(reason = "package-change")
         publishTelemetrySnapshot()
     }
@@ -231,6 +265,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         packageProbeRunnable = object : Runnable {
             override fun run() {
                 probePackageFromActiveWindow()
+                updatePlaybackSignals("probe")
                 refreshSessionState(reason = "probe")
                 localHandler.postDelayed(this, PACKAGE_PROBE_INTERVAL_MS)
             }
@@ -257,6 +292,39 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun updatePlaybackSignals(reason: String) {
+        val resolver = PlaybackSignalResolver(this)
+        val probe = resolver.probeFromMediaSession(listenerComponent())
+
+        val changed = PlaybackStateManager.updateFromMediaSession(
+            packageName = probe.packageName,
+            friendlyState = probe.friendlyState,
+            accessAvailable = probe.accessAvailable,
+            nowElapsed = SystemClock.elapsedRealtime()
+        )
+
+        val notificationEnabled = PlaybackStateNotificationListenerService.isNotificationAccessEnabled(this)
+        PlaybackStateManager.updateCapabilities(
+            mediaSessionAccessAvailable = probe.accessAvailable,
+            notificationListenerEnabled = notificationEnabled
+        )
+
+        if (probe.friendlyState == PlaybackFriendlyState.UNKNOWN && PackagePolicy.isStreamingPackage(currentPackage)) {
+            PlaybackStateManager.updateFromFallback(currentPackage, SystemClock.elapsedRealtime())
+        }
+
+        PlaybackStateManager.clearStalePlaybackState(SystemClock.elapsedRealtime())
+
+        if (changed || reason == "package-change") {
+            val s = PlaybackStateManager.snapshot()
+            Log.i(TAG, "[PLAYBACK] state=${s.friendlyState} source=${s.source} confidence=${s.confidence}")
+        }
+    }
+
+    private fun listenerComponent(): ComponentName {
+        return PlaybackStateNotificationListenerService.listenerComponent(this)
+    }
+
     private fun isProtectionSessionActive(): Boolean {
         return ProtectionSessionManager.isProtectionActive(this)
     }
@@ -273,11 +341,21 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         return override?.preferredMode ?: sessionMode
     }
 
-    private fun refreshSessionState(reason: String) {
-        val protectionActive = isProtectionSessionActive()
-        val mode = currentMode()
+    private fun shouldRunHeartbeatNow(): HeartbeatGateDecision {
+        val sessionActive = isProtectionSessionActive()
+        val supportedForeground = if (isSupportedActivePackage()) currentPackage else null
+        val decision = PlaybackStateManager.shouldRunHeartbeatNow(sessionActive, supportedForeground)
+        shouldRunHeartbeatNowFlag = decision.first
+        heartbeatSuppressedReason = if (decision.first) "" else decision.second
+        Log.d(TAG, "[HB] gated_by_playback=${decision.first} reason=${decision.second}")
+        return HeartbeatGateDecision(decision.first, decision.second)
+    }
 
-        if (!protectionActive) {
+    private fun refreshSessionState(reason: String) {
+        val mode = currentMode()
+        val gate = shouldRunHeartbeatNow()
+
+        if (!isProtectionSessionActive()) {
             if (sessionHeartbeatEnabled) {
                 Log.i(TAG, "[SESSION] accessibility heartbeat disabled reason=session-off")
             }
@@ -301,22 +379,26 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             return
         }
 
-        if (!sessionHeartbeatEnabled) {
-            Log.i(TAG, "[SESSION] accessibility heartbeat enabled")
-        }
-        sessionHeartbeatEnabled = true
-
         startPeriodicDialogScan()
         ensureWakeLockForSession()
 
         val modeChanged = mode != lastKnownMode
         lastKnownMode = mode
 
-        if (mode == ServiceMode.DIALOG_ONLY) {
+        if (mode == ServiceMode.DIALOG_ONLY || !gate.allow) {
+            if (!gate.allow) {
+                Log.i(TAG, "[SESSION] heartbeat suppressed by playback gate reason=${gate.reason}")
+            }
             stopHeartbeat()
+            sessionHeartbeatEnabled = false
             publishTelemetrySnapshot()
             return
         }
+
+        if (!sessionHeartbeatEnabled) {
+            Log.i(TAG, "[SESSION] accessibility heartbeat enabled")
+        }
+        sessionHeartbeatEnabled = true
 
         if (modeChanged) {
             Log.i(TAG, "[SESSION] mode changed to ${mode.name}; rescheduling heartbeat")
@@ -368,21 +450,46 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
         dialogScanRunnable = object : Runnable {
             override fun run() {
-                if (!isProtectionSessionActive() || !isSupportedActivePackage()) {
-                    return
-                }
+                if (!isProtectionSessionActive() || !isSupportedActivePackage()) return
                 val profile = currentProfile ?: return
+
+                if (dialogBurstModeActive && System.currentTimeMillis() > dialogBurstUntilMs) {
+                    dialogBurstModeActive = false
+                    Log.i(TAG, "[DIALOG] burst mode exited")
+                }
+
                 scanActiveWindowForDialog(reason = "periodic", profile = profile)
-                localHandler.postDelayed(this, DIALOG_PERIODIC_SCAN_MS)
+                localHandler.postDelayed(this, computeDialogScanCadenceMs())
             }
         }
 
-        localHandler.postDelayed(dialogScanRunnable!!, DIALOG_PERIODIC_SCAN_MS)
+        localHandler.postDelayed(dialogScanRunnable!!, computeDialogScanCadenceMs())
     }
 
     private fun stopPeriodicDialogScan() {
         dialogScanRunnable?.let { handler?.removeCallbacks(it) }
         dialogScanRunnable = null
+    }
+
+    private fun computeDialogScanCadenceMs(): Long {
+        if (dialogBurstModeActive) return DIALOG_BURST_SCAN_MS
+
+        val playback = PlaybackStateManager.snapshot()
+        val isNetflix = currentPackage.startsWith("com.netflix")
+        if (isNetflix && playback.friendlyState == PlaybackFriendlyState.PLAYING_ACTIVE) {
+            return DIALOG_NETFLIX_PLAYBACK_SCAN_MS
+        }
+
+        return DIALOG_PERIODIC_SCAN_MS
+    }
+
+    private fun enterDialogBurstMode(reason: String) {
+        val now = System.currentTimeMillis()
+        if (!dialogBurstModeActive) {
+            dialogBurstModeActive = true
+            Log.i(TAG, "[DIALOG] burst mode entered reason=$reason")
+        }
+        dialogBurstUntilMs = now + DIALOG_BURST_DURATION_MS
     }
 
     private fun scanActiveWindowForDialog(reason: String, profile: StreamingAppProfile) {
@@ -392,6 +499,10 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         if (shouldSkipDialogScanByFingerprint(rootNode, now)) {
             safeRecycle(rootNode)
             return
+        }
+
+        if (now - lastDialogDismissAtMs > DIALOG_BURST_INACTIVE_MS && escalationStep >= 2) {
+            enterDialogBurstMode("escalation")
         }
 
         lastDialogCheckTimeMs = now
@@ -414,9 +525,11 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             dialogDismissedCount++
             lastDialogDismissAtMs = System.currentTimeMillis()
             lastDialogDismissStrategy = dismissStrategy
+            dialogBurstModeActive = false
             Log.i(TAG, "[DIALOG] dismissed strategy=$dismissStrategy")
         } else {
             Log.w(TAG, "[DIALOG] detected but no dismiss action succeeded")
+            enterDialogBurstMode("dismiss_failed")
         }
 
         publishTelemetrySnapshot()
@@ -427,9 +540,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         val fingerprint = buildWindowFingerprint(rootNode)
         val isSameWindow = fingerprint == lastDialogWindowFingerprint
         val isCooldownActive = now - lastDialogWindowFingerprintMs < WINDOW_FINGERPRINT_COOLDOWN_MS
-        if (isSameWindow && isCooldownActive) {
-            return true
-        }
+        if (isSameWindow && isCooldownActive) return true
 
         lastDialogWindowFingerprint = fingerprint
         lastDialogWindowFingerprintMs = now
@@ -446,10 +557,122 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     }
 
     private fun dismissDialog(rootNode: AccessibilityNodeInfo, profile: StreamingAppProfile): String? {
+        if (currentPackage.startsWith("com.netflix")) {
+            Log.i(TAG, "[DIALOG] Netflix-specific strategy entered")
+            val netflixResult = dismissNetflixSpecificDialog(rootNode)
+            if (netflixResult != null) return netflixResult
+        }
+
         if (findAndClickConfirmButton(rootNode, profile)) return "confirm-keyword"
         if (clickFocusedElement(rootNode)) return "focused-element"
         if (clickFirstClickable(rootNode)) return "clickable-fallback"
         return if (performGlobalAction(GLOBAL_ACTION_BACK)) "global-back" else null
+    }
+
+    private fun dismissNetflixSpecificDialog(rootNode: AccessibilityNodeInfo): String? {
+        val visibleTexts = mutableListOf<String>()
+        collectVisibleTexts(rootNode, visibleTexts, 0)
+        Log.i(TAG, "[DIALOG] visible texts dump=${visibleTexts.take(12)}")
+
+        val exactNode = findNodeByExactText(rootNode, "הפעל בלי לשאול שוב")
+        if (exactNode != null) {
+            Log.i(TAG, "[DIALOG] exact target found")
+            val clicked = clickNodeOrClickableAncestor(exactNode)
+            safeRecycle(exactNode)
+            if (clicked) {
+                Log.i(TAG, "[DIALOG] clicked target")
+                return "netflix-exact"
+            }
+        }
+
+        val containsNode = findNodeContainingText(rootNode, "בלי לשאול שוב")
+        if (containsNode != null) {
+            Log.i(TAG, "[DIALOG] contains target found")
+            val clicked = clickNodeOrClickableAncestor(containsNode)
+            safeRecycle(containsNode)
+            if (clicked) {
+                Log.i(TAG, "[DIALOG] clicked target")
+                return "netflix-contains"
+            }
+        }
+
+        return null
+    }
+
+    private fun collectVisibleTexts(node: AccessibilityNodeInfo?, out: MutableList<String>, depth: Int) {
+        if (node == null || depth > 4 || out.size > 20) return
+
+        val txt = node.text?.toString()?.trim().orEmpty()
+        if (txt.isNotEmpty()) out.add(txt)
+
+        for (i in 0 until node.childCount) {
+            val child = safeGetChild(node, i)
+            if (child != null) {
+                collectVisibleTexts(child, out, depth + 1)
+                safeRecycle(child)
+            }
+        }
+    }
+
+    private fun findNodeByExactText(node: AccessibilityNodeInfo?, target: String): AccessibilityNodeInfo? {
+        if (node == null) return null
+        val text = node.text?.toString()?.trim().orEmpty()
+        if (text == target && !DialogTextMatcher.containsNegativeKeyword(text, node.contentDescription)) {
+            return AccessibilityNodeInfo.obtain(node)
+        }
+
+        for (i in 0 until node.childCount) {
+            val child = safeGetChild(node, i)
+            if (child != null) {
+                val found = findNodeByExactText(child, target)
+                safeRecycle(child)
+                if (found != null) return found
+            }
+        }
+
+        return null
+    }
+
+    private fun findNodeContainingText(node: AccessibilityNodeInfo?, target: String): AccessibilityNodeInfo? {
+        if (node == null) return null
+        val text = node.text?.toString()?.trim().orEmpty()
+        if (text.contains(target) && !DialogTextMatcher.containsNegativeKeyword(text, node.contentDescription)) {
+            return AccessibilityNodeInfo.obtain(node)
+        }
+
+        for (i in 0 until node.childCount) {
+            val child = safeGetChild(node, i)
+            if (child != null) {
+                val found = findNodeContainingText(child, target)
+                safeRecycle(child)
+                if (found != null) return found
+            }
+        }
+
+        return null
+    }
+
+    private fun clickNodeOrClickableAncestor(node: AccessibilityNodeInfo): Boolean {
+        if (isNegativeActionNode(node)) return false
+        if (node.isClickable && node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
+
+        var parent = node.parent
+        val toRecycle = mutableListOf<AccessibilityNodeInfo>()
+        var depth = 0
+        while (parent != null && depth < 4) {
+            toRecycle.add(parent)
+            if (!isNegativeActionNode(parent) && parent.isClickable &&
+                parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            ) {
+                toRecycle.forEach { safeRecycle(it) }
+                return true
+            }
+            parent = parent.parent
+            depth++
+        }
+
+        toRecycle.forEach { safeRecycle(it) }
+        return false
     }
 
     private fun containsDialogKeywords(node: AccessibilityNodeInfo?, profile: StreamingAppProfile): Boolean {
@@ -594,19 +817,19 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     }
 
     // ==========================================
-    // Layer B: Package-aware heartbeat
+    // Layer B: Playback-aware heartbeat
     // ==========================================
 
     private fun startHeartbeat(immediate: Boolean) {
         stopHeartbeat()
 
-        if (!isProtectionSessionActive()) {
-            Log.i(TAG, "[SESSION] heartbeat skipped: protection inactive")
+        val gate = shouldRunHeartbeatNow()
+        if (!gate.allow) {
+            Log.i(TAG, "[HB] start skipped: ${gate.reason}")
             return
         }
-
         if (currentMode() == ServiceMode.DIALOG_ONLY) {
-            Log.i(TAG, "[SESSION] heartbeat skipped: dialog-only mode")
+            Log.i(TAG, "[HB] start skipped: dialog-only mode")
             return
         }
 
@@ -616,7 +839,6 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         if (immediate) {
             performHeartbeat(profile, reason = "package-enter")
         }
-
         scheduleNextHeartbeat(profile)
     }
 
@@ -632,8 +854,10 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
         heartbeatRunnable = object : Runnable {
             override fun run() {
-                if (!isProtectionSessionActive() || !isSupportedActivePackage()) return
+                val gate = shouldRunHeartbeatNow()
+                if (!gate.allow) return
                 if (currentMode() == ServiceMode.DIALOG_ONLY) return
+                if (!isSupportedActivePackage()) return
 
                 val activeProfile = currentProfile ?: return
                 performHeartbeat(activeProfile, reason = "periodic")
@@ -642,20 +866,27 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         }
 
         localHandler.postDelayed(heartbeatRunnable!!, delay)
-        Log.d(
-            TAG,
-            "[HB] scheduled delayMs=$delay package=$currentPackage profile=${profile.packagePrefix}"
-        )
+        Log.d(TAG, "[HB] scheduled delayMs=$delay package=$currentPackage")
     }
 
     private fun computeHeartbeatDelayMs(profile: StreamingAppProfile): Long {
         val base = PackagePolicy.intervalFor(profile, currentMode())
-        val jitter = min(profile.heartbeatJitterMs, 15_000L)
-        if (jitter <= 0L) return max(base, MIN_HEARTBEAT_DELAY_MS)
+        val playback = PlaybackStateManager.snapshot()
 
-        val delta = Random.nextLong(from = -jitter, until = jitter + 1)
-        val delay = base + delta
-        return max(delay, MIN_HEARTBEAT_DELAY_MS)
+        val scaledBase = when (playback.confidence) {
+            PlaybackConfidence.HIGH -> (base * 0.85f).toLong()
+            PlaybackConfidence.MEDIUM -> base
+            PlaybackConfidence.LOW -> (base * 1.25f).toLong()
+        }
+
+        val jitter = min(profile.heartbeatJitterMs, 12_000L)
+        val withJitter = if (jitter > 0) {
+            scaledBase + Random.nextLong(from = -jitter, until = jitter + 1)
+        } else {
+            scaledBase
+        }
+
+        return max(withJitter, MIN_HEARTBEAT_DELAY_MS)
     }
 
     private fun performHeartbeat(profile: StreamingAppProfile, reason: String) {
@@ -663,7 +894,9 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             Log.w(TAG, "[HB] gestures require API 24+")
             return
         }
-        if (!isProtectionSessionActive() || !isSupportedActivePackage()) return
+
+        val gate = shouldRunHeartbeatNow()
+        if (!gate.allow) return
         if (currentMode() == ServiceMode.DIALOG_ONLY) return
 
         val now = System.currentTimeMillis()
@@ -680,6 +913,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         val dispatched = dispatchHeartbeatGesture(action, zone, reason, secondary = false)
         if (!dispatched && escalationStep >= 3) {
             maybeScheduleSecondaryAttempt(profile, zone)
+            enterDialogBurstMode("heartbeat_fail")
         }
     }
 
@@ -690,7 +924,8 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         val localHandler = handler ?: return
         lastSecondaryAttemptAtMs = now
         localHandler.postDelayed({
-            if (!isProtectionSessionActive() || !isSupportedActivePackage()) return@postDelayed
+            val gate = shouldRunHeartbeatNow()
+            if (!gate.allow) return@postDelayed
             if (lastGestureDispatchResult == "completed") return@postDelayed
 
             val action = alternateAction(resolveHeartbeatAction(profile, System.currentTimeMillis()))
@@ -704,9 +939,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         val preferred = override?.preferredAction ?: profile.preferredHeartbeatAction
 
         val inTransitionCooldown = nowMs - lastPackageTransitionTimestampMs < PACKAGE_TRANSITION_HEARTBEAT_COOLDOWN_MS
-        if (inTransitionCooldown) {
-            return HeartbeatAction.MICRO_TAP
-        }
+        if (inTransitionCooldown) return HeartbeatAction.MICRO_TAP
 
         var action = when (preferred) {
             HeartbeatAction.HYBRID -> {
@@ -719,7 +952,6 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         if (escalationStep >= 2) {
             action = alternateAction(action)
         }
-
         return action
     }
 
@@ -773,7 +1005,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         gesturesDispatchedCount++
         Log.i(
             TAG,
-            "[HB] fire reason=$reason secondary=$secondary package=$currentPackage action=${action.name} zone=${zone.xPercent},${zone.yPercent}"
+            "[HB] fire reason=$reason secondary=$secondary package=$currentPackage action=${action.name}"
         )
 
         val accepted = dispatchGesture(
@@ -786,7 +1018,6 @@ class KeepAliveAccessibilityService : AccessibilityService() {
                     consecutiveGestureFailures = 0
                     consecutiveGestureCancels = 0
                     updateEscalationStep()
-                    Log.d(TAG, "[GESTURE] completed action=${action.name}")
                     publishTelemetrySnapshot()
                 }
 
@@ -796,7 +1027,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
                     consecutiveGestureCancels++
                     consecutiveGestureFailures++
                     updateEscalationStep()
-                    Log.w(TAG, "[GESTURE] cancelled action=${action.name}")
+                    enterDialogBurstMode("gesture_cancelled")
                     publishTelemetrySnapshot()
                 }
             },
@@ -817,7 +1048,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         lastGestureDispatchResult = result
         consecutiveGestureFailures++
         updateEscalationStep()
-        Log.w(TAG, "[GESTURE] $result")
+        enterDialogBurstMode("dispatch_rejected")
         publishTelemetrySnapshot()
     }
 
@@ -892,6 +1123,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             Log.d(TAG, "[WAKE] skipped - disabled by policy")
             return
         }
+
         if (!isProtectionSessionActive() || !isSupportedActivePackage()) {
             releaseWakeLock("gate-failed")
             return
@@ -911,7 +1143,6 @@ class KeepAliveAccessibilityService : AccessibilityService() {
                 setReferenceCounted(false)
                 acquire()
             }
-
             wakeLockHeldSince = System.currentTimeMillis()
             wakeLockAcquireCount++
             touchWakeLockSafetyTimer()
@@ -995,6 +1226,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             currentProfile = null
             hybridSwipeToggle = false
             sessionHeartbeatEnabled = false
+            dialogBurstModeActive = false
             resetEscalationState()
         }
 
@@ -1008,14 +1240,26 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         val interval = currentProfile?.let { PackagePolicy.intervalFor(it, mode) } ?: 0L
         val notificationsGranted = NotificationManagerCompat.from(this).areNotificationsEnabled()
 
+        val playback = PlaybackStateManager.snapshot()
+        val calibration = CalibrationManager.overrideForPackage(this, currentPackage)
+
         telemetrySnapshot = TelemetrySnapshot(
             protectionSessionActive = protectionActive,
             protectionSessionStartedAt = ProtectionSessionManager.protectionStartedAt(this),
             foregroundServiceRunning = ProtectionSessionManager.isForegroundServiceRunning(this),
             notificationPermissionGranted = notificationsGranted,
+            notificationListenerEnabled = PlaybackStateNotificationListenerService.isNotificationAccessEnabled(this),
+            mediaSessionAccessAvailable = playback.mediaSessionAccessAvailable,
             currentPackage = currentPackage,
             currentProfile = activeProfile,
             currentMode = mode.name,
+            activePlaybackPackage = playback.activePlaybackPackage.orEmpty(),
+            playbackStateFriendly = playback.friendlyState.name,
+            playbackSignalSource = playback.source.name,
+            playbackConfidence = playback.confidence.name,
+            lastPlaybackStateChangeAt = playback.lastStateChangeAt,
+            shouldRunHeartbeatNow = shouldRunHeartbeatNowFlag,
+            heartbeatSuppressedReason = heartbeatSuppressedReason,
             currentHeartbeatIntervalMs = interval,
             currentEscalationStep = escalationStep,
             lastHeartbeatScheduledAt = lastHeartbeatScheduledAtMs,
@@ -1025,6 +1269,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             lastGestureCompletionAt = lastGestureCompletionAtMs,
             lastDialogDetectionAt = lastDialogDetectionAtMs,
             lastDialogDismissAt = lastDialogDismissAtMs,
+            dialogBurstModeActive = dialogBurstModeActive,
             dialogScans = dialogScanCount,
             dialogsDetected = dialogDetectedCount,
             dialogsDismissed = dialogDismissedCount,
@@ -1036,7 +1281,10 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             consecutiveGestureFailures = consecutiveGestureFailures,
             consecutiveGestureCancels = consecutiveGestureCancels,
             wakeAcquires = wakeLockAcquireCount,
-            wakeReleases = wakeLockReleaseCount
+            wakeReleases = wakeLockReleaseCount,
+            calibrationRecommendedMode = calibration?.preferredMode?.name.orEmpty(),
+            calibrationRecommendedGesture = calibration?.preferredAction?.name.orEmpty(),
+            calibrationRecommendedZone = calibration?.preferredSafeZoneIndex ?: -1
         )
     }
 

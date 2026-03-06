@@ -63,6 +63,17 @@
                 android:value="user-initiated TV streaming protection session that keeps a package-aware accessibility keep-alive workflow active while watching supported streaming apps" />
         </service>
 
+        <service
+            android:name=".PlaybackStateNotificationListenerService"
+            android:enabled="true"
+            android:exported="false"
+            android:label="@string/notification_listener_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <!-- Boot Receiver -->
         <receiver
             android:name=".BootReceiver"

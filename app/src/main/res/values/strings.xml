@@ -16,6 +16,7 @@
     <string name="button_start_protection">Start Protection</string>
     <string name="button_stop_protection">Stop Protection</string>
     <string name="button_start_calibration">Calibration Run (12 min)</string>
+    <string name="button_notification_access">Notification Access</string>
 
     <string name="protection_status_on">Protection: ON</string>
     <string name="protection_status_off">Protection: OFF</string>
@@ -35,4 +36,8 @@
 
     <string name="notification_permission_needed">Please allow notifications so protection session can stay visible and compliant.</string>
     <string name="boot_resume_reminder">המכשיר הופעל מחדש. פתח את האפליקציה כדי להפעיל Protection Session מחדש.</string>
+    <string name="notification_listener_label">Playback Notification Listener</string>
+    <string name="status_yes">YES</string>
+    <string name="status_no">NO</string>
+    <string name="playback_fallback_mode">Package-only fallback mode</string>
 </resources>
