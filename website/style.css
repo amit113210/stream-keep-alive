@@ -1012,11 +1012,11 @@ body {
 }
 
 .changelog-list {
-    max-width: 700px;
+    max-width: 620px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 12px;
 }
 
 .changelog-item {
@@ -1036,9 +1036,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
     cursor: pointer;
-    padding: 22px 26px;
+    padding: 12px 16px;
 }
 
 .changelog-summary::-webkit-details-marker {
@@ -1048,8 +1048,8 @@ body {
 .changelog-summary::before {
     content: "▾";
     color: var(--text-muted);
-    font-size: 14px;
-    margin-left: 8px;
+    font-size: 12px;
+    margin-left: 6px;
     transform: rotate(-90deg);
     transition: transform 0.2s ease;
 }
@@ -1064,27 +1064,27 @@ body {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 800;
-    margin-left: 12px;
+    margin-left: 8px;
 }
 
 .changelog-date {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text-muted);
 }
 
 .changelog-item ul {
     margin-top: 0;
-    margin-bottom: 20px;
-    padding-right: 20px;
-    padding-left: 20px;
+    margin-bottom: 12px;
+    padding-right: 16px;
+    padding-left: 16px;
 }
 
 .changelog-item li {
     color: var(--text-secondary);
-    padding: 4px 0;
-    font-size: 15px;
+    padding: 2px 0;
+    font-size: 13px;
 }
 
 /* =====================
@@ -1327,7 +1327,11 @@ body {
     }
 
     .changelog-item {
-        padding: 24px;
+        padding: 0;
+    }
+
+    .changelog-summary {
+        padding: 10px 12px;
     }
 
     .privacy-box {
