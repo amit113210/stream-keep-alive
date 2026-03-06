@@ -2,7 +2,7 @@
 
 Prevents the "Are you still watching?" message on all streaming apps (Android TV).
 
-מונע את הודעת "האם אתם עדיין צופים?" של יס פלוס.
+מונע את הודעת "האם אתם עדיין צופים?" באפליקציות סטרימינג.
 
 ---
 
@@ -26,6 +26,13 @@ Prevents the "Are you still watching?" message on all streaming apps (Android TV
 - **Developer Options** enabled on Android TV:
   - `Settings → Device Preferences → About → Build` (click 7 times)
   - `Settings → Device Preferences → Developer Options → USB/ADB Debugging → ON`
+
+## 📦 APK Channel Selection
+
+By default the installer now downloads from `main` first (newest build), with fallback to `latest release`.
+
+- Mac: `APK_CHANNEL=release ./install_mac.command` to force release-first
+- Windows: `set APK_CHANNEL=release` before running `install_windows.bat`
 
 ---
 

@@ -137,19 +137,36 @@ setup_adb() {
 check_apk() {
     print_step "2" "בדיקת קובץ APK..."
     mkdir -p "$(dirname "$APK_PATH")"
-    print_info "מוריד את ה-APK העדכני מ-GitHub Releases..."
-    if curl -L -f -# -o "$APK_PATH" "$APK_URL_RELEASE"; then
+
+    # Default channel is "main" to avoid stale APK when release lags behind recent commits.
+    local channel="${APK_CHANNEL:-main}"
+    local primary_url=""
+    local fallback_url=""
+    local primary_label=""
+
+    if [ "$channel" = "release" ]; then
+        primary_url="$APK_URL_RELEASE"
+        fallback_url="$APK_URL_FALLBACK"
+        primary_label="GitHub Releases"
+    else
+        primary_url="$APK_URL_FALLBACK"
+        fallback_url="$APK_URL_RELEASE"
+        primary_label="main branch"
+    fi
+
+    print_info "מוריד APK עדכני (channel=$channel, מקור ראשי: $primary_label)..."
+    if curl -L -f -# -o "$APK_PATH" "$primary_url"; then
         print_success "APK עודכן בהצלחה: $APK_PATH"
     else
-        print_warning "הורדה מ-Releases נכשלה, מנסה מקור חלופי..."
-        if curl -L -f -# -o "$APK_PATH" "$APK_URL_FALLBACK"; then
+        print_warning "הורדה ממקור ראשי נכשלה, מנסה fallback..."
+        if curl -L -f -# -o "$APK_PATH" "$fallback_url"; then
             print_success "APK עודכן בהצלחה (fallback): $APK_PATH"
         else
             if [ -f "$APK_PATH" ]; then
                 print_warning "הורדה נכשלה — ממשיך עם APK מקומי קיים: $APK_PATH"
             else
                 print_error "שגיאה בהורדת APK ואין קובץ מקומי זמין"
-                print_info "נסה להוריד ידנית: $APK_URL_RELEASE"
+                print_info "נסה להוריד ידנית: $primary_url"
                 exit 1
             fi
         fi

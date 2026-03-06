@@ -82,14 +82,26 @@ echo.
 echo.
 echo  [Step 2] Checking APK file...
 
-echo    Downloading latest APK from GitHub Releases...
+set "APK_CHANNEL=%APK_CHANNEL%"
+if "%APK_CHANNEL%"=="" set "APK_CHANNEL=main"
+if /I "%APK_CHANNEL%"=="release" (
+    set "PRIMARY_APK_URL=%APK_URL_RELEASE%"
+    set "SECONDARY_APK_URL=%APK_URL_FALLBACK%"
+    set "PRIMARY_LABEL=GitHub Releases"
+) else (
+    set "PRIMARY_APK_URL=%APK_URL_FALLBACK%"
+    set "SECONDARY_APK_URL=%APK_URL_RELEASE%"
+    set "PRIMARY_LABEL=main branch"
+)
+
+echo    Downloading latest APK (channel=%APK_CHANNEL%, primary=%PRIMARY_LABEL%)...
 if not exist "%SCRIPT_DIR%apk" mkdir "%SCRIPT_DIR%apk"
-powershell -Command "try { Invoke-WebRequest -Uri '%APK_URL_RELEASE%' -OutFile '%APK_PATH%' -ErrorAction Stop; exit 0 } catch { exit 1 }" >nul 2>&1
+powershell -Command "try { Invoke-WebRequest -Uri '%PRIMARY_APK_URL%' -OutFile '%APK_PATH%' -ErrorAction Stop; exit 0 } catch { exit 1 }" >nul 2>&1
 if %errorlevel%==0 (
     echo    ✅ APK updated successfully
 ) else (
-    echo    ⚠️  Release download failed, trying fallback source...
-    powershell -Command "try { Invoke-WebRequest -Uri '%APK_URL_FALLBACK%' -OutFile '%APK_PATH%' -ErrorAction Stop; exit 0 } catch { exit 1 }" >nul 2>&1
+    echo    ⚠️  Primary download failed, trying fallback source...
+    powershell -Command "try { Invoke-WebRequest -Uri '%SECONDARY_APK_URL%' -OutFile '%APK_PATH%' -ErrorAction Stop; exit 0 } catch { exit 1 }" >nul 2>&1
     if %errorlevel%==0 (
         echo    ✅ APK updated successfully (fallback)
     ) else (
@@ -97,7 +109,7 @@ if %errorlevel%==0 (
             echo    ⚠️  Download failed — using existing local APK
         ) else (
             echo    ❌ Failed to download APK and no local APK exists
-            echo    Try downloading manually: %APK_URL_RELEASE%
+            echo    Try downloading manually: %PRIMARY_APK_URL%
             pause
             exit /b 1
         )
