@@ -13,13 +13,17 @@ title Stream Keep Alive - Installer
 
 set "SCRIPT_DIR=%~dp0"
 set "APK_PATH=%SCRIPT_DIR%apk\StreamKeepAlive.apk"
-set "APK_URL_RELEASE=https://github.com/amit113210/stream-keep-alive/releases/latest/download/StreamKeepAlive.apk"
-set "APK_URL_FALLBACK=https://raw.githubusercontent.com/amit113210/stream-keep-alive/main/installer/apk/StreamKeepAlive.apk"
+set "RELEASE_API_URL=https://api.github.com/repos/amit113210/stream-keep-alive/releases/latest"
+set "APK_URL_MAIN_RAW=https://raw.githubusercontent.com/amit113210/stream-keep-alive/main/installer/apk/StreamKeepAlive.apk"
 set "ADB_DIR=%SCRIPT_DIR%tools\platform-tools"
 set "PACKAGE_NAME=com.keepalive.yesplus"
 set "SERVICE_NAME=%PACKAGE_NAME%/%PACKAGE_NAME%.KeepAliveAccessibilityService"
 set "PLATFORM_TOOLS_URL=https://dl.google.com/android/repository/platform-tools-latest-windows.zip"
 set "ADB="
+set "APK_SOURCE_LABEL="
+set "APK_SOURCE_URL="
+set "EXPECTED_VERSION_CODE="
+set "EXPECTED_VERSION_NAME="
 
 cls
 echo.
@@ -83,15 +87,33 @@ echo.
 echo  [Step 2] Checking APK file...
 
 set "APK_CHANNEL=%APK_CHANNEL%"
-if "%APK_CHANNEL%"=="" set "APK_CHANNEL=main"
-if /I "%APK_CHANNEL%"=="release" (
-    set "PRIMARY_APK_URL=%APK_URL_RELEASE%"
-    set "SECONDARY_APK_URL=%APK_URL_FALLBACK%"
-    set "PRIMARY_LABEL=GitHub Releases"
+if "%APK_CHANNEL%"=="" set "APK_CHANNEL=release"
+
+set "RELEASE_ASSET_URL="
+set "RELEASE_ASSET_NAME="
+for /f "usebackq tokens=1,2 delims=|" %%a in (`powershell -NoProfile -Command "$ErrorActionPreference='Stop'; try { $r=Invoke-RestMethod -Uri '%RELEASE_API_URL%' -Headers @{ 'User-Agent'='stream-keep-alive-installer' }; $a=$r.assets | Where-Object { $_.name -like 'StreamKeepAlive-v*.apk' } | Select-Object -First 1; if(-not $a){ $a=$r.assets | Where-Object { $_.name -eq 'StreamKeepAlive.apk' } | Select-Object -First 1 }; if($a){ Write-Output ($a.browser_download_url + '|' + $a.name) } } catch { }"` ) do (
+    set "RELEASE_ASSET_URL=%%a"
+    set "RELEASE_ASSET_NAME=%%b"
+)
+
+if /I "%APK_CHANNEL%"=="main" (
+    set "PRIMARY_APK_URL=%APK_URL_MAIN_RAW%"
+    set "SECONDARY_APK_URL=%RELEASE_ASSET_URL%"
+    set "PRIMARY_LABEL=raw main APK"
+    set "SECONDARY_LABEL=latest release asset"
 ) else (
-    set "PRIMARY_APK_URL=%APK_URL_FALLBACK%"
-    set "SECONDARY_APK_URL=%APK_URL_RELEASE%"
-    set "PRIMARY_LABEL=main branch"
+    set "PRIMARY_APK_URL=%RELEASE_ASSET_URL%"
+    set "SECONDARY_APK_URL=%APK_URL_MAIN_RAW%"
+    set "PRIMARY_LABEL=latest release asset"
+    set "SECONDARY_LABEL=raw main APK fallback"
+)
+
+if "%PRIMARY_APK_URL%"=="" (
+    echo    ⚠️  No suitable latest release asset found. Falling back to raw main APK.
+    set "PRIMARY_APK_URL=%APK_URL_MAIN_RAW%"
+    set "PRIMARY_LABEL=raw main APK fallback"
+    set "SECONDARY_APK_URL="
+    set "SECONDARY_LABEL="
 )
 
 echo    Downloading latest APK (channel=%APK_CHANNEL%, primary=%PRIMARY_LABEL%)...
@@ -99,22 +121,45 @@ if not exist "%SCRIPT_DIR%apk" mkdir "%SCRIPT_DIR%apk"
 powershell -Command "try { Invoke-WebRequest -Uri '%PRIMARY_APK_URL%' -OutFile '%APK_PATH%' -ErrorAction Stop; exit 0 } catch { exit 1 }" >nul 2>&1
 if %errorlevel%==0 (
     echo    ✅ APK updated successfully
+    set "APK_SOURCE_LABEL=%PRIMARY_LABEL%"
+    set "APK_SOURCE_URL=%PRIMARY_APK_URL%"
 ) else (
-    echo    ⚠️  Primary download failed, trying fallback source...
-    powershell -Command "try { Invoke-WebRequest -Uri '%SECONDARY_APK_URL%' -OutFile '%APK_PATH%' -ErrorAction Stop; exit 0 } catch { exit 1 }" >nul 2>&1
-    if %errorlevel%==0 (
-        echo    ✅ APK updated successfully (fallback)
-    ) else (
-        if exist "%APK_PATH%" (
-            echo    ⚠️  Download failed — using existing local APK
-        ) else (
-            echo    ❌ Failed to download APK and no local APK exists
-            echo    Try downloading manually: %PRIMARY_APK_URL%
-            pause
-            exit /b 1
+    if not "%SECONDARY_APK_URL%"=="" (
+        echo    ⚠️  Primary download failed, trying fallback source...
+        powershell -Command "try { Invoke-WebRequest -Uri '%SECONDARY_APK_URL%' -OutFile '%APK_PATH%' -ErrorAction Stop; exit 0 } catch { exit 1 }" >nul 2>&1
+        if %errorlevel%==0 (
+            echo    ✅ APK updated successfully (fallback)
+            set "APK_SOURCE_LABEL=%SECONDARY_LABEL%"
+            set "APK_SOURCE_URL=%SECONDARY_APK_URL%"
+            goto :apk_download_ok
         )
     )
+    echo    ❌ Failed to download APK from all sources
+    echo    Primary: %PRIMARY_APK_URL%
+    if not "%SECONDARY_APK_URL%"=="" echo    Fallback: %SECONDARY_APK_URL%
+    pause
+    exit /b 1
 )
+
+:apk_download_ok
+echo    Source: %APK_SOURCE_LABEL%
+echo    URL: %APK_SOURCE_URL%
+if /I "%APK_SOURCE_LABEL%"=="latest release asset" if not "%RELEASE_ASSET_NAME%"=="" echo    Asset: %RELEASE_ASSET_NAME%
+
+for /f %%h in ('powershell -NoProfile -Command "(Get-FileHash -Algorithm SHA256 '%APK_PATH%').Hash.ToLower()"') do set "APK_SHA256=%%h"
+if not "%APK_SHA256%"=="" echo    SHA256: %APK_SHA256%
+
+for /f "tokens=1,2 delims=|" %%a in ('powershell -NoProfile -Command "$aapt=$null; if(Get-Command aapt -ErrorAction SilentlyContinue){$aapt='aapt'} else { $c=Get-ChildItem -Path \"$env:LOCALAPPDATA\\Android\\Sdk\\build-tools\" -Filter aapt.exe -Recurse -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | Select-Object -First 1; if($c){$aapt=$c.FullName}}; if(-not $aapt){exit 2}; $out=& $aapt dump badging '%APK_PATH%' 2>$null; if($out -match \"versionCode='(\\d+)'.*versionName='([^']+)'\"){ Write-Output ($matches[1] + '|' + $matches[2]); exit 0 } else { exit 3 }"') do (
+    set "EXPECTED_VERSION_CODE=%%a"
+    set "EXPECTED_VERSION_NAME=%%b"
+)
+
+if "%EXPECTED_VERSION_CODE%"=="" (
+    echo    ❌ Could not read expected APK versionCode/versionName from downloaded APK
+    pause
+    exit /b 1
+)
+echo    Expected APK version: versionName=%EXPECTED_VERSION_NAME% versionCode=%EXPECTED_VERSION_CODE%
 
 :: =====================
 :: Step 3: Connect
@@ -246,7 +291,37 @@ exit /b 1
 "%ADB%" shell settings put global verifier_verify_adb_installs 1 >nul 2>&1
 
 echo    Installed app version:
-"%ADB%" shell dumpsys package %PACKAGE_NAME% 2>nul | findstr /C:"versionName=" /C:"versionCode="
+for /f "tokens=2 delims==" %%a in ('"%ADB%" shell dumpsys package %PACKAGE_NAME% 2^>nul ^| findstr /C:"versionName=" ^| findstr /V /C:"versionName=null"') do (
+    set "INSTALLED_VERSION_NAME=%%a"
+    goto :version_name_done
+)
+:version_name_done
+for /f "tokens=2 delims==" %%a in ('"%ADB%" shell dumpsys package %PACKAGE_NAME% 2^>nul ^| findstr /C:"versionCode="') do (
+    for /f "tokens=1 delims= " %%b in ("%%a") do (
+        set "INSTALLED_VERSION_CODE=%%b"
+        goto :version_code_done
+    )
+)
+:version_code_done
+echo      versionName=%INSTALLED_VERSION_NAME%
+echo      versionCode=%INSTALLED_VERSION_CODE%
+
+if "%INSTALLED_VERSION_CODE%"=="" (
+    echo    ❌ Could not read installed versionCode after install
+    pause
+    exit /b 1
+)
+
+set /a INSTALLED_VC=%INSTALLED_VERSION_CODE%
+set /a EXPECTED_VC=%EXPECTED_VERSION_CODE%
+if %INSTALLED_VC% LSS %EXPECTED_VC% (
+    echo    ❌ Installed version is lower than expected!
+    echo    Expected: versionName=%EXPECTED_VERSION_NAME% versionCode=%EXPECTED_VERSION_CODE%
+    echo    Installed: versionName=%INSTALLED_VERSION_NAME% versionCode=%INSTALLED_VERSION_CODE%
+    pause
+    exit /b 1
+)
+echo    ✅ Version verification passed
 
 :: =====================
 :: Step 5: Enable Accessibility

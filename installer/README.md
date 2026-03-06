@@ -29,10 +29,21 @@ Prevents the "Are you still watching?" message on all streaming apps (Android TV
 
 ## 📦 APK Channel Selection
 
-By default the installer now downloads from `main` first (newest build), with fallback to `latest release`.
+By default the installer now downloads from `latest GitHub release asset` first (preferred distributable), with fallback to `main`.
 
-- Mac: `APK_CHANNEL=release ./install_mac.command` to force release-first
-- Windows: `set APK_CHANNEL=release` before running `install_windows.bat`
+Source priority:
+- Primary: latest release asset matching `StreamKeepAlive-v*.apk` (or `StreamKeepAlive.apk` if needed)
+- Fallback: `https://raw.githubusercontent.com/amit113210/stream-keep-alive/main/installer/apk/StreamKeepAlive.apk`
+
+The installer prints:
+- download source used
+- exact URL
+- SHA256 checksum
+- expected APK version (versionName/versionCode)
+- installed version (versionName/versionCode) + verification result
+
+- Mac: `APK_CHANNEL=main ./install_mac.command` to force main-first
+- Windows: `set APK_CHANNEL=main` before running `install_windows.bat`
 
 ---
 

@@ -16,6 +16,11 @@
 - הורדת סקריפטים ישירות:
   - Mac: [install_mac.command](https://github.com/amit113210/stream-keep-alive/raw/main/installer/install_mac.command)
   - Windows: [install_windows.bat](https://github.com/amit113210/stream-keep-alive/raw/main/installer/install_windows.bat)
+- ברירת מחדל במתקין:
+  - קודם מנסה `latest GitHub Release asset` בפורמט `StreamKeepAlive-vX.Y.apk`
+  - אם אין asset מתאים, מבצע fallback ל־`main`:
+    `installer/apk/StreamKeepAlive.apk`
+  - המתקין מציג מקור הורדה, SHA256, וגרסה מותקנת בפועל (versionName/versionCode)
 
 ## עדכון / הסרה
 - עדכון: הרץ שוב את סקריפט ההתקנה (מתקין את הגרסה העדכנית).
@@ -51,3 +56,8 @@ ADB משמש להתקנה והגדרה ראשונית אוטומטית על Andr
   ```
 - CI רץ אוטומטית בכל Push/PR ל-`main`.
 - תגית `v*` מפעילה release workflow.
+- הכנת APK להפצה למתקין:
+  ```bash
+  ./scripts/prepare_installer_apk.sh --allow-debug
+  ```
+  (בלי `--allow-debug` הסקריפט דורש סביבת חתימה ל־release חתום.)
