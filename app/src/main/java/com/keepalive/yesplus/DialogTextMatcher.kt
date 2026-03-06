@@ -51,6 +51,8 @@ object DialogTextMatcher {
         "סגירה",
         "יציאה",
         "חזור",
+        "אל תציג שוב",
+        "later",
         "cancel",
         "dismiss",
         "close",
@@ -58,18 +60,23 @@ object DialogTextMatcher {
         "no",
         "no thanks",
         "not now",
-        "stop"
+        "stop",
+        "skip"
     )
 
-    fun containsDialogKeyword(value: CharSequence?): Boolean {
+    fun containsDialogKeyword(value: CharSequence?, additionalKeywords: List<String> = emptyList()): Boolean {
         val normalized = value?.toString()?.lowercase() ?: return false
-        return dialogKeywords.any { normalized.contains(it.lowercase()) }
+        return mergeKeywords(dialogKeywords, additionalKeywords).any { normalized.contains(it.lowercase()) }
     }
 
-    fun containsConfirmKeyword(text: CharSequence?, contentDesc: CharSequence?): Boolean {
+    fun containsConfirmKeyword(
+        text: CharSequence?,
+        contentDesc: CharSequence?,
+        additionalKeywords: List<String> = emptyList()
+    ): Boolean {
         val normalizedText = text?.toString()?.lowercase().orEmpty()
         val normalizedDesc = contentDesc?.toString()?.lowercase().orEmpty()
-        return confirmKeywords.any { keyword ->
+        return mergeKeywords(confirmKeywords, additionalKeywords).any { keyword ->
             val kw = keyword.lowercase()
             normalizedText.contains(kw) || normalizedDesc.contains(kw)
         }
@@ -87,19 +94,25 @@ object DialogTextMatcher {
     fun eventLooksLikeDialog(
         className: CharSequence?,
         eventText: List<CharSequence>?,
-        contentDescription: CharSequence?
+        contentDescription: CharSequence?,
+        additionalKeywords: List<String> = emptyList()
     ): Boolean {
         val classStr = className?.toString()?.lowercase().orEmpty()
         if (classStr.contains("dialog") || classStr.contains("alert")) return true
 
-        if (containsDialogKeyword(contentDescription)) return true
+        if (containsDialogKeyword(contentDescription, additionalKeywords)) return true
 
         if (eventText != null) {
             for (entry in eventText) {
-                if (containsDialogKeyword(entry)) return true
+                if (containsDialogKeyword(entry, additionalKeywords)) return true
             }
         }
 
         return false
+    }
+
+    private fun mergeKeywords(primary: List<String>, secondary: List<String>): List<String> {
+        if (secondary.isEmpty()) return primary
+        return primary + secondary
     }
 }

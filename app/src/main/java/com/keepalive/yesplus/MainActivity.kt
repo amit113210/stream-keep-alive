@@ -167,15 +167,21 @@ class MainActivity : AppCompatActivity() {
         val telemetry = KeepAliveAccessibilityService.getTelemetrySnapshot()
         debugTelemetryText.text = String.format(
             Locale.US,
-            "Package: %s\nBase/Next: %dm / %dm\nDialogs: scan=%d detect=%d dismiss=%d\nGestures: ok=%d fail=%d\nWakeLock: acquire=%d release=%d",
+            "Package: %s\nProfile/Mode: %s / %s\nInterval: %d sec\nHB: last=%d action=%s\nDialogs: scan=%d detect=%d dismiss=%d (%s)\nGestures: sent=%d done=%d cancel=%d reject=%d\nWakeLock: acquire=%d release=%d",
             telemetry.activePackage.ifEmpty { "-" },
-            telemetry.baseIntervalMinutes,
-            telemetry.nextIntervalMinutes,
+            telemetry.activeProfilePrefix.ifEmpty { "-" },
+            telemetry.serviceMode,
+            telemetry.currentFixedIntervalMs / 1000L,
+            telemetry.lastHeartbeatTimestampMs,
+            telemetry.lastGestureAction.ifEmpty { "-" },
             telemetry.dialogScans,
             telemetry.dialogsDetected,
             telemetry.dialogsDismissed,
-            telemetry.gesturesOk,
-            telemetry.gesturesFail,
+            telemetry.lastDialogDismissStrategy.ifEmpty { "-" },
+            telemetry.gesturesDispatched,
+            telemetry.gesturesCompleted,
+            telemetry.gesturesCancelled,
+            telemetry.gesturesDispatchRejected,
             telemetry.wakeAcquires,
             telemetry.wakeReleases
         )
