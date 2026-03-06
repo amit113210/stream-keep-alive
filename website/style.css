@@ -1023,7 +1023,39 @@ body {
     background: var(--bg-card);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: var(--radius);
-    padding: 32px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.changelog-item[open] {
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.changelog-summary {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    padding: 22px 26px;
+}
+
+.changelog-summary::-webkit-details-marker {
+    display: none;
+}
+
+.changelog-summary::before {
+    content: "▾";
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-left: 8px;
+    transform: rotate(-90deg);
+    transition: transform 0.2s ease;
+}
+
+.changelog-item[open] .changelog-summary::before {
+    transform: rotate(0deg);
 }
 
 .changelog-version {
@@ -1043,8 +1075,10 @@ body {
 }
 
 .changelog-item ul {
-    margin-top: 16px;
+    margin-top: 0;
+    margin-bottom: 20px;
     padding-right: 20px;
+    padding-left: 20px;
 }
 
 .changelog-item li {
