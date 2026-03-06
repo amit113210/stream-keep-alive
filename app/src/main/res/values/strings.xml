@@ -13,6 +13,12 @@
     <string name="button_enable">הגדרות נגישות</string>
     <string name="button_disable">הגדרות נגישות</string>
     <string name="button_hotspot">נקודת גישה (Hotspot)</string>
+    <string name="button_start_protection">Start Protection</string>
+    <string name="button_stop_protection">Stop Protection</string>
+    <string name="button_start_calibration">Calibration Run (12 min)</string>
+
+    <string name="protection_status_on">Protection: ON</string>
+    <string name="protection_status_off">Protection: OFF</string>
 
     <string name="status_indicator_desc">מצב השירות</string>
 
@@ -20,4 +26,13 @@
 
     <string name="debug_title">Debug Telemetry</string>
     <string name="debug_waiting">מחכה לנתוני שירות...</string>
+
+    <string name="notification_channel_name">Streaming protection</string>
+    <string name="notification_channel_description">Persistent session notification for active streaming protection</string>
+    <string name="notification_protection_title">Streaming protection active</string>
+    <string name="notification_protection_text">Keeping supported streaming apps active while you watch (%1$s)</string>
+    <string name="notification_action_stop">Stop</string>
+
+    <string name="notification_permission_needed">Please allow notifications so protection session can stay visible and compliant.</string>
+    <string name="boot_resume_reminder">המכשיר הופעל מחדש. פתח את האפליקציה כדי להפעיל Protection Session מחדש.</string>
 </resources>

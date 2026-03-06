@@ -13,12 +13,17 @@ import android.util.Log
 class BootReceiver : BroadcastReceiver() {
 
     companion object {
-        private const val TAG = "YesPlusKeepAlive"
+        private const val TAG = "StreamKeepAliveBoot"
     }
 
     override fun onReceive(context: Context?, intent: Intent?) {
+        val safeContext = context ?: return
         if (intent?.action == Intent.ACTION_BOOT_COMPLETED) {
-            Log.i(TAG, "📱 Device booted - Stream Keep Alive accessibility service will auto-start if enabled")
+            ProtectionSessionManager.markResumeReminderPending(safeContext, pending = true)
+            Log.i(
+                TAG,
+                "Device booted. Protection session is not auto-started; user can resume manually from app UI."
+            )
         }
     }
 }

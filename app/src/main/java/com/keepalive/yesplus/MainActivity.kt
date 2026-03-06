@@ -1,7 +1,10 @@
 package com.keepalive.yesplus
 
+import android.Manifest
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -10,27 +13,66 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import java.util.Locale
+import kotlin.math.max
 
 /**
  * Main Activity for Stream Keep Alive.
  */
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        private const val REQUEST_POST_NOTIFICATIONS = 2201
+        private const val CALIBRATION_TOTAL_MS = 12L * 60L * 1000L
+    }
+
+    private data class CalibrationStep(
+        val zoneIndex: Int,
+        val action: HeartbeatAction,
+        val mode: ServiceMode
+    )
+
+    private data class CalibrationScore(
+        var completed: Long = 0,
+        var cancelled: Long = 0,
+        var rejected: Long = 0
+    ) {
+        fun score(): Long = completed * 2L - cancelled - rejected
+    }
+
+    private data class CalibrationRunState(
+        val packagePrefix: String,
+        val steps: List<CalibrationStep>,
+        var stepIndex: Int = 0,
+        var baselineCompleted: Long = 0L,
+        var baselineCancelled: Long = 0L,
+        var baselineRejected: Long = 0L,
+        val scores: MutableMap<String, CalibrationScore> = mutableMapOf()
+    )
+
     private lateinit var statusIndicator: ImageView
     private lateinit var statusText: TextView
+    private lateinit var protectionStatusText: TextView
     private lateinit var descriptionText: TextView
     private lateinit var versionText: TextView
     private lateinit var settingsButton: Button
     private lateinit var hotspotButton: Button
+    private lateinit var startProtectionButton: Button
+    private lateinit var stopProtectionButton: Button
+    private lateinit var calibrationButton: Button
     private lateinit var debugTelemetryText: TextView
-    private val telemetryHandler = Handler(Looper.getMainLooper())
-    private var telemetryRunnable: Runnable? = null
 
-    // Accessibility settings needs triple-click
+    private val uiHandler = Handler(Looper.getMainLooper())
+    private var telemetryRunnable: Runnable? = null
+    private var pendingStartAfterPermission = false
+    private var activeCalibration: CalibrationRunState? = null
+
     private var dpadPressCount = 0
-    private val REQUIRED_PRESSES = 3
+    private val requiredPresses = 3
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,32 +80,23 @@ class MainActivity : AppCompatActivity() {
 
         statusIndicator = findViewById(R.id.statusIndicator)
         statusText = findViewById(R.id.statusText)
+        protectionStatusText = findViewById(R.id.protectionStatusText)
         descriptionText = findViewById(R.id.descriptionText)
         versionText = findViewById(R.id.versionText)
         settingsButton = findViewById(R.id.settingsButton)
         hotspotButton = findViewById(R.id.hotspotButton)
+        startProtectionButton = findViewById(R.id.startProtectionButton)
+        stopProtectionButton = findViewById(R.id.stopProtectionButton)
+        calibrationButton = findViewById(R.id.calibrationButton)
         debugTelemetryText = findViewById(R.id.debugTelemetryText)
+
         versionText.text = getInstalledVersionText()
 
-        // Accessibility settings button requires triple click
-        settingsButton.setOnClickListener {
-            dpadPressCount++
-            if (dpadPressCount >= REQUIRED_PRESSES) {
-                dpadPressCount = 0
-                openAccessibilitySettings()
-            } else {
-                Toast.makeText(
-                    this,
-                    "לחץ עוד ${REQUIRED_PRESSES - dpadPressCount} פעמים לפתיחת הגדרות נגישות",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-
-        // Hotspot button opens Network Settings
-        hotspotButton.setOnClickListener {
-            openNetworkSettings()
-        }
+        settingsButton.setOnClickListener { onSettingsClicked() }
+        hotspotButton.setOnClickListener { openNetworkSettings() }
+        startProtectionButton.setOnClickListener { onStartProtectionClicked() }
+        stopProtectionButton.setOnClickListener { stopProtectionSession() }
+        calibrationButton.setOnClickListener { openCalibrationPackagePicker() }
 
         updateServiceStatus()
     }
@@ -71,6 +104,8 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         dpadPressCount = 0
+        showBootResumeReminderIfNeeded()
+        refreshProtectionCompanionIfNeeded()
         updateServiceStatus()
         startTelemetryUpdates()
     }
@@ -80,66 +115,143 @@ class MainActivity : AppCompatActivity() {
         stopTelemetryUpdates()
     }
 
-    /**
-     * Open Hotspot Settings directly via the hidden droidlogic activity.
-     */
-    private fun openNetworkSettings() {
-        val intents = listOf(
-            // Direct hotspot settings — exact name from pm dump
-            Intent().apply {
-                component = ComponentName(
-                    "com.droidlogic.tv.settings",
-                    "com.droidlogic.tv.settings.wifi.HotSpotActivity"
-                )
-            },
-            // Fallback: TV network settings
-            Intent().apply {
-                component = ComponentName(
-                    "com.android.tv.settings",
-                    "com.android.tv.settings.connectivity.NetworkActivity"
-                )
-            },
-            // Last resort: general settings
-            Intent(Settings.ACTION_SETTINGS)
-        )
+    private fun showBootResumeReminderIfNeeded() {
+        if (ProtectionSessionManager.consumeResumeReminderPending(this)) {
+            Toast.makeText(this, getString(R.string.boot_resume_reminder), Toast.LENGTH_LONG).show()
+        }
+    }
 
-        for (intent in intents) {
-            try {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(intent)
-                return
-            } catch (e: Exception) {
-                continue
+    private fun refreshProtectionCompanionIfNeeded() {
+        if (!ProtectionSessionManager.isProtectionActive(this)) return
+        try {
+            ContextCompat.startForegroundService(this, ProtectionSessionService.createRefreshIntent(this))
+        } catch (_: Exception) {
+            // no-op
+        }
+    }
+
+    private fun onSettingsClicked() {
+        dpadPressCount++
+        if (dpadPressCount >= requiredPresses) {
+            dpadPressCount = 0
+            openAccessibilitySettings()
+            return
+        }
+
+        Toast.makeText(
+            this,
+            "לחץ עוד ${requiredPresses - dpadPressCount} פעמים לפתיחת הגדרות נגישות",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun onStartProtectionClicked() {
+        if (!isAccessibilityServiceEnabled()) {
+            Toast.makeText(this, "הפעל קודם שירות נגישות", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (!ensureNotificationPermission()) {
+            pendingStartAfterPermission = true
+            return
+        }
+
+        startProtectionSession(ProtectionSessionManager.currentMode(this))
+    }
+
+    private fun startProtectionSession(mode: ServiceMode, durationTargetMinutes: Int = 0) {
+        ProtectionSessionManager.startProtection(this, mode, durationTargetMinutes)
+        ContextCompat.startForegroundService(this, ProtectionSessionService.createStartIntent(this, mode))
+        updateServiceStatus()
+        Toast.makeText(this, "Protection Session התחיל (${mode.name})", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun stopProtectionSession() {
+        try {
+            startService(ProtectionSessionService.createStopIntent(this))
+        } catch (_: Exception) {
+            // no-op
+        }
+        ProtectionSessionManager.stopProtection(this)
+        updateServiceStatus()
+        Toast.makeText(this, "Protection Session נעצר", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun ensureNotificationPermission(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_POST_NOTIFICATIONS)
+                return false
             }
+        }
+
+        val notificationsEnabled = NotificationManagerCompat.from(this).areNotificationsEnabled()
+        if (!notificationsEnabled) {
+            Toast.makeText(this, getString(R.string.notification_permission_needed), Toast.LENGTH_LONG).show()
+            openAppNotificationSettings()
+            return false
+        }
+
+        return true
+    }
+
+    private fun openAppNotificationSettings() {
+        try {
+            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+            }
+            startActivity(intent)
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_SETTINGS))
         }
     }
 
     private fun updateServiceStatus() {
-        val isEnabled = isAccessibilityServiceEnabled()
+        val accessibilityEnabled = isAccessibilityServiceEnabled()
+        val protectionActive = ProtectionSessionManager.isProtectionActive(this)
 
-        if (isEnabled) {
+        if (accessibilityEnabled) {
             statusIndicator.setImageResource(R.drawable.ic_status_active)
             statusText.text = getString(R.string.status_active)
             statusText.setTextColor(getColor(R.color.status_active))
-            descriptionText.text = getString(R.string.description_active)
         } else {
             statusIndicator.setImageResource(R.drawable.ic_status_inactive)
             statusText.text = getString(R.string.status_inactive)
             statusText.setTextColor(getColor(R.color.status_inactive))
-            descriptionText.text = getString(R.string.description_inactive)
         }
+
+        protectionStatusText.text = if (protectionActive) {
+            getString(R.string.protection_status_on)
+        } else {
+            getString(R.string.protection_status_off)
+        }
+
+        val telemetry = KeepAliveAccessibilityService.getTelemetrySnapshot()
+        descriptionText.text = String.format(
+            Locale.US,
+            "Accessibility: %s\nProtection: %s\nPackage: %s\nProfile: %s\nMode: %s",
+            if (accessibilityEnabled) "ON" else "OFF",
+            if (protectionActive) "ON" else "OFF",
+            telemetry.currentPackage.ifEmpty { "-" },
+            telemetry.currentProfile.ifEmpty { "-" },
+            telemetry.currentMode
+        )
+
+        startProtectionButton.isEnabled = !protectionActive
+        stopProtectionButton.isEnabled = protectionActive
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
         val serviceName = "${packageName}/${KeepAliveAccessibilityService::class.java.canonicalName}"
-        try {
+        return try {
             val enabledServices = Settings.Secure.getString(
                 contentResolver,
                 Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
             ) ?: return false
-            return enabledServices.contains(serviceName)
-        } catch (e: Exception) {
-            return KeepAliveAccessibilityService.isRunning
+            enabledServices.contains(serviceName)
+        } catch (_: Exception) {
+            KeepAliveAccessibilityService.isRunning
         }
     }
 
@@ -152,54 +264,247 @@ class MainActivity : AppCompatActivity() {
         telemetryRunnable = object : Runnable {
             override fun run() {
                 updateTelemetryPanel()
-                telemetryHandler.postDelayed(this, 2000L)
+                updateServiceStatus()
+                uiHandler.postDelayed(this, 2000L)
             }
         }
-        telemetryHandler.post(telemetryRunnable!!)
+        uiHandler.post(telemetryRunnable!!)
     }
 
     private fun stopTelemetryUpdates() {
-        telemetryRunnable?.let { telemetryHandler.removeCallbacks(it) }
+        telemetryRunnable?.let { uiHandler.removeCallbacks(it) }
         telemetryRunnable = null
     }
 
     private fun updateTelemetryPanel() {
-        val telemetry = KeepAliveAccessibilityService.getTelemetrySnapshot()
+        val t = KeepAliveAccessibilityService.getTelemetrySnapshot()
         debugTelemetryText.text = String.format(
             Locale.US,
-            "Package: %s\nProfile/Mode: %s / %s\nInterval: %d sec\nHB: last=%d action=%s\nDialogs: scan=%d detect=%d dismiss=%d (%s)\nGestures: sent=%d done=%d cancel=%d reject=%d\nWakeLock: acquire=%d release=%d",
-            telemetry.activePackage.ifEmpty { "-" },
-            telemetry.activeProfilePrefix.ifEmpty { "-" },
-            telemetry.serviceMode,
-            telemetry.currentFixedIntervalMs / 1000L,
-            telemetry.lastHeartbeatTimestampMs,
-            telemetry.lastGestureAction.ifEmpty { "-" },
-            telemetry.dialogScans,
-            telemetry.dialogsDetected,
-            telemetry.dialogsDismissed,
-            telemetry.lastDialogDismissStrategy.ifEmpty { "-" },
-            telemetry.gesturesDispatched,
-            telemetry.gesturesCompleted,
-            telemetry.gesturesCancelled,
-            telemetry.gesturesDispatchRejected,
-            telemetry.wakeAcquires,
-            telemetry.wakeReleases
+            "Session: active=%s startedAt=%d fgs=%s notif=%s\n" +
+                "Current: pkg=%s profile=%s mode=%s interval=%dms esc=%d\n" +
+                "Heartbeat: scheduled=%d executed=%d\n" +
+                "Gesture: result=%s action=%s completion=%d\n" +
+                "Dialog: detectedAt=%d dismissedAt=%d stats=%d/%d/%d\n" +
+                "Failures: dispatchFail=%d cancel=%d\n" +
+                "Gestures: sent=%d done=%d cancel=%d reject=%d\n" +
+                "Wake: acquire=%d release=%d",
+            t.protectionSessionActive,
+            t.protectionSessionStartedAt,
+            t.foregroundServiceRunning,
+            t.notificationPermissionGranted,
+            t.currentPackage.ifEmpty { "-" },
+            t.currentProfile.ifEmpty { "-" },
+            t.currentMode,
+            t.currentHeartbeatIntervalMs,
+            t.currentEscalationStep,
+            t.lastHeartbeatScheduledAt,
+            t.lastHeartbeatExecutedAt,
+            t.lastGestureDispatchResult.ifEmpty { "-" },
+            t.lastGestureAction.ifEmpty { "-" },
+            t.lastGestureCompletionAt,
+            t.lastDialogDetectionAt,
+            t.lastDialogDismissAt,
+            t.dialogScans,
+            t.dialogsDetected,
+            t.dialogsDismissed,
+            t.consecutiveGestureFailures,
+            t.consecutiveGestureCancels,
+            t.gesturesDispatched,
+            t.gesturesCompleted,
+            t.gesturesCancelled,
+            t.gesturesDispatchRejected,
+            t.wakeAcquires,
+            t.wakeReleases
         )
+    }
+
+    private fun openCalibrationPackagePicker() {
+        val packages = PackagePolicy.streamingProfiles
+            .map { it.packagePrefix }
+            .distinct()
+            .sorted()
+
+        AlertDialog.Builder(this)
+            .setTitle("Calibration package")
+            .setItems(packages.toTypedArray()) { _, which ->
+                startCalibration(packages[which])
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun startCalibration(packagePrefix: String) {
+        val steps = buildCalibrationSteps(packagePrefix)
+        if (steps.isEmpty()) {
+            Toast.makeText(this, "No calibration steps", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        startProtectionSession(ServiceMode.AGGRESSIVE, durationTargetMinutes = 12)
+
+        activeCalibration = CalibrationRunState(
+            packagePrefix = packagePrefix,
+            steps = steps
+        )
+
+        Toast.makeText(this, "Calibration started for $packagePrefix (12 min)", Toast.LENGTH_LONG).show()
+        runCalibrationStep()
+    }
+
+    private fun buildCalibrationSteps(packagePrefix: String): List<CalibrationStep> {
+        val profile = PackagePolicy.streamingProfiles.firstOrNull { it.packagePrefix == packagePrefix } ?: return emptyList()
+        val zones = max(1, profile.safeZones.size)
+
+        val steps = mutableListOf<CalibrationStep>()
+        for (i in 0 until 6) {
+            val zoneIndex = i % zones
+            val action = if (i % 2 == 0) HeartbeatAction.MICRO_TAP else HeartbeatAction.MICRO_SWIPE
+            val mode = if (i < 3) ServiceMode.NORMAL else ServiceMode.AGGRESSIVE
+            steps.add(CalibrationStep(zoneIndex = zoneIndex, action = action, mode = mode))
+        }
+        return steps
+    }
+
+    private fun runCalibrationStep() {
+        val run = activeCalibration ?: return
+        if (run.stepIndex >= run.steps.size) {
+            finishCalibration()
+            return
+        }
+
+        val step = run.steps[run.stepIndex]
+        CalibrationManager.saveOverride(
+            context = this,
+            packagePrefix = run.packagePrefix,
+            preferredSafeZoneIndex = step.zoneIndex,
+            preferredAction = step.action,
+            preferredMode = step.mode
+        )
+        ProtectionSessionManager.startProtection(this, step.mode)
+        ContextCompat.startForegroundService(this, ProtectionSessionService.createStartIntent(this, step.mode))
+
+        val baseline = KeepAliveAccessibilityService.getTelemetrySnapshot()
+        run.baselineCompleted = baseline.gesturesCompleted
+        run.baselineCancelled = baseline.gesturesCancelled
+        run.baselineRejected = baseline.gesturesDispatchRejected
+
+        val stepDurationMs = max(60_000L, CALIBRATION_TOTAL_MS / run.steps.size.toLong())
+        Toast.makeText(
+            this,
+            "Calibration step ${run.stepIndex + 1}/${run.steps.size}: zone=${step.zoneIndex}, action=${step.action.name}, mode=${step.mode.name}",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        uiHandler.postDelayed({
+            collectCalibrationStepScore()
+            run.stepIndex++
+            runCalibrationStep()
+        }, stepDurationMs)
+    }
+
+    private fun collectCalibrationStepScore() {
+        val run = activeCalibration ?: return
+        val completed = KeepAliveAccessibilityService.getTelemetrySnapshot()
+        val step = run.steps[run.stepIndex]
+
+        val key = "z${step.zoneIndex}|${step.action.name}|${step.mode.name}"
+        val score = run.scores.getOrPut(key) { CalibrationScore() }
+
+        score.completed += max(0L, completed.gesturesCompleted - run.baselineCompleted)
+        score.cancelled += max(0L, completed.gesturesCancelled - run.baselineCancelled)
+        score.rejected += max(0L, completed.gesturesDispatchRejected - run.baselineRejected)
+    }
+
+    private fun finishCalibration() {
+        val run = activeCalibration ?: return
+
+        val bestEntry = run.scores.maxByOrNull { it.value.score() }
+        if (bestEntry != null) {
+            val parts = bestEntry.key.split("|")
+            val zone = parts.firstOrNull()?.removePrefix("z")?.toIntOrNull() ?: 0
+            val action = HeartbeatAction.entries.firstOrNull { it.name == parts.getOrNull(1) } ?: HeartbeatAction.MICRO_TAP
+            val mode = ServiceMode.entries.firstOrNull { it.name == parts.getOrNull(2) } ?: ServiceMode.NORMAL
+
+            CalibrationManager.saveOverride(
+                context = this,
+                packagePrefix = run.packagePrefix,
+                preferredSafeZoneIndex = zone,
+                preferredAction = action,
+                preferredMode = mode
+            )
+
+            Toast.makeText(
+                this,
+                "Calibration done: best zone=$zone action=${action.name} mode=${mode.name}",
+                Toast.LENGTH_LONG
+            ).show()
+        } else {
+            Toast.makeText(this, "Calibration completed with no measurable result", Toast.LENGTH_LONG).show()
+        }
+
+        activeCalibration = null
+    }
+
+    private fun openNetworkSettings() {
+        val intents = listOf(
+            Intent().apply {
+                component = ComponentName(
+                    "com.droidlogic.tv.settings",
+                    "com.droidlogic.tv.settings.wifi.HotSpotActivity"
+                )
+            },
+            Intent().apply {
+                component = ComponentName(
+                    "com.android.tv.settings",
+                    "com.android.tv.settings.connectivity.NetworkActivity"
+                )
+            },
+            Intent(Settings.ACTION_SETTINGS)
+        )
+
+        for (intent in intents) {
+            try {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+                return
+            } catch (_: Exception) {
+                // try next fallback
+            }
+        }
     }
 
     private fun getInstalledVersionText(): String {
         return try {
             val pInfo = packageManager.getPackageInfo(packageName, 0)
             val versionName = pInfo.versionName ?: "?"
-            val versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 pInfo.longVersionCode
             } else {
                 @Suppress("DEPRECATION")
                 pInfo.versionCode.toLong()
             }
             "גרסה $versionName ($versionCode)"
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             getString(R.string.version_placeholder)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == REQUEST_POST_NOTIFICATIONS) {
+            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            if (granted && pendingStartAfterPermission) {
+                pendingStartAfterPermission = false
+                startProtectionSession(ProtectionSessionManager.currentMode(this))
+            } else if (!granted) {
+                pendingStartAfterPermission = false
+                Toast.makeText(this, getString(R.string.notification_permission_needed), Toast.LENGTH_LONG).show()
+            }
         }
     }
 }
