@@ -30,6 +30,8 @@
 
     <string name="debug_title">Debug Telemetry</string>
     <string name="debug_waiting">מחכה לנתוני שירות...</string>
+    <string name="debug_show">Show Debug Telemetry</string>
+    <string name="debug_hide">Hide Debug Telemetry</string>
 
     <string name="notification_channel_name">Streaming protection</string>
     <string name="notification_channel_description">Persistent session notification for active streaming protection</string>

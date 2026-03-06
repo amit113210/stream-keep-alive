@@ -243,6 +243,22 @@
                 android:textColor="@color/text_secondary"
                 android:textSize="15sp" />
 
+            <Button
+                android:id="@+id/debugToggleButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/button_background_secondary"
+                android:paddingStart="14dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="8dp"
+                android:text="@string/debug_show"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
             <TextView
                 android:id="@+id/debugTitleText"
                 android:layout_width="wrap_content"
@@ -251,20 +267,22 @@
                 android:text="@string/debug_title"
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/debugTelemetryText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/button_background_secondary"
+                android:background="@drawable/debug_panel_background"
                 android:fontFamily="monospace"
                 android:gravity="start"
                 android:maxWidth="760dp"
                 android:padding="12dp"
                 android:text="@string/debug_waiting"
                 android:textColor="@color/text_secondary"
-                android:textSize="13sp" />
+                android:textSize="12sp"
+                android:visibility="gone" />
         </LinearLayout>
     </ScrollView>
 

@@ -65,6 +65,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var protectionStatusText: TextView
     private lateinit var descriptionText: TextView
     private lateinit var versionText: TextView
+    private lateinit var debugTitleText: TextView
     private lateinit var settingsButton: Button
     private lateinit var hotspotButton: Button
     private lateinit var powerSettingsButton: Button
@@ -73,12 +74,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var stopProtectionButton: Button
     private lateinit var calibrationButton: Button
     private lateinit var notificationAccessButton: Button
+    private lateinit var debugToggleButton: Button
     private lateinit var debugTelemetryText: TextView
 
     private val uiHandler = Handler(Looper.getMainLooper())
     private var telemetryRunnable: Runnable? = null
     private var pendingStartAfterPermission = false
     private var activeCalibration: CalibrationRunState? = null
+    private var debugVisible = false
 
     private var dpadPressCount = 0
     private val requiredPresses = 3
@@ -92,6 +95,7 @@ class MainActivity : AppCompatActivity() {
         protectionStatusText = findViewById(R.id.protectionStatusText)
         descriptionText = findViewById(R.id.descriptionText)
         versionText = findViewById(R.id.versionText)
+        debugTitleText = findViewById(R.id.debugTitleText)
         settingsButton = findViewById(R.id.settingsButton)
         hotspotButton = findViewById(R.id.hotspotButton)
         powerSettingsButton = findViewById(R.id.powerSettingsButton)
@@ -100,6 +104,7 @@ class MainActivity : AppCompatActivity() {
         stopProtectionButton = findViewById(R.id.stopProtectionButton)
         calibrationButton = findViewById(R.id.calibrationButton)
         notificationAccessButton = findViewById(R.id.notificationAccessButton)
+        debugToggleButton = findViewById(R.id.debugToggleButton)
         debugTelemetryText = findViewById(R.id.debugTelemetryText)
 
         versionText.text = getInstalledVersionText()
@@ -112,8 +117,10 @@ class MainActivity : AppCompatActivity() {
         calibrationButton.setOnClickListener { openCalibrationPackagePicker() }
         notificationAccessButton.setOnClickListener { openNotificationListenerSettings() }
         powerSettingsButton.setOnClickListener { openPowerSettingsHelper() }
+        debugToggleButton.setOnClickListener { toggleDebugPanel() }
 
         updateModeButtonLabel(ProtectionSessionManager.currentMode(this))
+        applyDebugVisibility()
         updateServiceStatus()
     }
 
@@ -446,7 +453,19 @@ class MainActivity : AppCompatActivity() {
         telemetryRunnable = null
     }
 
+    private fun toggleDebugPanel() {
+        debugVisible = !debugVisible
+        applyDebugVisibility()
+    }
+
+    private fun applyDebugVisibility() {
+        debugTitleText.visibility = if (debugVisible) View.VISIBLE else View.GONE
+        debugTelemetryText.visibility = if (debugVisible) View.VISIBLE else View.GONE
+        debugToggleButton.text = getString(if (debugVisible) R.string.debug_hide else R.string.debug_show)
+    }
+
     private fun updateTelemetryPanel() {
+        if (!debugVisible) return
         val t = KeepAliveAccessibilityService.getTelemetrySnapshot()
         debugTelemetryText.text = String.format(
             Locale.US,
