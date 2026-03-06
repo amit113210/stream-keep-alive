@@ -11,6 +11,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.ImageView
@@ -29,6 +30,7 @@ import kotlin.math.max
 class MainActivity : AppCompatActivity() {
 
     companion object {
+        private const val TAG = "MainActivity"
         private const val REQUEST_POST_NOTIFICATIONS = 2201
         private const val CALIBRATION_TOTAL_MS = 12L * 60L * 1000L
     }
@@ -110,6 +112,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         showBootResumeReminderIfNeeded()
+        restoreScreenTimeoutIfSessionInactive()
         refreshProtectionCompanionIfNeeded()
         updateServiceStatus()
         startTelemetryUpdates()
@@ -180,6 +183,10 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        if (!ensureWriteSettingsPermission()) {
+            return
+        }
+
         startProtectionSession(ProtectionSessionManager.currentMode(this))
     }
 
@@ -203,7 +210,9 @@ class MainActivity : AppCompatActivity() {
                 openBatteryOptimizationSettings()
             }
             .setNeutralButton("Continue anyway") { _, _ ->
-                startProtectionSession(ProtectionSessionManager.currentMode(this))
+                if (ensureWriteSettingsPermission()) {
+                    startProtectionSession(ProtectionSessionManager.currentMode(this))
+                }
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -229,10 +238,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun openPowerSettingsHelper() {
         val options = arrayOf(
-            "Battery optimization",
-            "Accessibility settings",
-            "Notification access",
-            "App info"
+            getString(R.string.power_option_battery_optimization),
+            getString(R.string.power_option_screen_timeout_permission),
+            getString(R.string.power_option_accessibility_settings),
+            getString(R.string.power_option_notification_access),
+            getString(R.string.power_option_app_info)
         )
 
         AlertDialog.Builder(this)
@@ -240,13 +250,47 @@ class MainActivity : AppCompatActivity() {
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> openBatteryOptimizationSettings()
-                    1 -> openAccessibilitySettings()
-                    2 -> openNotificationListenerSettings()
-                    3 -> openAppDetailsSettings()
+                    1 -> openWriteSettingsScreen()
+                    2 -> openAccessibilitySettings()
+                    3 -> openNotificationListenerSettings()
+                    4 -> openAppDetailsSettings()
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun canWriteSystemSettings(): Boolean {
+        return ScreenTimeoutManager.canWriteSystemSettings(this)
+    }
+
+    private fun openWriteSettingsScreen() {
+        try {
+            val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                data = Uri.parse("package:$packageName")
+            }
+            startActivity(intent)
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_SETTINGS))
+        }
+    }
+
+    private fun ensureWriteSettingsPermission(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
+        if (canWriteSystemSettings()) return true
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.screen_timeout_permission_title))
+            .setMessage(getString(R.string.screen_timeout_permission_message))
+            .setPositiveButton(getString(R.string.action_allow)) { _, _ ->
+                openWriteSettingsScreen()
+            }
+            .setNeutralButton(getString(R.string.action_continue_anyway)) { _, _ ->
+                startProtectionSession(ProtectionSessionManager.currentMode(this))
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+        return false
     }
 
     private fun openAppDetailsSettings() {
@@ -288,6 +332,7 @@ class MainActivity : AppCompatActivity() {
     private fun startProtectionSession(mode: ServiceMode, durationTargetMinutes: Int = 0) {
         ProtectionSessionManager.startProtection(this, mode, durationTargetMinutes)
         ContextCompat.startForegroundService(this, ProtectionSessionService.createStartIntent(this, mode))
+        applyScreenTimeoutHardeningIfPossible()
         updateServiceStatus()
         Toast.makeText(this, "Protection Session התחיל (${mode.name})", Toast.LENGTH_SHORT).show()
     }
@@ -299,8 +344,38 @@ class MainActivity : AppCompatActivity() {
             // no-op
         }
         ProtectionSessionManager.stopProtection(this)
+        restoreScreenTimeoutIfPossible(reason = "ui-stop")
         updateServiceStatus()
         Toast.makeText(this, "Protection Session נעצר", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun applyScreenTimeoutHardeningIfPossible() {
+        if (!canWriteSystemSettings()) {
+            Log.i(TAG, "[SCREEN] write settings missing; skip apply")
+            return
+        }
+        val applied = ScreenTimeoutManager.applyLongTimeoutForSession(this)
+        Log.i(TAG, "[SCREEN] apply from ui success=$applied")
+    }
+
+    private fun restoreScreenTimeoutIfPossible(reason: String) {
+        if (!ScreenTimeoutManager.isSessionTimeoutApplied(this)) return
+        if (!canWriteSystemSettings()) {
+            Log.w(TAG, "[SCREEN] cannot restore now, missing permission reason=$reason")
+            return
+        }
+        val restored = ScreenTimeoutManager.restoreOriginalTimeoutIfNeeded(this)
+        Log.i(TAG, "[SCREEN] restore reason=$reason success=$restored")
+    }
+
+    private fun restoreScreenTimeoutIfSessionInactive() {
+        val restored = ScreenTimeoutManager.restoreIfSessionInactive(
+            context = this,
+            sessionActive = ProtectionSessionManager.isProtectionActive(this)
+        )
+        if (restored) {
+            Log.i(TAG, "[SCREEN] restored stale override on app resume")
+        }
     }
 
     private fun ensureNotificationPermission(): Boolean {
@@ -357,6 +432,18 @@ class MainActivity : AppCompatActivity() {
         val selectedMode = ProtectionSessionManager.currentMode(this)
         val notificationAccessEnabled = isNotificationListenerEnabled()
         val batteryExempt = isBatteryOptimizationExempt()
+        val writeSettingsGranted = canWriteSystemSettings()
+        val timeoutOverrideActive = telemetry.screenTimeoutOverrideActive
+        val originalTimeoutText = if (telemetry.originalScreenTimeoutMs > 0L) {
+            "${telemetry.originalScreenTimeoutMs}ms"
+        } else {
+            "-"
+        }
+        val requestedTimeoutText = if (telemetry.currentRequestedScreenTimeoutMs > 0L) {
+            "${telemetry.currentRequestedScreenTimeoutMs}ms"
+        } else {
+            "-"
+        }
         val playbackSignalsAvailable = telemetry.mediaSessionAccessAvailable || telemetry.notificationListenerEnabled
         val playbackActive = telemetry.playbackStateFriendly == PlaybackFriendlyState.PLAYING_ACTIVE.name
         val heartbeatAllowed = telemetry.shouldRunHeartbeatNow
@@ -374,6 +461,8 @@ class MainActivity : AppCompatActivity() {
         val notificationText = if (notificationAccessEnabled) getString(R.string.status_yes) else getString(R.string.status_no)
         val foregroundText = if (telemetry.foregroundServiceRunning) getString(R.string.status_yes) else getString(R.string.status_no)
         val batteryText = if (batteryExempt) getString(R.string.status_yes) else getString(R.string.status_no)
+        val writeSettingsText = if (writeSettingsGranted) getString(R.string.status_yes) else getString(R.string.status_no)
+        val timeoutOverrideText = if (timeoutOverrideActive) getString(R.string.status_yes) else getString(R.string.status_no)
         val playbackSignalsText = if (playbackSignalsAvailable) getString(R.string.status_yes) else getString(R.string.status_no)
         val playbackText = if (playbackActive) getString(R.string.status_yes) else getString(R.string.status_no)
         val heartbeatAllowedText = if (heartbeatAllowed) getString(R.string.status_yes) else getString(R.string.status_no)
@@ -387,12 +476,16 @@ class MainActivity : AppCompatActivity() {
                     "• Notification Access: %s\n" +
                     "• Foreground Companion: %s\n" +
                     "• Battery Optimization Exempt: %s\n" +
+                    "• Write Settings Permission: %s\n" +
+                    "• Screen Timeout Override Active: %s\n" +
                     "• Playback Signals Available: %s\n" +
                     "• Active Playback: %s\n\n" +
                     "Runtime\n" +
                     "• Selected Mode: %s\n" +
                     "• Heartbeat Allowed: %s\n" +
                     "• Heartbeat Gate Reason: %s\n" +
+                    "• Original Screen Timeout: %s\n" +
+                    "• Current Screen Timeout Override: %s\n" +
                     "• Package: %s\n" +
                     "• Profile: %s\n" +
                     "• Mode: %s\n" +
@@ -407,11 +500,15 @@ class MainActivity : AppCompatActivity() {
                 notificationText,
                 foregroundText,
                 batteryText,
+                writeSettingsText,
+                timeoutOverrideText,
                 playbackSignalsText,
                 playbackText,
                 selectedMode.name,
                 heartbeatAllowedText,
                 heartbeatReason,
+                originalTimeoutText,
+                requestedTimeoutText,
                 telemetry.currentPackage.ifEmpty { "-" },
                 telemetry.currentProfile.ifEmpty { "-" },
                 telemetry.currentMode,
@@ -516,7 +613,7 @@ class MainActivity : AppCompatActivity() {
                 "Gestures: sent=%d done=%d cancel=%d reject=%d\n" +
                 "Calibration: mode=%s action=%s zone=%d\n" +
                 "Wake: acquire=%d release=%d held=%s\n" +
-                "Power: batteryExempt=%s",
+                "Power: batteryExempt=%s writeSettings=%s timeoutOverride=%s originalTimeout=%d requestedTimeout=%d appliedAt=%d restoredAt=%d",
             t.protectionSessionActive,
             t.protectionSessionStartedAt,
             t.foregroundServiceRunning,
@@ -564,7 +661,13 @@ class MainActivity : AppCompatActivity() {
             t.wakeAcquires,
             t.wakeReleases,
             t.wakeLockHeld,
-            t.batteryOptimizationExempt
+            t.batteryOptimizationExempt,
+            t.writeSettingsGranted,
+            t.screenTimeoutOverrideActive,
+            t.originalScreenTimeoutMs,
+            t.currentRequestedScreenTimeoutMs,
+            t.lastScreenTimeoutApplyAt,
+            t.lastScreenTimeoutRestoreAt
         )
     }
 
@@ -756,7 +859,9 @@ class MainActivity : AppCompatActivity() {
             if (granted && pendingStartAfterPermission) {
                 pendingStartAfterPermission = false
                 if (ensureBatteryOptimizationExemption()) {
-                    startProtectionSession(ProtectionSessionManager.currentMode(this))
+                    if (ensureWriteSettingsPermission()) {
+                        startProtectionSession(ProtectionSessionManager.currentMode(this))
+                    }
                 }
             } else if (!granted) {
                 pendingStartAfterPermission = false

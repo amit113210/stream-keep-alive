@@ -61,6 +61,7 @@ class ProtectionSessionService : Service() {
                 val mode = parseMode(intent?.getStringExtra(EXTRA_MODE))
                 ProtectionSessionManager.startProtection(this, mode)
                 ProtectionSessionManager.setForegroundServiceRunning(this, true)
+                maybeApplyScreenTimeoutOverride(reason = "start")
                 startForegroundWithNotification(mode)
                 Log.i(TAG, "[SESSION] started mode=${mode.name}")
             }
@@ -69,6 +70,7 @@ class ProtectionSessionService : Service() {
                 Log.i(TAG, "[SESSION] stop requested")
                 ProtectionSessionManager.stopProtection(this)
                 ProtectionSessionManager.setForegroundServiceRunning(this, false)
+                maybeRestoreScreenTimeoutOverride(reason = "stop")
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
                 return START_NOT_STICKY
@@ -78,6 +80,7 @@ class ProtectionSessionService : Service() {
                 val active = ProtectionSessionManager.isProtectionActive(this)
                 if (!active) {
                     ProtectionSessionManager.setForegroundServiceRunning(this, false)
+                    maybeRestoreScreenTimeoutOverride(reason = "refresh-inactive")
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()
                     return START_NOT_STICKY
@@ -85,6 +88,7 @@ class ProtectionSessionService : Service() {
 
                 val mode = ProtectionSessionManager.currentMode(this)
                 ProtectionSessionManager.setForegroundServiceRunning(this, true)
+                maybeApplyScreenTimeoutOverride(reason = "refresh-active")
                 startForegroundWithNotification(mode)
                 Log.i(TAG, "[SESSION] refreshed mode=${mode.name}")
             }
@@ -102,6 +106,27 @@ class ProtectionSessionService : Service() {
 
     private fun parseMode(raw: String?): ServiceMode {
         return ServiceMode.entries.firstOrNull { it.name == raw } ?: ProtectionSessionManager.currentMode(this)
+    }
+
+    private fun maybeApplyScreenTimeoutOverride(reason: String) {
+        if (!ScreenTimeoutManager.canWriteSystemSettings(this)) {
+            Log.i(TAG, "[SCREEN] write settings permission missing; skip apply reason=$reason")
+            return
+        }
+        val applied = ScreenTimeoutManager.applyLongTimeoutForSession(this)
+        Log.i(TAG, "[SCREEN] apply reason=$reason success=$applied")
+    }
+
+    private fun maybeRestoreScreenTimeoutOverride(reason: String) {
+        if (!ScreenTimeoutManager.isSessionTimeoutApplied(this)) {
+            return
+        }
+        if (!ScreenTimeoutManager.canWriteSystemSettings(this)) {
+            Log.w(TAG, "[SCREEN] cannot restore yet (missing write settings) reason=$reason")
+            return
+        }
+        val restored = ScreenTimeoutManager.restoreOriginalTimeoutIfNeeded(this)
+        Log.i(TAG, "[SCREEN] restore reason=$reason success=$restored")
     }
 
     private fun startForegroundWithNotification(mode: ServiceMode) {

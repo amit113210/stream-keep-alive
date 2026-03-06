@@ -45,6 +45,11 @@
     <string name="more_show_debug">Show debug telemetry</string>
     <string name="more_hide_debug">Hide debug telemetry</string>
     <string name="more_app_info">App info</string>
+    <string name="power_option_battery_optimization">Battery optimization</string>
+    <string name="power_option_screen_timeout_permission">Screen timeout permission</string>
+    <string name="power_option_accessibility_settings">Accessibility settings</string>
+    <string name="power_option_notification_access">Notification access</string>
+    <string name="power_option_app_info">App info</string>
 
     <string name="notification_channel_name">Streaming protection</string>
     <string name="notification_channel_description">Persistent session notification for active streaming protection</string>
@@ -60,5 +65,9 @@
     <string name="playback_fallback_mode">Package-only fallback mode</string>
     <string name="battery_optimization_required">Battery optimization exemption is strongly recommended so Stream Keep Alive can keep running while the TV is idle.</string>
     <string name="battery_optimization_title">Battery optimization</string>
+    <string name="screen_timeout_permission_title">Screen timeout permission</string>
+    <string name="screen_timeout_permission_message">Allowing this access lets the app extend screen timeout during an active Protection Session and restore your original timeout after the session ends.</string>
+    <string name="action_allow">Allow</string>
+    <string name="action_continue_anyway">Continue anyway</string>
     <string name="mode_changed_to">Mode changed to %1$s</string>
 </resources>
