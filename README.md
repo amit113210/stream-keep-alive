@@ -12,6 +12,12 @@
 - עובד מקומית על המכשיר, ללא שרת חיצוני.
 - תואם Android TV (API 21+) ללא Root.
 
+## חדש ב-1.7.5
+- שדרוג ממוקד ל-Netflix dialog auto-dismiss עם סריקה של כל חלונות הנגישות (multi-window), לא רק active root.
+- נוספה לולאת Netflix אגרסיבית (1s) לזיהוי מהיר של "עדיין צופה" גם כשאירועי UI דלילים.
+- נוספה אסטרטגיית לחיצה מדורגת עם fallback בטוח ל-Bounds Tap על כפתור היעד בלבד.
+- נוספה טלמטריה ייעודית לדיאלוגים: מספר חלונות, טקסט יעד, חלון יעד, ושיטת קליק בפועל.
+
 ## חדש ב-1.7.4
 - מסך בית מינימלי אמיתי ל‑TV: רק Start/Stop + Mode + More Actions.
 - כל הפעולות המתקדמות רוכזו תחת More Actions (נגישות, Notification, Power, Hotspot, Calibration, Debug/Runtime).

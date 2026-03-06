@@ -361,6 +361,13 @@ class MainActivity : AppCompatActivity() {
         val playbackActive = telemetry.playbackStateFriendly == PlaybackFriendlyState.PLAYING_ACTIVE.name
         val heartbeatAllowed = telemetry.shouldRunHeartbeatNow
         val heartbeatReason = telemetry.heartbeatSuppressedReason.ifEmpty { "-" }
+        val dialogTargetWindowText = if (telemetry.lastDialogTargetWindowIndex >= 0) {
+            telemetry.lastDialogTargetWindowIndex.toString()
+        } else {
+            "-"
+        }
+        val dialogTargetText = telemetry.lastDialogTargetText.ifEmpty { "-" }
+        val dialogClickMethod = telemetry.lastDialogClickMethod.ifEmpty { "NONE" }
 
         val accessibilityText = if (accessibilityEnabled) getString(R.string.status_yes) else getString(R.string.status_no)
         val protectionText = if (protectionActive) getString(R.string.status_yes) else getString(R.string.status_no)
@@ -390,7 +397,11 @@ class MainActivity : AppCompatActivity() {
                     "• Profile: %s\n" +
                     "• Mode: %s\n" +
                     "• Playback Source: %s\n" +
-                    "• Playback Confidence: %s",
+                    "• Playback Confidence: %s\n" +
+                    "• Last Dialog Windows: %d\n" +
+                    "• Last Dialog Target: %s\n" +
+                    "• Last Dialog Target Window: %s\n" +
+                    "• Last Dialog Click Method: %s",
                 accessibilityText,
                 protectionText,
                 notificationText,
@@ -405,7 +416,11 @@ class MainActivity : AppCompatActivity() {
                 telemetry.currentProfile.ifEmpty { "-" },
                 telemetry.currentMode,
                 telemetry.playbackSignalSource,
-                telemetry.playbackConfidence
+                telemetry.playbackConfidence,
+                telemetry.lastDialogWindowCount,
+                dialogTargetText,
+                dialogTargetWindowText,
+                dialogClickMethod
             )
         } else {
             String.format(
@@ -494,6 +509,7 @@ class MainActivity : AppCompatActivity() {
                 "Playback: pkg=%s state=%s src=%s conf=%s changedAt=%d mediaAccess=%s\n" +
                 "Gate: runNow=%s reason=%s\n" +
                 "Current: pkg=%s profile=%s mode=%s interval=%dms esc=%d burst=%s\n" +
+                "DialogWin: count=%d target=%s win=%d click=%s sample=%s\n" +
                 "Heartbeat: scheduled=%d executed=%d\n" +
                 "Gesture: result=%s action=%s completion=%d fail=%d cancel=%d\n" +
                 "Dialog: detectedAt=%d dismissedAt=%d strategy=%s stats=%d/%d/%d\n" +
@@ -520,6 +536,11 @@ class MainActivity : AppCompatActivity() {
             t.currentHeartbeatIntervalMs,
             t.currentEscalationStep,
             t.dialogBurstModeActive,
+            t.lastDialogWindowCount,
+            t.lastDialogTargetText.ifEmpty { "-" },
+            t.lastDialogTargetWindowIndex,
+            t.lastDialogClickMethod.ifEmpty { "NONE" },
+            t.lastDialogVisibleTextsSample.ifEmpty { "-" },
             t.lastHeartbeatScheduledAt,
             t.lastHeartbeatExecutedAt,
             t.lastGestureDispatchResult.ifEmpty { "-" },

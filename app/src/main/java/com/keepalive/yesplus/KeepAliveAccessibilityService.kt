@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Path
 import android.graphics.PointF
+import android.graphics.Rect
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -16,6 +17,7 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import kotlin.math.max
@@ -37,6 +39,8 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         private const val DIALOG_HINT_COOLDOWN_MS = 700L
         private const val DIALOG_PERIODIC_SCAN_MS = 20_000L
         private const val DIALOG_NETFLIX_PLAYBACK_SCAN_MS = 3_000L
+        private const val DIALOG_NETFLIX_OBSERVER_SCAN_MS = 1_000L
+        private const val DIALOG_NETFLIX_RECENT_PLAYBACK_MS = 180_000L
         private const val PACKAGE_PROBE_INTERVAL_MS = 10_000L
         private const val DIALOG_POST_DISMISS_HEARTBEAT_COOLDOWN_MS = 6000L
         private const val PACKAGE_TRANSITION_HEARTBEAT_COOLDOWN_MS = 4000L
@@ -49,6 +53,8 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         private const val MAX_SCAN_NODES = 260
         private const val MAX_SCAN_DEPTH = 16
         private const val SCAN_TIME_BUDGET_MS = 18L
+        private const val MAX_WINDOW_LOG_TEXTS = 20
+        private const val MAX_WINDOW_LOG_CLICKABLE_TEXTS = 12
 
         private const val MIN_HEARTBEAT_DELAY_MS = 45_000L
         private const val DOUBLE_ATTEMPT_DELAY_MS = 1400L
@@ -88,6 +94,11 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val lastGestureCompletionAt: Long = 0L,
             val lastDialogDetectionAt: Long = 0L,
             val lastDialogDismissAt: Long = 0L,
+            val lastDialogWindowCount: Int = 0,
+            val lastDialogTargetText: String = "",
+            val lastDialogTargetWindowIndex: Int = -1,
+            val lastDialogClickMethod: String = "NONE",
+            val lastDialogVisibleTextsSample: String = "",
             val dialogBurstModeActive: Boolean = false,
             val dialogScans: Long = 0L,
             val dialogsDetected: Long = 0L,
@@ -132,9 +143,26 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         val reason: String
     )
 
+    private data class WindowRootRef(
+        val index: Int,
+        val windowId: Int,
+        val windowType: Int,
+        val source: String,
+        val root: AccessibilityNodeInfo
+    )
+
+    private data class DialogDismissOutcome(
+        val strategy: String,
+        val targetText: String = "",
+        val windowIndex: Int = -1,
+        val clickMethod: String = "NONE",
+        val visibleSample: String = ""
+    )
+
     private var handler: Handler? = null
     private var heartbeatRunnable: Runnable? = null
     private var dialogScanRunnable: Runnable? = null
+    private var netflixDialogObserverRunnable: Runnable? = null
     private var packageProbeRunnable: Runnable? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var wakeLockSafetyRunnable: Runnable? = null
@@ -160,6 +188,11 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     private var lastDialogWindowFingerprintMs = 0L
     private var lastDialogDetectionAtMs = 0L
     private var lastDialogDismissAtMs = 0L
+    private var lastDialogWindowCount = 0
+    private var lastDialogTargetText = ""
+    private var lastDialogTargetWindowIndex = -1
+    private var lastDialogClickMethod = "NONE"
+    private var lastDialogVisibleTextsSample = ""
     private var lastDialogDismissStrategy = ""
     private var lastPackageTransitionTimestampMs = 0L
 
@@ -366,6 +399,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             sessionHeartbeatEnabled = false
             stopHeartbeat()
             stopPeriodicDialogScan()
+            syncNetflixDialogObserver()
             releaseWakeLock("session-off")
             publishTelemetrySnapshot()
             return
@@ -378,12 +412,14 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             sessionHeartbeatEnabled = false
             stopHeartbeat()
             stopPeriodicDialogScan()
+            syncNetflixDialogObserver()
             releaseWakeLock("unsupported-package")
             publishTelemetrySnapshot()
             return
         }
 
         startPeriodicDialogScan()
+        syncNetflixDialogObserver()
         ensureWakeLockForSession()
 
         val modeChanged = mode != lastKnownMode
@@ -423,10 +459,17 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     // ==========================================
 
     private fun maybeProcessDialog(event: AccessibilityEvent, packageName: String) {
-        if (!PackagePolicy.isStreamingPackage(packageName)) return
         if (!isDialogRelevantEvent(event.eventType)) return
 
-        val profile = PackagePolicy.profileForPackage(packageName) ?: return
+        val netflixPriority = isNetflixDialogPriority()
+        val packageProfile = PackagePolicy.profileForPackage(packageName)
+        val profileCandidate = currentProfile
+            ?: packageProfile
+            ?: if (netflixPriority) PackagePolicy.profileForPackage("com.netflix") else null
+        val profile = profileCandidate ?: return
+
+        if (packageProfile == null && !isSupportedActivePackage() && !netflixPriority) return
+
         val now = System.currentTimeMillis()
 
         val quickDialogHint = DialogTextMatcher.eventLooksLikeDialog(
@@ -435,10 +478,15 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             contentDescription = event.contentDescription,
             additionalKeywords = profile.dialogKeywords
         )
-        val cooldown = if (quickDialogHint) DIALOG_HINT_COOLDOWN_MS else DIALOG_SCAN_COOLDOWN_MS
+        val cooldown = if (quickDialogHint || netflixPriority) DIALOG_HINT_COOLDOWN_MS else DIALOG_SCAN_COOLDOWN_MS
         if (now - lastDialogCheckTimeMs < cooldown) return
 
-        scanActiveWindowForDialog(reason = "event:${event.eventType}", profile = profile)
+        scanAllWindowsForDialog(
+            reason = "event:${event.eventType}",
+            profile = profile,
+            prioritizeNetflix = netflixPriority,
+            bypassFingerprint = netflixPriority
+        )
     }
 
     private fun isDialogRelevantEvent(eventType: Int): Boolean {
@@ -446,6 +494,28 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED ||
             eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED ||
             eventType == AccessibilityEvent.TYPE_VIEW_CLICKED
+    }
+
+    private fun isNetflixDialogPriority(): Boolean {
+        val playback = PlaybackStateManager.snapshot()
+        return currentPackage.startsWith("com.netflix") ||
+            playback.activePlaybackPackage?.startsWith("com.netflix") == true ||
+            playback.lastPackageReported?.startsWith("com.netflix") == true
+    }
+
+    private fun shouldRunNetflixDialogObserver(): Boolean {
+        if (!isProtectionSessionActive()) return false
+        val playback = PlaybackStateManager.snapshot()
+        val netflixRelevant = isNetflixDialogPriority()
+        if (!netflixRelevant) return false
+
+        val nowElapsed = SystemClock.elapsedRealtime()
+        val recentlyActiveNetflix =
+            playback.lastPackageReported?.startsWith("com.netflix") == true &&
+                playback.lastStateChangeAt > 0L &&
+                nowElapsed - playback.lastStateChangeAt <= DIALOG_NETFLIX_RECENT_PLAYBACK_MS
+
+        return playback.friendlyState == PlaybackFriendlyState.PLAYING_ACTIVE || recentlyActiveNetflix
     }
 
     private fun startPeriodicDialogScan() {
@@ -462,7 +532,13 @@ class KeepAliveAccessibilityService : AccessibilityService() {
                     Log.i(TAG, "[DIALOG] burst mode exited")
                 }
 
-                scanActiveWindowForDialog(reason = "periodic", profile = profile)
+                val netflixPriority = isNetflixDialogPriority()
+                scanAllWindowsForDialog(
+                    reason = "periodic",
+                    profile = profile,
+                    prioritizeNetflix = netflixPriority,
+                    bypassFingerprint = netflixPriority
+                )
                 localHandler.postDelayed(this, computeDialogScanCadenceMs())
             }
         }
@@ -473,6 +549,49 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     private fun stopPeriodicDialogScan() {
         dialogScanRunnable?.let { handler?.removeCallbacks(it) }
         dialogScanRunnable = null
+    }
+
+    private fun syncNetflixDialogObserver() {
+        if (shouldRunNetflixDialogObserver()) {
+            startNetflixDialogObserver()
+        } else {
+            stopNetflixDialogObserver()
+        }
+    }
+
+    private fun startNetflixDialogObserver() {
+        if (netflixDialogObserverRunnable != null) return
+        val localHandler = handler ?: return
+
+        Log.i(TAG, "[DIALOG][NETFLIX] aggressive observer started cadenceMs=$DIALOG_NETFLIX_OBSERVER_SCAN_MS")
+        netflixDialogObserverRunnable = object : Runnable {
+            override fun run() {
+                if (!shouldRunNetflixDialogObserver()) {
+                    stopNetflixDialogObserver()
+                    return
+                }
+
+                val profile = currentProfile ?: PackagePolicy.profileForPackage("com.netflix") ?: return
+                scanAllWindowsForDialog(
+                    reason = "netflix-observer",
+                    profile = profile,
+                    prioritizeNetflix = true,
+                    bypassFingerprint = true
+                )
+
+                localHandler.postDelayed(this, DIALOG_NETFLIX_OBSERVER_SCAN_MS)
+            }
+        }
+
+        localHandler.post(netflixDialogObserverRunnable!!)
+    }
+
+    private fun stopNetflixDialogObserver() {
+        netflixDialogObserverRunnable?.let { handler?.removeCallbacks(it) }
+        if (netflixDialogObserverRunnable != null) {
+            Log.i(TAG, "[DIALOG][NETFLIX] aggressive observer stopped")
+        }
+        netflixDialogObserverRunnable = null
     }
 
     private fun computeDialogScanCadenceMs(): Long {
@@ -496,12 +615,29 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         dialogBurstUntilMs = now + DIALOG_BURST_DURATION_MS
     }
 
-    private fun scanActiveWindowForDialog(reason: String, profile: StreamingAppProfile) {
-        val rootNode = rootInActiveWindow ?: return
-        val now = System.currentTimeMillis()
+    private fun scanAllWindowsForDialog(
+        reason: String,
+        profile: StreamingAppProfile,
+        prioritizeNetflix: Boolean = false,
+        bypassFingerprint: Boolean = false
+    ) {
+        val roots = collectDialogWindowRoots()
+        if (roots.isEmpty()) {
+            lastDialogWindowCount = 0
+            lastDialogClickMethod = "NONE"
+            publishTelemetrySnapshot()
+            return
+        }
 
-        if (shouldSkipDialogScanByFingerprint(rootNode, now)) {
-            safeRecycle(rootNode)
+        val now = System.currentTimeMillis()
+        lastDialogWindowCount = roots.size
+        lastDialogTargetText = ""
+        lastDialogTargetWindowIndex = -1
+        lastDialogClickMethod = "NONE"
+        lastDialogVisibleTextsSample = ""
+
+        if (shouldSkipDialogScanByFingerprint(roots, now, bypassFingerprint)) {
+            releaseWindowRoots(roots)
             return
         }
 
@@ -511,37 +647,66 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
         lastDialogCheckTimeMs = now
         dialogScanCount++
-        Log.d(TAG, "[DIALOG] scan reason=$reason package=$currentPackage")
+        Log.d(TAG, "[DIALOG][WIN] scan reason=$reason package=$currentPackage windows=${roots.size}")
 
-        val detected = containsDialogKeywords(rootNode, profile)
+        var detected = false
+        var dismissOutcome: DialogDismissOutcome? = null
+
+        if (prioritizeNetflix) {
+            val netflixOutcome = dismissNetflixSpecificDialogAcrossWindows(roots, profile)
+            detected = netflixOutcome.first
+            dismissOutcome = netflixOutcome.second
+        }
+
         if (!detected) {
-            safeRecycle(rootNode)
+            detected = roots.any { containsDialogKeywords(it.root, profile) }
+        }
+
+        if (!detected) {
+            releaseWindowRoots(roots)
             publishTelemetrySnapshot()
             return
         }
 
         dialogDetectedCount++
         lastDialogDetectionAtMs = now
-        Log.i(TAG, "[DIALOG] dialog detected package=$currentPackage")
+        Log.i(TAG, "[DIALOG] dialog detected package=$currentPackage windows=${roots.size}")
 
-        val dismissStrategy = dismissDialog(rootNode, profile)
-        if (dismissStrategy != null) {
+        if (dismissOutcome == null) {
+            dismissOutcome = dismissDialogGenericAcrossWindows(roots, profile)
+        }
+
+        if (dismissOutcome != null) {
             dialogDismissedCount++
             lastDialogDismissAtMs = System.currentTimeMillis()
-            lastDialogDismissStrategy = dismissStrategy
+            lastDialogDismissStrategy = dismissOutcome.strategy
+            lastDialogTargetText = dismissOutcome.targetText
+            lastDialogTargetWindowIndex = dismissOutcome.windowIndex
+            lastDialogClickMethod = dismissOutcome.clickMethod
+            lastDialogVisibleTextsSample = dismissOutcome.visibleSample
             dialogBurstModeActive = false
-            Log.i(TAG, "[DIALOG] dismissed strategy=$dismissStrategy")
+            Log.i(
+                TAG,
+                "[DIALOG] dismissed strategy=${dismissOutcome.strategy} method=${dismissOutcome.clickMethod} window=${dismissOutcome.windowIndex}"
+            )
         } else {
+            lastDialogClickMethod = "NONE"
             Log.w(TAG, "[DIALOG] detected but no dismiss action succeeded")
             enterDialogBurstMode("dismiss_failed")
         }
 
+        releaseWindowRoots(roots)
         publishTelemetrySnapshot()
-        safeRecycle(rootNode)
     }
 
-    private fun shouldSkipDialogScanByFingerprint(rootNode: AccessibilityNodeInfo, now: Long): Boolean {
-        val fingerprint = buildWindowFingerprint(rootNode)
+    private fun shouldSkipDialogScanByFingerprint(
+        roots: List<WindowRootRef>,
+        now: Long,
+        bypassFingerprint: Boolean
+    ): Boolean {
+        if (bypassFingerprint) return false
+
+        val fingerprint = buildCombinedWindowFingerprint(roots)
         val isSameWindow = fingerprint == lastDialogWindowFingerprint
         val isCooldownActive = now - lastDialogWindowFingerprintMs < WINDOW_FINGERPRINT_COOLDOWN_MS
         if (isSameWindow && isCooldownActive) return true
@@ -560,52 +725,240 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         return "$pkg|$cls|$childCount|$rootText|$desc"
     }
 
-    private fun dismissDialog(rootNode: AccessibilityNodeInfo, profile: StreamingAppProfile): String? {
-        if (currentPackage.startsWith("com.netflix")) {
-            Log.i(TAG, "[DIALOG] Netflix-specific strategy entered")
-            val netflixResult = dismissNetflixSpecificDialog(rootNode)
-            if (netflixResult != null) return netflixResult
+    private fun buildCombinedWindowFingerprint(roots: List<WindowRootRef>): String {
+        return roots.joinToString(separator = "#") { ref ->
+            "${ref.index}:${ref.windowType}:${buildWindowFingerprint(ref.root)}"
         }
-
-        if (findAndClickConfirmButton(rootNode, profile)) return "confirm-keyword"
-        if (clickFocusedElement(rootNode)) return "focused-element"
-        if (clickFirstClickable(rootNode)) return "clickable-fallback"
-        return if (performGlobalAction(GLOBAL_ACTION_BACK)) "global-back" else null
     }
 
-    private fun dismissNetflixSpecificDialog(rootNode: AccessibilityNodeInfo): String? {
-        val visibleTexts = mutableListOf<String>()
-        collectVisibleTexts(rootNode, visibleTexts, 0)
-        Log.i(TAG, "[DIALOG] visible texts dump=${visibleTexts.take(12)}")
+    private fun collectDialogWindowRoots(): List<WindowRootRef> {
+        val refs = mutableListOf<WindowRootRef>()
+        val seenFingerprints = mutableSetOf<String>()
 
-        val exactNode = findNodeByExactText(rootNode, "הפעל בלי לשאול שוב")
-        if (exactNode != null) {
-            Log.i(TAG, "[DIALOG] exact target found")
-            val clicked = clickNodeOrClickableAncestor(exactNode)
+        val activeRoot = rootInActiveWindow
+        if (activeRoot != null) {
+            val fingerprint = buildWindowFingerprint(activeRoot)
+            if (seenFingerprints.add(fingerprint)) {
+                refs.add(
+                    WindowRootRef(
+                        index = -1,
+                        windowId = -1,
+                        windowType = -1,
+                        source = "activeRoot",
+                        root = activeRoot
+                    )
+                )
+            } else {
+                safeRecycle(activeRoot)
+            }
+        }
+
+        val winList = windows ?: emptyList()
+        Log.d(TAG, "[DIALOG][WIN] windows available=${winList.size}")
+        winList.forEachIndexed { index, window ->
+            val root = try {
+                window.root
+            } catch (_: Exception) {
+                null
+            }
+            Log.d(
+                TAG,
+                "[DIALOG][WIN] index=$index id=${window.id} type=${windowTypeName(window.type)} hasRoot=${root != null}"
+            )
+
+            if (root != null) {
+                val fingerprint = buildWindowFingerprint(root)
+                if (seenFingerprints.add(fingerprint)) {
+                    refs.add(
+                        WindowRootRef(
+                            index = index,
+                            windowId = window.id,
+                            windowType = window.type,
+                            source = "windows",
+                            root = root
+                        )
+                    )
+                } else {
+                    safeRecycle(root)
+                }
+            }
+        }
+
+        return refs
+    }
+
+    private fun releaseWindowRoots(roots: List<WindowRootRef>) {
+        roots.forEach { safeRecycle(it.root) }
+    }
+
+    private fun windowTypeName(type: Int): String {
+        return when (type) {
+            AccessibilityWindowInfo.TYPE_APPLICATION -> "APPLICATION"
+            AccessibilityWindowInfo.TYPE_INPUT_METHOD -> "INPUT_METHOD"
+            AccessibilityWindowInfo.TYPE_SYSTEM -> "SYSTEM"
+            AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY -> "ACCESSIBILITY_OVERLAY"
+            AccessibilityWindowInfo.TYPE_SPLIT_SCREEN_DIVIDER -> "SPLIT_SCREEN_DIVIDER"
+            else -> type.toString()
+        }
+    }
+
+    private fun dismissDialogGenericAcrossWindows(
+        roots: List<WindowRootRef>,
+        profile: StreamingAppProfile
+    ): DialogDismissOutcome? {
+        for (ref in roots) {
+            if (findAndClickConfirmButton(ref.root, profile)) {
+                return DialogDismissOutcome(
+                    strategy = "confirm-keyword",
+                    windowIndex = ref.index,
+                    clickMethod = "ACTION_CLICK"
+                )
+            }
+        }
+
+        for (ref in roots) {
+            if (clickFocusedElement(ref.root)) {
+                return DialogDismissOutcome(
+                    strategy = "focused-element",
+                    windowIndex = ref.index,
+                    clickMethod = "ACTION_CLICK"
+                )
+            }
+        }
+
+        for (ref in roots) {
+            if (clickFirstClickable(ref.root)) {
+                return DialogDismissOutcome(
+                    strategy = "clickable-fallback",
+                    windowIndex = ref.index,
+                    clickMethod = "ACTION_CLICK"
+                )
+            }
+        }
+
+        return if (performGlobalAction(GLOBAL_ACTION_BACK)) {
+            DialogDismissOutcome(strategy = "global-back", clickMethod = "ACTION_BACK")
+        } else {
+            null
+        }
+    }
+
+    private fun dismissNetflixSpecificDialogAcrossWindows(
+        roots: List<WindowRootRef>,
+        profile: StreamingAppProfile
+    ): Pair<Boolean, DialogDismissOutcome?> {
+        var detectedNetflixDialog = false
+        var latestVisibleSample = ""
+
+        Log.i(TAG, "[DIALOG][NETFLIX] strategy entered windows=${roots.size}")
+        for (ref in roots) {
+            val visibleTexts = mutableListOf<String>()
+            collectVisibleTexts(ref.root, visibleTexts, 0, MAX_WINDOW_LOG_TEXTS)
+            val clickableTexts = mutableListOf<String>()
+            collectClickableTexts(ref.root, clickableTexts, 0, MAX_WINDOW_LOG_CLICKABLE_TEXTS)
+
+            latestVisibleSample = visibleTexts.joinToString(", ").take(280)
+            lastDialogVisibleTextsSample = latestVisibleSample
+
+            Log.i(
+                TAG,
+                "[DIALOG][WIN] index=${ref.index} source=${ref.source} id=${ref.windowId} type=${windowTypeName(ref.windowType)} visible=${visibleTexts.take(12)} clickable=${clickableTexts.take(8)}"
+            )
+
+            val dialogPhraseFound = containsNetflixDialogPhrase(visibleTexts)
+            if (dialogPhraseFound) {
+                detectedNetflixDialog = true
+                Log.i(TAG, "[DIALOG][NETFLIX] target dialog phrase found window=${ref.index}")
+            }
+
+            val exactNode = findNodeByExactText(ref.root, "הפעל בלי לשאול שוב")
+            val exactOutcome = findAndActivateTargetNode(
+                node = exactNode,
+                windowIndex = ref.index,
+                strategy = "netflix-exact",
+                targetText = "הפעל בלי לשאול שוב",
+                visibleSample = latestVisibleSample
+            )
             safeRecycle(exactNode)
-            if (clicked) {
-                Log.i(TAG, "[DIALOG] clicked target")
-                return "netflix-exact"
-            }
-        }
+            if (exactOutcome != null) return true to exactOutcome
 
-        val containsNode = findNodeContainingText(rootNode, "בלי לשאול שוב")
-        if (containsNode != null) {
-            Log.i(TAG, "[DIALOG] contains target found")
-            val clicked = clickNodeOrClickableAncestor(containsNode)
+            val containsNode = findNodeContainingText(ref.root, "בלי לשאול שוב")
+            val containsOutcome = findAndActivateTargetNode(
+                node = containsNode,
+                windowIndex = ref.index,
+                strategy = "netflix-contains",
+                targetText = "בלי לשאול שוב",
+                visibleSample = latestVisibleSample
+            )
             safeRecycle(containsNode)
-            if (clicked) {
-                Log.i(TAG, "[DIALOG] clicked target")
-                return "netflix-contains"
-            }
+            if (containsOutcome != null) return true to containsOutcome
+
+            val matcherNode = findFirstConfirmNode(ref.root, profile)
+            val matcherOutcome = findAndActivateTargetNode(
+                node = matcherNode,
+                windowIndex = ref.index,
+                strategy = "netflix-confirm-keyword",
+                targetText = matcherNode?.text?.toString().orEmpty(),
+                visibleSample = latestVisibleSample
+            )
+            safeRecycle(matcherNode)
+            if (matcherOutcome != null) return true to matcherOutcome
         }
 
-        Log.w(TAG, "[DIALOG] netflix-specific strategy failed to find target; visible=${visibleTexts.take(20)}")
-        return null
+        if (detectedNetflixDialog) {
+            Log.w(
+                TAG,
+                "[DIALOG] netflix-specific strategy failed to find target; visible=${latestVisibleSample.take(280)}"
+            )
+        }
+        return detectedNetflixDialog to null
     }
 
-    private fun collectVisibleTexts(node: AccessibilityNodeInfo?, out: MutableList<String>, depth: Int) {
-        if (node == null || depth > 4 || out.size > 20) return
+    private fun containsNetflixDialogPhrase(visibleTexts: List<String>): Boolean {
+        val normalized = visibleTexts.joinToString(" ").lowercase()
+        if (normalized.isEmpty()) return false
+        return normalized.contains("עדיין צופה") ||
+            normalized.contains("עדיין צופה בכותרת") ||
+            normalized.contains("האם אתה עדיין צופה")
+    }
+
+    private fun findAndActivateTargetNode(
+        node: AccessibilityNodeInfo?,
+        windowIndex: Int,
+        strategy: String,
+        targetText: String,
+        visibleSample: String
+    ): DialogDismissOutcome? {
+        if (node == null) return null
+        if (DialogTextMatcher.containsNegativeKeyword(node.text, node.contentDescription)) return null
+
+        Log.i(TAG, "[DIALOG][NETFLIX] target candidate found strategy=$strategy window=$windowIndex")
+        val clickMethod = clickNodeOrClickableAncestorWithMethod(node, allowBoundsTap = true)
+        val clickAttempted = clickMethod != null
+        val clickSucceeded = clickMethod != null
+        Log.i(
+            TAG,
+            "[DIALOG][CLICK] strategy=$strategy window=$windowIndex attempted=$clickAttempted succeeded=$clickSucceeded method=${clickMethod ?: "NONE"}"
+        )
+
+        if (clickMethod == null) return null
+
+        return DialogDismissOutcome(
+            strategy = strategy,
+            targetText = targetText,
+            windowIndex = windowIndex,
+            clickMethod = clickMethod,
+            visibleSample = visibleSample
+        )
+    }
+
+    private fun collectVisibleTexts(
+        node: AccessibilityNodeInfo?,
+        out: MutableList<String>,
+        depth: Int,
+        limit: Int
+    ) {
+        if (node == null || depth > 5 || out.size >= limit) return
 
         val txt = node.text?.toString()?.trim().orEmpty()
         if (txt.isNotEmpty()) out.add(txt)
@@ -613,7 +966,29 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         for (i in 0 until node.childCount) {
             val child = safeGetChild(node, i)
             if (child != null) {
-                collectVisibleTexts(child, out, depth + 1)
+                collectVisibleTexts(child, out, depth + 1, limit)
+                safeRecycle(child)
+            }
+        }
+    }
+
+    private fun collectClickableTexts(
+        node: AccessibilityNodeInfo?,
+        out: MutableList<String>,
+        depth: Int,
+        limit: Int
+    ) {
+        if (node == null || depth > 5 || out.size >= limit) return
+
+        val text = node.text?.toString()?.trim().orEmpty()
+        if (node.isClickable && text.isNotEmpty() && !DialogTextMatcher.containsNegativeKeyword(text, node.contentDescription)) {
+            out.add(text)
+        }
+
+        for (i in 0 until node.childCount) {
+            val child = safeGetChild(node, i)
+            if (child != null) {
+                collectClickableTexts(child, out, depth + 1, limit)
                 safeRecycle(child)
             }
         }
@@ -657,9 +1032,36 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         return null
     }
 
-    private fun clickNodeOrClickableAncestor(node: AccessibilityNodeInfo): Boolean {
-        if (isNegativeActionNode(node)) return false
-        if (node.isClickable && node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
+    private fun findFirstConfirmNode(node: AccessibilityNodeInfo?, profile: StreamingAppProfile): AccessibilityNodeInfo? {
+        if (node == null) return null
+        val isPositiveConfirm = DialogTextMatcher.containsConfirmKeyword(
+            text = node.text,
+            contentDesc = node.contentDescription,
+            additionalKeywords = profile.confirmKeywords
+        )
+        val isNegative = DialogTextMatcher.containsNegativeKeyword(node.text, node.contentDescription)
+        if (isPositiveConfirm && !isNegative) {
+            return AccessibilityNodeInfo.obtain(node)
+        }
+
+        for (i in 0 until node.childCount) {
+            val child = safeGetChild(node, i)
+            if (child != null) {
+                val found = findFirstConfirmNode(child, profile)
+                safeRecycle(child)
+                if (found != null) return found
+            }
+        }
+
+        return null
+    }
+
+    private fun clickNodeOrClickableAncestorWithMethod(
+        node: AccessibilityNodeInfo,
+        allowBoundsTap: Boolean
+    ): String? {
+        if (isNegativeActionNode(node)) return null
+        if (node.isClickable && node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return "ACTION_CLICK"
 
         var parent = node.parent
         val toRecycle = mutableListOf<AccessibilityNodeInfo>()
@@ -670,14 +1072,50 @@ class KeepAliveAccessibilityService : AccessibilityService() {
                 parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)
             ) {
                 toRecycle.forEach { safeRecycle(it) }
-                return true
+                return "CLICKABLE_ANCESTOR"
             }
             parent = parent.parent
             depth++
         }
 
         toRecycle.forEach { safeRecycle(it) }
-        return false
+        if (allowBoundsTap && tapBoundsCenterForNode(node)) return "BOUNDS_TAP"
+        return null
+    }
+
+    private fun tapBoundsCenterForNode(node: AccessibilityNodeInfo): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false
+        if (DialogTextMatcher.containsNegativeKeyword(node.text, node.contentDescription)) return false
+
+        val bounds = Rect()
+        node.getBoundsInScreen(bounds)
+        if (bounds.isEmpty) return false
+
+        val display = resources.displayMetrics
+        val maxX = max(8f, display.widthPixels.toFloat() - 8f)
+        val maxY = max(8f, display.heightPixels.toFloat() - 8f)
+        val x = bounds.exactCenterX().coerceIn(8f, maxX)
+        val y = bounds.exactCenterY().coerceIn(8f, maxY)
+
+        val path = Path().apply { moveTo(x, y) }
+        val gesture = GestureDescription.Builder()
+            .addStroke(GestureDescription.StrokeDescription(path, 0, 45))
+            .build()
+
+        Log.i(TAG, "[DIALOG][CLICK] bounds tap attempt center=(${x.toInt()},${y.toInt()})")
+        return dispatchGesture(
+            gesture,
+            object : GestureResultCallback() {
+                override fun onCompleted(gestureDescription: GestureDescription?) {
+                    Log.i(TAG, "[DIALOG][CLICK] bounds tap completed")
+                }
+
+                override fun onCancelled(gestureDescription: GestureDescription?) {
+                    Log.w(TAG, "[DIALOG][CLICK] bounds tap cancelled")
+                }
+            },
+            null
+        )
     }
 
     private fun containsDialogKeywords(node: AccessibilityNodeInfo?, profile: StreamingAppProfile): Boolean {
@@ -1247,6 +1685,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     private fun cleanupRuntimeResources(keepHandler: Boolean, clearPackageState: Boolean) {
         stopHeartbeat()
         stopPeriodicDialogScan()
+        stopNetflixDialogObserver()
         stopPackageProbe()
         releaseWakeLock("cleanup")
 
@@ -1260,6 +1699,11 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             hybridSwipeToggle = false
             sessionHeartbeatEnabled = false
             dialogBurstModeActive = false
+            lastDialogWindowCount = 0
+            lastDialogTargetText = ""
+            lastDialogTargetWindowIndex = -1
+            lastDialogClickMethod = "NONE"
+            lastDialogVisibleTextsSample = ""
             resetEscalationState()
         }
 
@@ -1302,6 +1746,11 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             lastGestureCompletionAt = lastGestureCompletionAtMs,
             lastDialogDetectionAt = lastDialogDetectionAtMs,
             lastDialogDismissAt = lastDialogDismissAtMs,
+            lastDialogWindowCount = lastDialogWindowCount,
+            lastDialogTargetText = lastDialogTargetText,
+            lastDialogTargetWindowIndex = lastDialogTargetWindowIndex,
+            lastDialogClickMethod = lastDialogClickMethod,
+            lastDialogVisibleTextsSample = lastDialogVisibleTextsSample,
             dialogBurstModeActive = dialogBurstModeActive,
             dialogScans = dialogScanCount,
             dialogsDetected = dialogDetectedCount,
