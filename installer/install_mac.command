@@ -29,15 +29,26 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APK_PATH="$SCRIPT_DIR/apk/StreamKeepAlive.apk"
 RELEASE_API_URL="https://api.github.com/repos/amit113210/stream-keep-alive/releases/latest"
 APK_URL_MAIN_RAW="https://raw.githubusercontent.com/amit113210/stream-keep-alive/main/installer/apk/StreamKeepAlive.apk"
+MAIN_GRADLE_RAW_URL="https://raw.githubusercontent.com/amit113210/stream-keep-alive/main/app/build.gradle.kts"
 ADB_DIR="$SCRIPT_DIR/tools/platform-tools"
 PACKAGE_NAME="com.keepalive.yesplus"
 SERVICE_NAME="$PACKAGE_NAME/$PACKAGE_NAME.KeepAliveAccessibilityService"
 TARGET_DEVICE=""
+APK_CHANNEL_RESOLVED=""
+APK_CHANNEL_SOURCE=""
 APK_SOURCE_LABEL=""
 APK_SOURCE_URL=""
 APK_SHA256=""
 EXPECTED_VERSION_CODE=""
 EXPECTED_VERSION_NAME=""
+LATEST_RELEASE_TAG=""
+LATEST_RELEASE_VERSION=""
+LATEST_RELEASE_ASSET_URL=""
+LATEST_RELEASE_ASSET_NAME=""
+MAIN_VERSION_NAME=""
+MAIN_VERSION_CODE=""
+PRIMARY_URL_DEBUG=""
+FALLBACK_URL_DEBUG=""
 
 # Detect architecture
 ARCH=$(uname -m)
@@ -86,7 +97,7 @@ wait_for_enter() {
     read -r
 }
 
-resolve_latest_release_asset() {
+resolve_latest_release_info() {
     local release_json
     release_json=$(curl -fsSL -H "User-Agent: stream-keep-alive-installer" "$RELEASE_API_URL" 2>/dev/null || true)
     if [ -z "$release_json" ]; then
@@ -96,6 +107,7 @@ resolve_latest_release_asset() {
     python3 -c '
 import json, sys
 data = json.loads(sys.argv[1])
+tag = data.get("tag_name", "")
 assets = data.get("assets") or []
 preferred = None
 for asset in assets:
@@ -110,9 +122,127 @@ if preferred is None:
             break
 if preferred is None:
     sys.exit(1)
+print(tag)
 print(preferred.get("browser_download_url", ""))
 print(preferred.get("name", ""))
 ' "$release_json" 2>/dev/null || return 1
+}
+
+version_lt() {
+    # Returns 0 (true) if $1 < $2 using semantic-ish sort.
+    [ "$1" != "$2" ] && [ "$(printf "%s\n%s\n" "$1" "$2" | sort -V | head -1)" = "$1" ]
+}
+
+resolve_apk_channel() {
+    if [ -n "${APK_CHANNEL:-}" ]; then
+        case "$APK_CHANNEL" in
+            main|release) APK_CHANNEL_RESOLVED="$APK_CHANNEL" ;;
+            *)
+                print_warning "APK_CHANNEL לא חוקי ($APK_CHANNEL), משתמש ב-main"
+                APK_CHANNEL_RESOLVED="main"
+                ;;
+        esac
+        APK_CHANNEL_SOURCE="env"
+        return 0
+    fi
+
+    if [ -t 0 ]; then
+        echo ""
+        echo -e "  ${BOLD}בחר מקור APK להתקנה:${NC}"
+        echo -e "  ${CYAN}[1]${NC} main (מומלץ)"
+        echo -e "  ${CYAN}[2]${NC} release"
+        echo -ne "  ${YELLOW}${BOLD}בחירה [1]: ${NC}"
+        local choice
+        read -r choice
+        case "$choice" in
+            2)
+                APK_CHANNEL_RESOLVED="release"
+                APK_CHANNEL_SOURCE="prompt-choice"
+                ;;
+            "")
+                APK_CHANNEL_RESOLVED="main"
+                APK_CHANNEL_SOURCE="default"
+                ;;
+            *)
+                APK_CHANNEL_RESOLVED="main"
+                APK_CHANNEL_SOURCE="prompt-choice"
+                ;;
+        esac
+    else
+        APK_CHANNEL_RESOLVED="main"
+        APK_CHANNEL_SOURCE="default-non-interactive"
+    fi
+}
+
+parse_main_version_metadata() {
+    local gradle_text
+    gradle_text=$(curl -fsSL -H "User-Agent: stream-keep-alive-installer" "$MAIN_GRADLE_RAW_URL" 2>/dev/null || true)
+    if [ -z "$gradle_text" ] && [ -f "$SCRIPT_DIR/../app/build.gradle.kts" ]; then
+        gradle_text=$(cat "$SCRIPT_DIR/../app/build.gradle.kts")
+    fi
+
+    if [ -n "$gradle_text" ]; then
+        MAIN_VERSION_NAME=$(echo "$gradle_text" | sed -n 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"\([^"]\+\)".*/\1/p' | head -1)
+        MAIN_VERSION_CODE=$(echo "$gradle_text" | sed -n 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*\([0-9]\+\).*/\1/p' | head -1)
+    fi
+}
+
+prepare_download_plan() {
+    local resolved
+    resolved=$(resolve_latest_release_info || true)
+    if [ -n "$resolved" ]; then
+        LATEST_RELEASE_TAG=$(echo "$resolved" | sed -n '1p')
+        LATEST_RELEASE_VERSION="${LATEST_RELEASE_TAG#v}"
+        LATEST_RELEASE_ASSET_URL=$(echo "$resolved" | sed -n '2p')
+        LATEST_RELEASE_ASSET_NAME=$(echo "$resolved" | sed -n '3p')
+    else
+        LATEST_RELEASE_TAG=""
+        LATEST_RELEASE_VERSION=""
+        LATEST_RELEASE_ASSET_URL=""
+        LATEST_RELEASE_ASSET_NAME=""
+    fi
+
+    if [ "$APK_CHANNEL_RESOLVED" = "main" ]; then
+        PRIMARY_URL_DEBUG="$APK_URL_MAIN_RAW"
+        FALLBACK_URL_DEBUG="$LATEST_RELEASE_ASSET_URL"
+    else
+        PRIMARY_URL_DEBUG="$LATEST_RELEASE_ASSET_URL"
+        FALLBACK_URL_DEBUG="$APK_URL_MAIN_RAW"
+    fi
+}
+
+print_startup_debug_info() {
+    local repo_dir
+    repo_dir="$(cd "$SCRIPT_DIR/.." && pwd)"
+    local git_commit="n/a"
+    if command -v git >/dev/null 2>&1; then
+        git_commit=$(git -C "$repo_dir" rev-parse --short HEAD 2>/dev/null || echo "n/a")
+    fi
+
+    print_info "script git commit: $git_commit"
+    print_info "APK_CHANNEL resolved: $APK_CHANNEL_RESOLVED"
+    print_info "APK_CHANNEL source: $APK_CHANNEL_SOURCE"
+    print_info "primary URL: ${PRIMARY_URL_DEBUG:-<none>}"
+    print_info "fallback URL: ${FALLBACK_URL_DEBUG:-<none>}"
+    if [ -n "$LATEST_RELEASE_TAG" ]; then
+        print_info "latest release tag: $LATEST_RELEASE_TAG"
+    fi
+    if [ -n "$MAIN_VERSION_NAME" ] || [ -n "$MAIN_VERSION_CODE" ]; then
+        print_info "main metadata: versionName=${MAIN_VERSION_NAME:-?} versionCode=${MAIN_VERSION_CODE:-?}"
+    fi
+}
+
+warn_if_release_older_than_main() {
+    if [ "$APK_CHANNEL_RESOLVED" != "release" ]; then
+        return 0
+    fi
+    if [ -z "$LATEST_RELEASE_VERSION" ] || [ -z "$MAIN_VERSION_NAME" ]; then
+        return 0
+    fi
+    if version_lt "$LATEST_RELEASE_VERSION" "$MAIN_VERSION_NAME"; then
+        print_warning "You are installing an older release than main"
+        print_warning "selected=release latest=$LATEST_RELEASE_VERSION (tag=$LATEST_RELEASE_TAG) main=$MAIN_VERSION_NAME/$MAIN_VERSION_CODE"
+    fi
 }
 
 find_aapt() {
@@ -131,21 +261,37 @@ find_aapt() {
 }
 
 extract_expected_apk_version() {
+    EXPECTED_VERSION_CODE=""
+    EXPECTED_VERSION_NAME=""
+
     local aapt_bin
+    local parsed
     aapt_bin=$(find_aapt || true)
-    if [ -z "$aapt_bin" ]; then
-        print_error "לא נמצא כלי aapt, לא ניתן לאמת גרסת APK צפויה"
-        exit 1
+    if [ -n "$aapt_bin" ]; then
+        parsed=$("$aapt_bin" dump badging "$APK_PATH" 2>/dev/null | sed -n "s/.*versionCode='\([0-9]\+\)'.*versionName='\([^']\+\)'.*/\1|\2/p" | head -1)
+        EXPECTED_VERSION_CODE=$(echo "$parsed" | cut -d'|' -f1)
+        EXPECTED_VERSION_NAME=$(echo "$parsed" | cut -d'|' -f2)
     fi
 
-    local parsed
-    parsed=$("$aapt_bin" dump badging "$APK_PATH" 2>/dev/null | sed -n "s/.*versionCode='\([0-9]\+\)'.*versionName='\([^']\+\)'.*/\1|\2/p" | head -1)
-    EXPECTED_VERSION_CODE=$(echo "$parsed" | cut -d'|' -f1)
-    EXPECTED_VERSION_NAME=$(echo "$parsed" | cut -d'|' -f2)
+    if [ -z "$EXPECTED_VERSION_CODE" ] || [ -z "$EXPECTED_VERSION_NAME" ]; then
+        local apkanalyzer_bin
+        apkanalyzer_bin=$(command -v apkanalyzer || true)
+        if [ -z "$apkanalyzer_bin" ]; then
+            apkanalyzer_bin=$(ls -1 "$HOME/Library/Android/sdk/cmdline-tools"/*/bin/apkanalyzer 2>/dev/null | sort -V | tail -1 || true)
+        fi
+
+        if [ -n "$apkanalyzer_bin" ] && [ -x "$apkanalyzer_bin" ]; then
+            local manifest_dump
+            manifest_dump=$("$apkanalyzer_bin" manifest print "$APK_PATH" 2>/dev/null || true)
+            EXPECTED_VERSION_CODE=$(echo "$manifest_dump" | sed -n "s/.*versionCode=\"\([0-9]\+\)\".*/\1/p" | head -1)
+            EXPECTED_VERSION_NAME=$(echo "$manifest_dump" | sed -n "s/.*versionName=\"\([^\"]\+\)\".*/\1/p" | head -1)
+        fi
+    fi
 
     if [ -z "$EXPECTED_VERSION_CODE" ] || [ -z "$EXPECTED_VERSION_NAME" ]; then
-        print_error "נכשל קריאת versionCode/versionName מה-APK שהורד"
-        exit 1
+        print_warning "לא ניתן לפענח versionName/versionCode מה-APK שהורד (ממשיך בכל זאת)"
+        EXPECTED_VERSION_CODE=""
+        EXPECTED_VERSION_NAME=""
     fi
 }
 
@@ -210,20 +356,13 @@ setup_adb() {
 check_apk() {
     print_step "2" "בדיקת קובץ APK..."
     mkdir -p "$(dirname "$APK_PATH")"
-    local channel="${APK_CHANNEL:-release}"
-    local release_url=""
-    local release_asset=""
-    local resolved
+    local channel="$APK_CHANNEL_RESOLVED"
+    local release_url="$LATEST_RELEASE_ASSET_URL"
+    local release_asset="$LATEST_RELEASE_ASSET_NAME"
     local primary_url=""
     local fallback_url=""
     local primary_label=""
     local fallback_label=""
-
-    resolved=$(resolve_latest_release_asset || true)
-    if [ -n "$resolved" ]; then
-        release_url=$(echo "$resolved" | sed -n '1p')
-        release_asset=$(echo "$resolved" | sed -n '2p')
-    fi
 
     if [ "$channel" = "main" ]; then
         primary_url="$APK_URL_MAIN_RAW"
@@ -244,6 +383,9 @@ check_apk() {
         fallback_url=""
         fallback_label=""
     fi
+
+    PRIMARY_URL_DEBUG="$primary_url"
+    FALLBACK_URL_DEBUG="$fallback_url"
 
     print_info "מוריד APK עדכני (channel=$channel)..."
     if curl -L -f -# -o "$APK_PATH" "$primary_url"; then
@@ -270,7 +412,9 @@ check_apk() {
 
     print_apk_checksum
     extract_expected_apk_version
-    print_info "גרסה צפויה מה-APK: versionName=$EXPECTED_VERSION_NAME versionCode=$EXPECTED_VERSION_CODE"
+    if [ -n "$EXPECTED_VERSION_CODE" ] && [ -n "$EXPECTED_VERSION_NAME" ]; then
+        print_info "גרסה צפויה מה-APK: versionName=$EXPECTED_VERSION_NAME versionCode=$EXPECTED_VERSION_CODE"
+    fi
 }
 
 # =====================
@@ -469,30 +613,35 @@ install_apk() {
     # Re-enable verifier (good practice)
     "$ADB" -s "$TARGET_DEVICE" shell settings put global verifier_verify_adb_installs 1 2>/dev/null || true
 
-    # Print installed version for verification
-    local installed_version
-    installed_version=$("$ADB" -s "$TARGET_DEVICE" shell dumpsys package "$PACKAGE_NAME" 2>/dev/null | grep -E "versionName=|versionCode=" | tr -d '\r' | head -2 || true)
-    if [ -n "$installed_version" ]; then
-        print_info "גרסה מותקנת:"
-        echo "$installed_version" | sed 's/^/  /'
+    # Always print installed version info from device.
+    local version_dump
+    version_dump=$("$ADB" -s "$TARGET_DEVICE" shell dumpsys package "$PACKAGE_NAME" 2>/dev/null | grep -E "versionName=|versionCode=" | tr -d '\r' || true)
+    print_info "גרסת חבילה מהמכשיר (dumpsys | grep version):"
+    if [ -n "$version_dump" ]; then
+        echo "$version_dump" | sed 's/^/  /'
+    else
+        echo "  (לא התקבל מידע גרסה)"
     fi
 
     local installed_version_name
     local installed_version_code
-    installed_version_name=$("$ADB" -s "$TARGET_DEVICE" shell dumpsys package "$PACKAGE_NAME" 2>/dev/null | sed -n "s/.*versionName=\([A-Za-z0-9._-]*\).*/\1/p" | head -1 | tr -d '\r')
-    installed_version_code=$("$ADB" -s "$TARGET_DEVICE" shell dumpsys package "$PACKAGE_NAME" 2>/dev/null | sed -n "s/.*versionCode=\([0-9]\+\).*/\1/p" | head -1 | tr -d '\r')
+    installed_version_name=$(echo "$version_dump" | sed -n "s/.*versionName=\([A-Za-z0-9._-]*\).*/\1/p" | head -1)
+    installed_version_code=$(echo "$version_dump" | sed -n "s/.*versionCode=\([0-9]\+\).*/\1/p" | head -1)
 
     if [ -z "$installed_version_code" ] || [ -z "$installed_version_name" ]; then
-        print_error "לא ניתן לאמת גרסה מותקנת לאחר ההתקנה"
-        exit 1
+        print_warning "לא ניתן לפענח versionName/versionCode מהמכשיר לאחר ההתקנה"
+        return 0
     fi
 
-    if [ "$installed_version_code" -lt "$EXPECTED_VERSION_CODE" ]; then
-        print_error "גרסה מותקנת נמוכה מהצפוי! expected=$EXPECTED_VERSION_NAME/$EXPECTED_VERSION_CODE installed=$installed_version_name/$installed_version_code"
-        exit 1
+    if [ -n "$EXPECTED_VERSION_CODE" ] && [ -n "$EXPECTED_VERSION_NAME" ]; then
+        if [ "$installed_version_code" -lt "$EXPECTED_VERSION_CODE" ]; then
+            print_error "גרסה מותקנת נמוכה מהצפוי! expected=$EXPECTED_VERSION_NAME/$EXPECTED_VERSION_CODE installed=$installed_version_name/$installed_version_code"
+            exit 1
+        fi
+        print_success "אימות גרסה עבר: expected=$EXPECTED_VERSION_NAME/$EXPECTED_VERSION_CODE installed=$installed_version_name/$installed_version_code"
+    else
+        print_warning "דילוג על השוואת גרסה צפויה כי לא ניתן היה לפענח גרסת APK שהורד"
     fi
-
-    print_success "אימות גרסה עבר: expected=$EXPECTED_VERSION_NAME/$EXPECTED_VERSION_CODE installed=$installed_version_name/$installed_version_code"
 }
 
 # =====================
@@ -586,6 +735,12 @@ disconnect_device() {
 main() {
     clear
     print_header
+    resolve_apk_channel
+    parse_main_version_metadata
+    prepare_download_plan
+    print_startup_debug_info
+    warn_if_release_older_than_main
+    echo ""
 
     setup_adb
     echo ""

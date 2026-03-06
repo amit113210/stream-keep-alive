@@ -1200,6 +1200,34 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun isBatteryOptimizationExempt(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
+        return try {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            pm.isIgnoringBatteryOptimizations(packageName)
+        } catch (_: Exception) {
+            true
+        }
+    }
+
+    private fun runWatchdogChecks() {
+        if (!isProtectionSessionActive()) return
+        if (ProtectionSessionManager.isForegroundServiceRunning(this)) return
+
+        Log.w(
+            TAG,
+            "[WATCHDOG] protection active but foreground companion not marked running; requesting refresh"
+        )
+        try {
+            ContextCompat.startForegroundService(
+                this,
+                ProtectionSessionService.createRefreshIntent(this)
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "[WATCHDOG] refresh request failed: ${e.message}", e)
+        }
+    }
+
     // ==========================================
     // Shared helpers
     // ==========================================
@@ -1236,20 +1264,6 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         }
 
         publishTelemetrySnapshot()
-    }
-
-    private fun runWatchdogChecks() {
-        val ctx = this
-        val sessionActive = isProtectionSessionActive()
-        val fgRunning = ProtectionSessionManager.isForegroundServiceRunning(ctx)
-        if (sessionActive && !fgRunning) {
-            Log.w(TAG, "[WATCHDOG] protection active but foreground companion not marked running; requesting refresh")
-            try {
-                ContextCompat.startForegroundService(ctx, ProtectionSessionService.createRefreshIntent(ctx))
-            } catch (e: Exception) {
-                Log.e(TAG, "[WATCHDOG] failed to refresh foreground companion: ${e.message}")
-            }
-        }
     }
 
     private fun publishTelemetrySnapshot() {
@@ -1307,16 +1321,6 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             calibrationRecommendedGesture = calibration?.preferredAction?.name.orEmpty(),
             calibrationRecommendedZone = calibration?.preferredSafeZoneIndex ?: -1
         )
-    }
-
-    private fun isBatteryOptimizationExempt(): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
-        val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return true
-        return try {
-            pm.isIgnoringBatteryOptimizations(packageName)
-        } catch (_: Exception) {
-            true
-        }
     }
 
     private fun safeRecycle(node: AccessibilityNodeInfo?) {

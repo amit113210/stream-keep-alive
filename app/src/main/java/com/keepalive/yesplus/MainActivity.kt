@@ -172,9 +172,21 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        if (!ensureBatteryOptimizationExemption()) return
+        if (!ensureBatteryOptimizationExemption()) {
+            return
+        }
 
         startProtectionSession(ProtectionSessionManager.currentMode(this))
+    }
+
+    private fun isBatteryOptimizationExempt(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
+        return try {
+            val pm = getSystemService(PowerManager::class.java) ?: return true
+            pm.isIgnoringBatteryOptimizations(packageName)
+        } catch (_: Exception) {
+            true
+        }
     }
 
     private fun ensureBatteryOptimizationExemption(): Boolean {
@@ -197,25 +209,50 @@ class MainActivity : AppCompatActivity() {
 
     private fun openBatteryOptimizationSettings() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
-
         try {
             val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
                 data = Uri.parse("package:$packageName")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (_: Exception) {
+            try {
+                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            } catch (_: Exception) {
+                startActivity(Intent(Settings.ACTION_SETTINGS))
+            }
+        }
+    }
+
+    private fun openPowerSettingsHelper() {
+        val options = arrayOf(
+            "Battery optimization",
+            "Accessibility settings",
+            "Notification access",
+            "App info"
+        )
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.button_power_settings))
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> openBatteryOptimizationSettings()
+                    1 -> openAccessibilitySettings()
+                    2 -> openNotificationListenerSettings()
+                    3 -> openAppDetailsSettings()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun openAppDetailsSettings() {
+        try {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", packageName, null)
             }
             startActivity(intent)
         } catch (_: Exception) {
             startActivity(Intent(Settings.ACTION_SETTINGS))
-        }
-    }
-
-    private fun isBatteryOptimizationExempt(): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
-        val pm = getSystemService(PowerManager::class.java) ?: return true
-        return try {
-            pm.isIgnoringBatteryOptimizations(packageName)
-        } catch (_: Exception) {
-            true
         }
     }
 
@@ -224,38 +261,12 @@ class MainActivity : AppCompatActivity() {
         val next = when (current) {
             ServiceMode.NORMAL -> ServiceMode.AGGRESSIVE
             ServiceMode.AGGRESSIVE -> ServiceMode.MAXIMUM
-            ServiceMode.MAXIMUM,
+            ServiceMode.MAXIMUM -> ServiceMode.NORMAL
             ServiceMode.DIALOG_ONLY -> ServiceMode.NORMAL
         }
         ProtectionSessionManager.setMode(this, next)
         Toast.makeText(this, getString(R.string.mode_changed_to, next.name), Toast.LENGTH_SHORT).show()
         updateServiceStatus()
-    }
-
-    private fun openPowerSettingsHelper() {
-        val options = mutableListOf<Pair<String, () -> Unit>>()
-        options.add("Battery optimization") { openBatteryOptimizationSettings() }
-        options.add("Accessibility settings") { openAccessibilitySettings() }
-        options.add("Notification access") { openNotificationListenerSettings() }
-        options.add("App info") {
-            try {
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.parse("package:$packageName")
-                }
-                startActivity(intent)
-            } catch (_: Exception) {
-                startActivity(Intent(Settings.ACTION_SETTINGS))
-            }
-        }
-
-        val labels = options.map { it.first }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("Power & system helpers")
-            .setItems(labels) { _, which ->
-                options.getOrNull(which)?.second?.invoke()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
     }
 
     private fun startProtectionSession(mode: ServiceMode, durationTargetMinutes: Int = 0) {
@@ -309,7 +320,6 @@ class MainActivity : AppCompatActivity() {
     private fun updateServiceStatus() {
         val accessibilityEnabled = isAccessibilityServiceEnabled()
         val protectionActive = ProtectionSessionManager.isProtectionActive(this)
-        val batteryExempt = isBatteryOptimizationExempt()
 
         if (accessibilityEnabled) {
             statusIndicator.setImageResource(R.drawable.ic_status_active)
@@ -329,12 +339,12 @@ class MainActivity : AppCompatActivity() {
 
         val telemetry = KeepAliveAccessibilityService.getTelemetrySnapshot()
         val notificationAccessEnabled = isNotificationListenerEnabled()
-        val playbackActive = telemetry.playbackStateFriendly == PlaybackFriendlyState.PLAYING_ACTIVE.name
-        val fallbackMode = telemetry.playbackSignalSource == PlaybackSignalSource.FALLBACK.name ||
-            telemetry.playbackSignalSource == PlaybackSignalSource.NONE.name
+        val batteryExempt = isBatteryOptimizationExempt()
         val playbackSignalsAvailable = telemetry.mediaSessionAccessAvailable || telemetry.notificationListenerEnabled
+        val playbackActive = telemetry.playbackStateFriendly == PlaybackFriendlyState.PLAYING_ACTIVE.name
         val heartbeatAllowed = telemetry.shouldRunHeartbeatNow
         val heartbeatReason = telemetry.heartbeatSuppressedReason.ifEmpty { "-" }
+
         descriptionText.text = String.format(
             Locale.US,
             "Checklist\n" +
@@ -342,16 +352,17 @@ class MainActivity : AppCompatActivity() {
                 "• Protection Session: %s\n" +
                 "• Notification Access: %s\n" +
                 "• Foreground Companion: %s\n" +
-            "• Battery Optimization Exempt: %s\n" +
-            "• Playback Signals Available: %s\n" +
-            "• Active Playback: %s\n" +
-            "• Heartbeat Allowed: %s\n" +
-            "• Heartbeat Gate Reason: %s\n\n" +
+                "• Battery Optimization Exempt: %s\n" +
+                "• Playback Signals Available: %s\n" +
+                "• Active Playback: %s\n\n" +
                 "Runtime\n" +
+                "• Heartbeat Allowed: %s\n" +
+                "• Heartbeat Gate Reason: %s\n" +
                 "• Package: %s\n" +
                 "• Profile: %s\n" +
                 "• Mode: %s\n" +
-                "• Playback Source: %s (%s)%s",
+                "• Playback Source: %s\n" +
+                "• Playback Confidence: %s",
             if (accessibilityEnabled) getString(R.string.status_yes) else getString(R.string.status_no),
             if (protectionActive) getString(R.string.status_yes) else getString(R.string.status_no),
             if (notificationAccessEnabled) getString(R.string.status_yes) else getString(R.string.status_no),
@@ -365,8 +376,7 @@ class MainActivity : AppCompatActivity() {
             telemetry.currentProfile.ifEmpty { "-" },
             telemetry.currentMode,
             telemetry.playbackSignalSource,
-            telemetry.playbackConfidence,
-            if (fallbackMode) "\n• ${getString(R.string.playback_fallback_mode)}" else ""
+            telemetry.playbackConfidence
         )
 
         startProtectionButton.isEnabled = !protectionActive
@@ -668,7 +678,9 @@ class MainActivity : AppCompatActivity() {
             val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
             if (granted && pendingStartAfterPermission) {
                 pendingStartAfterPermission = false
-                startProtectionSession(ProtectionSessionManager.currentMode(this))
+                if (ensureBatteryOptimizationExemption()) {
+                    startProtectionSession(ProtectionSessionManager.currentMode(this))
+                }
             } else if (!granted) {
                 pendingStartAfterPermission = false
                 Toast.makeText(this, getString(R.string.notification_permission_needed), Toast.LENGTH_LONG).show()

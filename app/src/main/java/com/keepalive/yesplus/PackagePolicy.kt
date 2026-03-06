@@ -9,11 +9,9 @@ enum class HeartbeatAction {
 enum class ServiceMode {
     NORMAL,
     AGGRESSIVE,
-    /**
-     * Personal-use ultra mode: shorter intervals and more aggressive behavior.
-     */
-    MAXIMUM,
-    DIALOG_ONLY
+    DIALOG_ONLY,
+    // Personal-use ultra mode: shorter heartbeat intervals for maximum persistence attempts.
+    MAXIMUM
 }
 
 data class SafeZone(

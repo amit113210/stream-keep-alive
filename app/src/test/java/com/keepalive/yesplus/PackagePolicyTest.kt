@@ -37,5 +37,16 @@ class PackagePolicyTest {
         assertTrue(maximum <= profile.aggressiveHeartbeatIntervalMs)
         assertTrue(maximum >= 45_000L)
         assertEquals(profile.heartbeatIntervalMs, PackagePolicy.intervalFor(profile, ServiceMode.DIALOG_ONLY))
+        assertTrue(PackagePolicy.intervalFor(profile, ServiceMode.MAXIMUM) <= profile.aggressiveHeartbeatIntervalMs)
+        assertTrue(PackagePolicy.intervalFor(profile, ServiceMode.MAXIMUM) >= 45_000L)
+    }
+
+    @Test
+    fun `maximum mode has hard floor and is aggressive`() {
+        val profile = PackagePolicy.profileForPackage("com.netflix.ninja")!!
+        val maximum = PackagePolicy.intervalFor(profile, ServiceMode.MAXIMUM)
+
+        assertTrue(maximum <= profile.aggressiveHeartbeatIntervalMs)
+        assertTrue(maximum >= 45_000L)
     }
 }

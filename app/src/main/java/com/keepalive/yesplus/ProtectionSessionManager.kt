@@ -29,6 +29,12 @@ object ProtectionSessionManager {
         return prefs(context).getInt(KEY_DURATION_TARGET_MIN, 0)
     }
 
+    fun setMode(context: Context, mode: ServiceMode) {
+        prefs(context).edit()
+            .putString(KEY_MODE, mode.name)
+            .apply()
+    }
+
     fun startProtection(
         context: Context,
         mode: ServiceMode,
