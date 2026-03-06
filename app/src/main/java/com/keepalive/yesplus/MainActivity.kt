@@ -470,6 +470,10 @@ class MainActivity : AppCompatActivity() {
         } else {
             "-"
         }
+        val dialogPackageText = telemetry.lastDialogPackage.ifEmpty { "-" }
+        val dialogPositivePhraseText = telemetry.lastDialogPositivePhrase.ifEmpty { "-" }
+        val dialogConfirmPhraseText = telemetry.lastDialogConfirmPhrase.ifEmpty { "-" }
+        val dialogBlockReasonText = telemetry.lastDialogNegativeBlockReason.ifEmpty { "-" }
         val dialogTargetText = telemetry.lastDialogTargetText.ifEmpty { "-" }
         val dialogClickMethod = telemetry.lastDialogClickMethod.ifEmpty { "NONE" }
 
@@ -510,6 +514,10 @@ class MainActivity : AppCompatActivity() {
                     "• Playback Source: %s\n" +
                     "• Playback Confidence: %s\n" +
                     "• Last Dialog Windows: %d\n" +
+                    "• Last Dialog Package: %s\n" +
+                    "• Last Dialog Positive Phrase: %s\n" +
+                    "• Last Dialog Confirm Phrase: %s\n" +
+                    "• Last Dialog Block Reason: %s\n" +
                     "• Last Dialog Target: %s\n" +
                     "• Last Dialog Target Window: %s\n" +
                     "• Last Dialog Click Method: %s",
@@ -533,6 +541,10 @@ class MainActivity : AppCompatActivity() {
                 telemetry.playbackSignalSource,
                 telemetry.playbackConfidence,
                 telemetry.lastDialogWindowCount,
+                dialogPackageText,
+                dialogPositivePhraseText,
+                dialogConfirmPhraseText,
+                dialogBlockReasonText,
                 dialogTargetText,
                 dialogTargetWindowText,
                 dialogClickMethod
@@ -624,7 +636,7 @@ class MainActivity : AppCompatActivity() {
                 "Playback: pkg=%s state=%s src=%s conf=%s changedAt=%d mediaAccess=%s\n" +
                 "Gate: runNow=%s reason=%s\n" +
                 "Current: pkg=%s profile=%s mode=%s interval=%dms esc=%d burst=%s\n" +
-                "DialogWin: count=%d target=%s win=%d click=%s sample=%s\n" +
+                "DialogWin: pkg=%s count=%d positive=%s confirm=%s block=%s target=%s win=%d click=%s sample=%s\n" +
                 "Heartbeat: scheduled=%d executed=%d\n" +
                 "Gesture: result=%s action=%s completion=%d fail=%d cancel=%d\n" +
                 "Dialog: detectedAt=%d dismissedAt=%d strategy=%s stats=%d/%d/%d\n" +
@@ -651,7 +663,11 @@ class MainActivity : AppCompatActivity() {
             t.currentHeartbeatIntervalMs,
             t.currentEscalationStep,
             t.dialogBurstModeActive,
+            t.lastDialogPackage.ifEmpty { "-" },
             t.lastDialogWindowCount,
+            t.lastDialogPositivePhrase.ifEmpty { "-" },
+            t.lastDialogConfirmPhrase.ifEmpty { "-" },
+            t.lastDialogNegativeBlockReason.ifEmpty { "-" },
             t.lastDialogTargetText.ifEmpty { "-" },
             t.lastDialogTargetWindowIndex,
             t.lastDialogClickMethod.ifEmpty { "NONE" },

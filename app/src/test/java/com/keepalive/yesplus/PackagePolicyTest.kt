@@ -49,4 +49,24 @@ class PackagePolicyTest {
         assertTrue(maximum <= profile.aggressiveHeartbeatIntervalMs)
         assertTrue(maximum >= 45_000L)
     }
+
+    @Test
+    fun `dialog profiles include reusable hunter settings`() {
+        val netflix = PackagePolicy.profileForPackage("com.netflix.ninja")!!
+        val youtube = PackagePolicy.profileForPackage("com.google.android.youtube.tv")!!
+        val yes = PackagePolicy.profileForPackage("il.co.yes.tv")!!
+
+        assertTrue(netflix.dialogPriority)
+        assertTrue(netflix.dialogObserverIntervalMs in 1_000L..5_000L)
+        assertTrue(netflix.dialogPositivePhrases.isNotEmpty())
+        assertTrue(netflix.dialogConfirmPhrases.isNotEmpty())
+        assertTrue(netflix.dialogNegativePhrases.isNotEmpty())
+        assertFalse(netflix.allowGenericFallbackAfterPositiveMatch)
+
+        assertTrue(youtube.dialogPriority)
+        assertTrue(youtube.dialogPositivePhrases.isNotEmpty())
+        assertTrue(youtube.dialogConfirmPhrases.isNotEmpty())
+        assertTrue(yes.dialogPriority)
+        assertTrue(yes.dialogPositivePhrases.isNotEmpty())
+    }
 }

@@ -37,8 +37,6 @@ object DialogTextMatcher {
         "הפעל ללא שאלות נוספות",
         "הפעל תמיד ללא שאלות",
         "בלי לשאול שוב",
-        "הפעל ללא שאלות נוספות",
-        "הפעל תמיד ללא שאלות",
         "yes",
         "continue",
         "continue watching",
@@ -76,9 +74,33 @@ object DialogTextMatcher {
         "skip"
     )
 
+    fun findDialogPhrase(value: CharSequence?, additionalKeywords: List<String> = emptyList()): String? {
+        return firstMatchingPhrase(value, mergeKeywords(dialogKeywords, additionalKeywords))
+    }
+
+    fun findDialogPhrase(visibleTexts: List<String>, additionalKeywords: List<String> = emptyList()): String? {
+        if (visibleTexts.isEmpty()) return null
+        val merged = mergeKeywords(dialogKeywords, additionalKeywords)
+        for (text in visibleTexts) {
+            val matched = firstMatchingPhrase(text, merged)
+            if (matched != null) return matched
+        }
+        return null
+    }
+
     fun containsDialogKeyword(value: CharSequence?, additionalKeywords: List<String> = emptyList()): Boolean {
-        val normalized = value?.toString()?.lowercase() ?: return false
-        return mergeKeywords(dialogKeywords, additionalKeywords).any { normalized.contains(it.lowercase()) }
+        return findDialogPhrase(value, additionalKeywords) != null
+    }
+
+    fun findConfirmPhrase(
+        text: CharSequence?,
+        contentDesc: CharSequence?,
+        additionalKeywords: List<String> = emptyList()
+    ): String? {
+        val merged = mergeKeywords(confirmKeywords, additionalKeywords)
+        val textMatch = firstMatchingPhrase(text, merged)
+        if (textMatch != null) return textMatch
+        return firstMatchingPhrase(contentDesc, merged)
     }
 
     fun containsConfirmKeyword(
@@ -86,21 +108,26 @@ object DialogTextMatcher {
         contentDesc: CharSequence?,
         additionalKeywords: List<String> = emptyList()
     ): Boolean {
-        val normalizedText = text?.toString()?.lowercase().orEmpty()
-        val normalizedDesc = contentDesc?.toString()?.lowercase().orEmpty()
-        return mergeKeywords(confirmKeywords, additionalKeywords).any { keyword ->
-            val kw = keyword.lowercase()
-            normalizedText.contains(kw) || normalizedDesc.contains(kw)
-        }
+        return findConfirmPhrase(text, contentDesc, additionalKeywords) != null
     }
 
-    fun containsNegativeKeyword(text: CharSequence?, contentDesc: CharSequence?): Boolean {
-        val normalizedText = text?.toString()?.lowercase().orEmpty()
-        val normalizedDesc = contentDesc?.toString()?.lowercase().orEmpty()
-        return negativeKeywords.any { keyword ->
-            val kw = keyword.lowercase()
-            normalizedText.contains(kw) || normalizedDesc.contains(kw)
-        }
+    fun findNegativePhrase(
+        text: CharSequence?,
+        contentDesc: CharSequence?,
+        additionalKeywords: List<String> = emptyList()
+    ): String? {
+        val merged = mergeKeywords(negativeKeywords, additionalKeywords)
+        val textMatch = firstMatchingPhrase(text, merged)
+        if (textMatch != null) return textMatch
+        return firstMatchingPhrase(contentDesc, merged)
+    }
+
+    fun containsNegativeKeyword(
+        text: CharSequence?,
+        contentDesc: CharSequence?,
+        additionalKeywords: List<String> = emptyList()
+    ): Boolean {
+        return findNegativePhrase(text, contentDesc, additionalKeywords) != null
     }
 
     fun eventLooksLikeDialog(
@@ -126,5 +153,11 @@ object DialogTextMatcher {
     private fun mergeKeywords(primary: List<String>, secondary: List<String>): List<String> {
         if (secondary.isEmpty()) return primary
         return primary + secondary
+    }
+
+    private fun firstMatchingPhrase(value: CharSequence?, phrases: List<String>): String? {
+        val normalized = value?.toString()?.trim()?.lowercase().orEmpty()
+        if (normalized.isEmpty()) return null
+        return phrases.firstOrNull { phrase -> normalized.contains(phrase.lowercase()) }
     }
 }
