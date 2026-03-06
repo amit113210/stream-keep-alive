@@ -40,11 +40,12 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         private const val DIALOG_PERIODIC_SCAN_MS = 20_000L
         private const val DIALOG_NETFLIX_PLAYBACK_SCAN_MS = 3_000L
         private const val DIALOG_NETFLIX_OBSERVER_SCAN_MS = 1_000L
-        private const val DIALOG_NETFLIX_RECENT_PLAYBACK_MS = 180_000L
+        private const val DIALOG_NETFLIX_OBSERVER_GRACE_MS = 8_000L
         private const val PACKAGE_PROBE_INTERVAL_MS = 10_000L
         private const val DIALOG_POST_DISMISS_HEARTBEAT_COOLDOWN_MS = 6000L
         private const val PACKAGE_TRANSITION_HEARTBEAT_COOLDOWN_MS = 4000L
         private const val WINDOW_FINGERPRINT_COOLDOWN_MS = 3000L
+        private const val NETFLIX_ACTION_REPEAT_COOLDOWN_MS = 20_000L
 
         private const val DIALOG_BURST_DURATION_MS = 25_000L
         private const val DIALOG_BURST_SCAN_MS = 2_500L
@@ -149,6 +150,11 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         val reason: String
     )
 
+    private data class NetflixObserverGateDecision(
+        val allow: Boolean,
+        val reason: String
+    )
+
     private data class WindowRootRef(
         val index: Int,
         val windowId: Int,
@@ -204,6 +210,8 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
     private var dialogBurstModeActive = false
     private var dialogBurstUntilMs = 0L
+    private var lastNetflixActionFingerprint = ""
+    private var lastNetflixActionAtMs = 0L
 
     private var wakeLockLastTouchedAt = 0L
     private var wakeLockHeldSince = 0L
@@ -284,11 +292,15 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     }
 
     private fun onPackageChanged(newPackage: String) {
+        val previousPackage = currentPackage
         currentPackage = newPackage
         currentProfile = PackagePolicy.profileForPackage(newPackage)
         lastPackageTransitionTimestampMs = System.currentTimeMillis()
         hybridSwipeToggle = false
         resetEscalationState()
+        if (previousPackage.startsWith("com.netflix") && !newPackage.startsWith("com.netflix")) {
+            clearNetflixObserverActionState("package_changed_away")
+        }
 
         Log.i(
             TAG,
@@ -491,7 +503,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             reason = "event:${event.eventType}",
             profile = profile,
             prioritizeNetflix = netflixPriority,
-            bypassFingerprint = netflixPriority
+            bypassFingerprint = false
         )
     }
 
@@ -509,19 +521,31 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             playback.lastPackageReported?.startsWith("com.netflix") == true
     }
 
-    private fun shouldRunNetflixDialogObserver(): Boolean {
-        if (!isProtectionSessionActive()) return false
+    private fun shouldRunNetflixDialogObserver(): NetflixObserverGateDecision {
+        if (!isProtectionSessionActive()) return NetflixObserverGateDecision(false, "session_inactive")
         val playback = PlaybackStateManager.snapshot()
         val netflixRelevant = isNetflixDialogPriority()
-        if (!netflixRelevant) return false
+        if (!netflixRelevant) return NetflixObserverGateDecision(false, "netflix_not_relevant")
 
         val nowElapsed = SystemClock.elapsedRealtime()
-        val recentlyActiveNetflix =
+        val playingActive =
+            playback.friendlyState == PlaybackFriendlyState.PLAYING_ACTIVE &&
+                (playback.activePlaybackPackage?.startsWith("com.netflix") == true ||
+                    currentPackage.startsWith("com.netflix") ||
+                    playback.lastPackageReported?.startsWith("com.netflix") == true)
+
+        if (playingActive) return NetflixObserverGateDecision(true, "playing_active")
+
+        val shortGraceAfterPlayback =
             playback.lastPackageReported?.startsWith("com.netflix") == true &&
                 playback.lastStateChangeAt > 0L &&
-                nowElapsed - playback.lastStateChangeAt <= DIALOG_NETFLIX_RECENT_PLAYBACK_MS
+                nowElapsed - playback.lastStateChangeAt <= DIALOG_NETFLIX_OBSERVER_GRACE_MS
 
-        return playback.friendlyState == PlaybackFriendlyState.PLAYING_ACTIVE || recentlyActiveNetflix
+        return if (shortGraceAfterPlayback) {
+            NetflixObserverGateDecision(true, "short_grace_after_playback")
+        } else {
+            NetflixObserverGateDecision(false, "playback_not_active")
+        }
     }
 
     private fun startPeriodicDialogScan() {
@@ -543,7 +567,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
                     reason = "periodic",
                     profile = profile,
                     prioritizeNetflix = netflixPriority,
-                    bypassFingerprint = netflixPriority
+                    bypassFingerprint = false
                 )
                 localHandler.postDelayed(this, computeDialogScanCadenceMs())
             }
@@ -558,10 +582,11 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     }
 
     private fun syncNetflixDialogObserver() {
-        if (shouldRunNetflixDialogObserver()) {
+        val gate = shouldRunNetflixDialogObserver()
+        if (gate.allow) {
             startNetflixDialogObserver()
         } else {
-            stopNetflixDialogObserver()
+            stopNetflixDialogObserver(gate.reason)
         }
     }
 
@@ -572,8 +597,12 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         Log.i(TAG, "[DIALOG][NETFLIX] aggressive observer started cadenceMs=$DIALOG_NETFLIX_OBSERVER_SCAN_MS")
         netflixDialogObserverRunnable = object : Runnable {
             override fun run() {
-                if (!shouldRunNetflixDialogObserver()) {
-                    stopNetflixDialogObserver()
+                val gate = shouldRunNetflixDialogObserver()
+                if (!gate.allow) {
+                    if (gate.reason == "playback_not_active") {
+                        Log.i(TAG, "[DIALOG][NETFLIX] observer stopped: playback not active")
+                    }
+                    stopNetflixDialogObserver(gate.reason)
                     return
                 }
 
@@ -582,7 +611,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
                     reason = "netflix-observer",
                     profile = profile,
                     prioritizeNetflix = true,
-                    bypassFingerprint = true
+                    bypassFingerprint = false
                 )
 
                 localHandler.postDelayed(this, DIALOG_NETFLIX_OBSERVER_SCAN_MS)
@@ -592,12 +621,13 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         localHandler.post(netflixDialogObserverRunnable!!)
     }
 
-    private fun stopNetflixDialogObserver() {
+    private fun stopNetflixDialogObserver(reason: String = "state_change") {
         netflixDialogObserverRunnable?.let { handler?.removeCallbacks(it) }
         if (netflixDialogObserverRunnable != null) {
-            Log.i(TAG, "[DIALOG][NETFLIX] aggressive observer stopped")
+            Log.i(TAG, "[DIALOG][NETFLIX] aggressive observer stopped reason=$reason")
         }
         netflixDialogObserverRunnable = null
+        clearNetflixObserverActionState("observer_stopped:$reason")
     }
 
     private fun computeDialogScanCadenceMs(): Long {
@@ -662,6 +692,12 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val netflixOutcome = dismissNetflixSpecificDialogAcrossWindows(roots, profile)
             detected = netflixOutcome.first
             dismissOutcome = netflixOutcome.second
+            if (!detected) {
+                Log.d(TAG, "[DIALOG][NETFLIX] generic fallback skipped because no confirmed dialog phrase")
+                releaseWindowRoots(roots)
+                publishTelemetrySnapshot()
+                return
+            }
         }
 
         if (!detected) {
@@ -715,7 +751,12 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         val fingerprint = buildCombinedWindowFingerprint(roots)
         val isSameWindow = fingerprint == lastDialogWindowFingerprint
         val isCooldownActive = now - lastDialogWindowFingerprintMs < WINDOW_FINGERPRINT_COOLDOWN_MS
-        if (isSameWindow && isCooldownActive) return true
+        if (isSameWindow && isCooldownActive) {
+            if (isNetflixDialogPriority()) {
+                Log.d(TAG, "[DIALOG][NETFLIX] observer suppressed: same fingerprint cooldown")
+            }
+            return true
+        }
 
         lastDialogWindowFingerprint = fingerprint
         lastDialogWindowFingerprintMs = now
@@ -853,7 +894,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         roots: List<WindowRootRef>,
         profile: StreamingAppProfile
     ): Pair<Boolean, DialogDismissOutcome?> {
-        var detectedNetflixDialog = false
+        var confirmedNetflixDialogPhrase = false
         var latestVisibleSample = ""
 
         Log.i(TAG, "[DIALOG][NETFLIX] strategy entered windows=${roots.size}")
@@ -872,8 +913,13 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             )
 
             val dialogPhraseFound = containsNetflixDialogPhrase(visibleTexts)
+            if (!dialogPhraseFound) {
+                Log.d(TAG, "[DIALOG][NETFLIX] observer suppressed: no positive dialog phrase window=${ref.index}")
+                continue
+            }
+
             if (dialogPhraseFound) {
-                detectedNetflixDialog = true
+                confirmedNetflixDialogPhrase = true
                 Log.i(TAG, "[DIALOG][NETFLIX] target dialog phrase found window=${ref.index}")
             }
 
@@ -881,6 +927,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val exactOutcome = findAndActivateTargetNode(
                 node = exactNode,
                 windowIndex = ref.index,
+                windowFingerprint = buildWindowFingerprint(ref.root),
                 strategy = "netflix-exact",
                 targetText = "הפעל בלי לשאול שוב",
                 visibleSample = latestVisibleSample
@@ -892,6 +939,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val containsOutcome = findAndActivateTargetNode(
                 node = containsNode,
                 windowIndex = ref.index,
+                windowFingerprint = buildWindowFingerprint(ref.root),
                 strategy = "netflix-contains",
                 targetText = "בלי לשאול שוב",
                 visibleSample = latestVisibleSample
@@ -903,6 +951,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val matcherOutcome = findAndActivateTargetNode(
                 node = matcherNode,
                 windowIndex = ref.index,
+                windowFingerprint = buildWindowFingerprint(ref.root),
                 strategy = "netflix-confirm-keyword",
                 targetText = matcherNode?.text?.toString().orEmpty(),
                 visibleSample = latestVisibleSample
@@ -911,13 +960,13 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             if (matcherOutcome != null) return true to matcherOutcome
         }
 
-        if (detectedNetflixDialog) {
+        if (confirmedNetflixDialogPhrase) {
             Log.w(
                 TAG,
                 "[DIALOG] netflix-specific strategy failed to find target; visible=${latestVisibleSample.take(280)}"
             )
         }
-        return detectedNetflixDialog to null
+        return confirmedNetflixDialogPhrase to null
     }
 
     private fun containsNetflixDialogPhrase(visibleTexts: List<String>): Boolean {
@@ -931,12 +980,19 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     private fun findAndActivateTargetNode(
         node: AccessibilityNodeInfo?,
         windowIndex: Int,
+        windowFingerprint: String,
         strategy: String,
         targetText: String,
         visibleSample: String
     ): DialogDismissOutcome? {
         if (node == null) return null
         if (DialogTextMatcher.containsNegativeKeyword(node.text, node.contentDescription)) return null
+        val normalizedTarget = targetText.ifBlank { node.text?.toString().orEmpty() }.trim()
+        val actionFingerprint = "$windowIndex|$windowFingerprint|$normalizedTarget|$strategy"
+        if (isNetflixRepeatActionBlocked(actionFingerprint)) {
+            Log.w(TAG, "[DIALOG][NETFLIX] action blocked by anti-repeat guard")
+            return null
+        }
 
         Log.i(TAG, "[DIALOG][NETFLIX] target candidate found strategy=$strategy window=$windowIndex")
         val clickMethod = clickNodeOrClickableAncestorWithMethod(node, allowBoundsTap = true)
@@ -948,14 +1004,35 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         )
 
         if (clickMethod == null) return null
+        rememberNetflixAction(actionFingerprint)
 
         return DialogDismissOutcome(
             strategy = strategy,
-            targetText = targetText,
+            targetText = normalizedTarget,
             windowIndex = windowIndex,
             clickMethod = clickMethod,
             visibleSample = visibleSample
         )
+    }
+
+    private fun isNetflixRepeatActionBlocked(actionFingerprint: String): Boolean {
+        val now = System.currentTimeMillis()
+        val isSameAction = actionFingerprint == lastNetflixActionFingerprint
+        val inCooldown = now - lastNetflixActionAtMs < NETFLIX_ACTION_REPEAT_COOLDOWN_MS
+        return isSameAction && inCooldown
+    }
+
+    private fun rememberNetflixAction(actionFingerprint: String) {
+        lastNetflixActionFingerprint = actionFingerprint
+        lastNetflixActionAtMs = System.currentTimeMillis()
+    }
+
+    private fun clearNetflixObserverActionState(reason: String) {
+        lastNetflixActionFingerprint = ""
+        lastNetflixActionAtMs = 0L
+        dialogBurstModeActive = false
+        dialogBurstUntilMs = 0L
+        Log.i(TAG, "[DIALOG][NETFLIX] action state cleared reason=$reason")
     }
 
     private fun collectVisibleTexts(
