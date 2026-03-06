@@ -13,8 +13,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:paddingStart="28dp"
-        android:paddingEnd="28dp"
+        android:paddingStart="52dp"
+        android:paddingEnd="52dp"
         android:orientation="vertical">
 
         <LinearLayout
@@ -26,75 +26,34 @@
             <Button
                 android:id="@+id/startProtectionButton"
                 android:layout_width="0dp"
-                android:layout_height="50dp"
+                android:layout_height="46dp"
                 android:layout_weight="1"
-                android:layout_marginEnd="10dp"
+                android:layout_marginEnd="8dp"
                 android:background="@drawable/button_background"
                 android:focusable="true"
                 android:gravity="center"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
                 android:text="@string/button_start_protection"
                 android:textAllCaps="false"
                 android:textColor="@android:color/white"
-                android:textSize="15sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <Button
                 android:id="@+id/stopProtectionButton"
                 android:layout_width="0dp"
-                android:layout_height="50dp"
+                android:layout_height="46dp"
                 android:layout_weight="1"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="8dp"
                 android:background="@drawable/button_background_secondary"
                 android:focusable="true"
                 android:gravity="center"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
                 android:text="@string/button_stop_protection"
                 android:textAllCaps="false"
                 android:textColor="@android:color/white"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/settingsButton"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="10dp"
-                android:background="@drawable/button_background_secondary"
-                android:focusable="true"
-                android:gravity="center"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:text="@string/button_enable"
-                android:textAllCaps="false"
-                android:textColor="@android:color/white"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/hotspotButton"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1"
-                android:layout_marginStart="10dp"
-                android:background="@drawable/button_background"
-                android:focusable="true"
-                android:gravity="center"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:text="@string/button_hotspot"
-                android:textAllCaps="false"
-                android:textColor="@android:color/white"
                 android:textSize="14sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -102,66 +61,39 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
+            android:layout_marginBottom="6dp"
             android:orientation="horizontal">
 
             <Button
                 android:id="@+id/modeSelectorButton"
                 android:layout_width="0dp"
-                android:layout_height="46dp"
+                android:layout_height="42dp"
                 android:layout_weight="1"
-                android:layout_marginEnd="10dp"
+                android:layout_marginEnd="8dp"
                 android:background="@drawable/button_background_secondary"
                 android:focusable="true"
                 android:gravity="center"
                 android:text="@string/button_mode_selector"
                 android:textAllCaps="false"
                 android:textColor="@android:color/white"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <Button
-                android:id="@+id/powerSettingsButton"
+                android:id="@+id/moreActionsButton"
                 android:layout_width="0dp"
-                android:layout_height="46dp"
+                android:layout_height="42dp"
                 android:layout_weight="1"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="8dp"
                 android:background="@drawable/button_background_secondary"
                 android:focusable="true"
                 android:gravity="center"
-                android:text="@string/button_power_settings"
+                android:text="@string/button_more_actions"
                 android:textAllCaps="false"
                 android:textColor="@android:color/white"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:textStyle="bold" />
         </LinearLayout>
-
-        <Button
-            android:id="@+id/calibrationButton"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:background="@drawable/button_background_secondary"
-            android:focusable="true"
-            android:gravity="center"
-            android:text="@string/button_start_calibration"
-            android:textAllCaps="false"
-            android:textColor="@android:color/white"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/notificationAccessButton"
-            android:layout_width="match_parent"
-            android:layout_height="46dp"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/button_background_secondary"
-            android:focusable="true"
-            android:gravity="center"
-            android:text="@string/button_notification_access"
-            android:textAllCaps="false"
-            android:textColor="@android:color/white"
-            android:textSize="14sp"
-            android:textStyle="bold" />
     </LinearLayout>
 
     <ScrollView
@@ -216,22 +148,6 @@
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
-            <Button
-                android:id="@+id/detailsToggleButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
-                android:background="@drawable/button_background_secondary"
-                android:paddingStart="14dp"
-                android:paddingTop="8dp"
-                android:paddingEnd="14dp"
-                android:paddingBottom="8dp"
-                android:text="@string/details_show"
-                android:textAllCaps="false"
-                android:textColor="@android:color/white"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
             <ImageView
                 android:id="@+id/statusIndicator"
                 android:layout_width="80dp"
@@ -260,22 +176,6 @@
                 android:text="@string/description_inactive"
                 android:textColor="@color/text_secondary"
                 android:textSize="15sp" />
-
-            <Button
-                android:id="@+id/debugToggleButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/button_background_secondary"
-                android:paddingStart="14dp"
-                android:paddingTop="8dp"
-                android:paddingEnd="14dp"
-                android:paddingBottom="8dp"
-                android:text="@string/debug_show"
-                android:textAllCaps="false"
-                android:textColor="@android:color/white"
-                android:textSize="13sp"
-                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/debugTitleText"

@@ -12,6 +12,12 @@
 - עובד מקומית על המכשיר, ללא שרת חיצוני.
 - תואם Android TV (API 21+) ללא Root.
 
+## חדש ב-1.7.4
+- מסך בית מינימלי אמיתי ל‑TV: רק Start/Stop + Mode + More Actions.
+- כל הפעולות המתקדמות רוכזו תחת More Actions (נגישות, Notification, Power, Hotspot, Calibration, Debug/Runtime).
+- אזור עדכונים באתר עבר למבנה מרוכז של 2 אקורדיונים בלבד.
+- אחידות מתקינים: Mac + Windows עם ברירת מחדל `main` וולידציית גרסה אחרי התקנה.
+
 ## חדש ב-1.7.3
 - שיפורי UI נוספים למסך TV: כפתורים קומפקטיים יותר ופריסה מאוזנת.
 - שיפור תצוגת אזור העדכונים באתר (Accordion קומפקטי יותר).
@@ -39,9 +45,9 @@
   - Mac: [install_mac.command](https://github.com/amit113210/stream-keep-alive/raw/main/installer/install_mac.command)
   - Windows: [install_windows.bat](https://github.com/amit113210/stream-keep-alive/raw/main/installer/install_windows.bat)
 - ברירת מחדל במתקין:
-  - קודם מנסה `latest GitHub Release asset` בפורמט `StreamKeepAlive-vX.Y.apk`
-  - אם אין asset מתאים, מבצע fallback ל־`main`:
-    `installer/apk/StreamKeepAlive.apk`
+  - `main` כברירת מחדל (מומלץ) להבטחת APK הכי עדכני.
+  - אפשר לבחור `release` אם רוצים רק נכסים שפורסמו כ-Release.
+  - תמיד יש fallback אוטומטי בין המקורות במקרה כשל הורדה.
   - המתקין מציג מקור הורדה, SHA256, וגרסה מותקנת בפועל (versionName/versionCode)
 
 ## עדכון / הסרה

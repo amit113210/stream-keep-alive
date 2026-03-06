@@ -66,16 +66,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var descriptionText: TextView
     private lateinit var versionText: TextView
     private lateinit var debugTitleText: TextView
-    private lateinit var detailsToggleButton: Button
-    private lateinit var settingsButton: Button
-    private lateinit var hotspotButton: Button
-    private lateinit var powerSettingsButton: Button
     private lateinit var modeSelectorButton: Button
+    private lateinit var moreActionsButton: Button
     private lateinit var startProtectionButton: Button
     private lateinit var stopProtectionButton: Button
-    private lateinit var calibrationButton: Button
-    private lateinit var notificationAccessButton: Button
-    private lateinit var debugToggleButton: Button
     private lateinit var debugTelemetryText: TextView
 
     private val uiHandler = Handler(Looper.getMainLooper())
@@ -84,9 +78,6 @@ class MainActivity : AppCompatActivity() {
     private var activeCalibration: CalibrationRunState? = null
     private var debugVisible = false
     private var runtimeDetailsVisible = false
-
-    private var dpadPressCount = 0
-    private val requiredPresses = 3
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,40 +89,26 @@ class MainActivity : AppCompatActivity() {
         descriptionText = findViewById(R.id.descriptionText)
         versionText = findViewById(R.id.versionText)
         debugTitleText = findViewById(R.id.debugTitleText)
-        detailsToggleButton = findViewById(R.id.detailsToggleButton)
-        settingsButton = findViewById(R.id.settingsButton)
-        hotspotButton = findViewById(R.id.hotspotButton)
-        powerSettingsButton = findViewById(R.id.powerSettingsButton)
         modeSelectorButton = findViewById(R.id.modeSelectorButton)
+        moreActionsButton = findViewById(R.id.moreActionsButton)
         startProtectionButton = findViewById(R.id.startProtectionButton)
         stopProtectionButton = findViewById(R.id.stopProtectionButton)
-        calibrationButton = findViewById(R.id.calibrationButton)
-        notificationAccessButton = findViewById(R.id.notificationAccessButton)
-        debugToggleButton = findViewById(R.id.debugToggleButton)
         debugTelemetryText = findViewById(R.id.debugTelemetryText)
 
         versionText.text = getInstalledVersionText()
 
-        settingsButton.setOnClickListener { onSettingsClicked() }
-        hotspotButton.setOnClickListener { openNetworkSettings() }
         startProtectionButton.setOnClickListener { onStartProtectionClicked() }
         modeSelectorButton.setOnClickListener { cycleProtectionMode() }
+        moreActionsButton.setOnClickListener { openMoreActionsMenu() }
         stopProtectionButton.setOnClickListener { stopProtectionSession() }
-        calibrationButton.setOnClickListener { openCalibrationPackagePicker() }
-        notificationAccessButton.setOnClickListener { openNotificationListenerSettings() }
-        powerSettingsButton.setOnClickListener { openPowerSettingsHelper() }
-        debugToggleButton.setOnClickListener { toggleDebugPanel() }
-        detailsToggleButton.setOnClickListener { toggleRuntimeDetails() }
 
         updateModeButtonLabel(ProtectionSessionManager.currentMode(this))
         applyDebugVisibility()
-        applyRuntimeDetailsToggleLabel()
         updateServiceStatus()
     }
 
     override fun onResume() {
         super.onResume()
-        dpadPressCount = 0
         showBootResumeReminderIfNeeded()
         refreshProtectionCompanionIfNeeded()
         updateServiceStatus()
@@ -158,19 +135,34 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun onSettingsClicked() {
-        dpadPressCount++
-        if (dpadPressCount >= requiredPresses) {
-            dpadPressCount = 0
-            openAccessibilitySettings()
-            return
-        }
+    private fun openMoreActionsMenu() {
+        val items = arrayOf(
+            getString(R.string.more_accessibility_settings),
+            getString(R.string.more_notification_access),
+            getString(R.string.more_power_system),
+            getString(R.string.more_hotspot),
+            getString(R.string.more_calibration),
+            getString(if (runtimeDetailsVisible) R.string.more_hide_runtime else R.string.more_show_runtime),
+            getString(if (debugVisible) R.string.more_hide_debug else R.string.more_show_debug),
+            getString(R.string.more_app_info)
+        )
 
-        Toast.makeText(
-            this,
-            "לחץ עוד ${requiredPresses - dpadPressCount} פעמים לפתיחת הגדרות נגישות",
-            Toast.LENGTH_SHORT
-        ).show()
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.button_more_actions))
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> openAccessibilitySettings()
+                    1 -> openNotificationListenerSettings()
+                    2 -> openPowerSettingsHelper()
+                    3 -> openNetworkSettings()
+                    4 -> openCalibrationPackagePicker()
+                    5 -> toggleRuntimeDetails()
+                    6 -> toggleDebugPanel()
+                    7 -> openAppDetailsSettings()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun onStartProtectionClicked() {
@@ -427,11 +419,9 @@ class MainActivity : AppCompatActivity() {
             )
         }
         updateModeButtonLabel(selectedMode)
-        applyRuntimeDetailsToggleLabel()
 
         startProtectionButton.isEnabled = !protectionActive
         stopProtectionButton.isEnabled = protectionActive
-        notificationAccessButton.visibility = if (notificationAccessEnabled) View.GONE else View.VISIBLE
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
@@ -487,18 +477,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun toggleRuntimeDetails() {
         runtimeDetailsVisible = !runtimeDetailsVisible
-        applyRuntimeDetailsToggleLabel()
         updateServiceStatus()
     }
 
     private fun applyDebugVisibility() {
         debugTitleText.visibility = if (debugVisible) View.VISIBLE else View.GONE
         debugTelemetryText.visibility = if (debugVisible) View.VISIBLE else View.GONE
-        debugToggleButton.text = getString(if (debugVisible) R.string.debug_hide else R.string.debug_show)
-    }
-
-    private fun applyRuntimeDetailsToggleLabel() {
-        detailsToggleButton.text = getString(if (runtimeDetailsVisible) R.string.details_hide else R.string.details_show)
     }
 
     private fun updateTelemetryPanel() {

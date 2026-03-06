@@ -18,6 +18,7 @@
     <string name="button_start_calibration">Calibration Run (12 min)</string>
     <string name="button_notification_access">Notification Access</string>
     <string name="button_power_settings">Power &amp; System Settings</string>
+    <string name="button_more_actions">More Actions</string>
     <string name="button_mode_selector">Mode: NORMAL</string>
     <string name="mode_selector_format">Mode: %1$s</string>
 
@@ -34,6 +35,16 @@
     <string name="debug_hide">Hide Debug Telemetry</string>
     <string name="details_show">Show Runtime Details</string>
     <string name="details_hide">Hide Runtime Details</string>
+    <string name="more_accessibility_settings">Accessibility settings</string>
+    <string name="more_notification_access">Notification access</string>
+    <string name="more_power_system">Power &amp; System settings</string>
+    <string name="more_hotspot">Hotspot settings</string>
+    <string name="more_calibration">Calibration run (12 min)</string>
+    <string name="more_show_runtime">Show runtime details</string>
+    <string name="more_hide_runtime">Hide runtime details</string>
+    <string name="more_show_debug">Show debug telemetry</string>
+    <string name="more_hide_debug">Hide debug telemetry</string>
+    <string name="more_app_info">App info</string>
 
     <string name="notification_channel_name">Streaming protection</string>
     <string name="notification_channel_description">Persistent session notification for active streaming protection</string>
