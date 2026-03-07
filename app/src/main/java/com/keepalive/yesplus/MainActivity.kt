@@ -181,7 +181,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun onStartProtectionClicked() {
         if (!isAccessibilityServiceEnabled()) {
-            Toast.makeText(this, "הפעל קודם שירות נגישות", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Enable Accessibility first | הפעל קודם נגישות", Toast.LENGTH_SHORT).show()
             return
         }
 
