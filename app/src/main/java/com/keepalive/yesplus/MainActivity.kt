@@ -96,7 +96,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var debugTitleText: TextView
     private lateinit var networkSettingsButton: Button
     private lateinit var toggleHotspotButton: Button
-    private lateinit var refreshInfoButton: Button
     private lateinit var moreActionsButton: Button
     private lateinit var readinessWarningContainer: LinearLayout
     private lateinit var readinessWarningText: TextView
@@ -134,7 +133,6 @@ class MainActivity : AppCompatActivity() {
         debugTitleText = findViewById(R.id.debugTitleText)
         networkSettingsButton = findViewById(R.id.networkSettingsButton)
         toggleHotspotButton = findViewById(R.id.toggleHotspotButton)
-        refreshInfoButton = findViewById(R.id.refreshInfoButton)
         moreActionsButton = findViewById(R.id.moreActionsButton)
         readinessWarningContainer = findViewById(R.id.readinessWarningContainer)
         readinessWarningText = findViewById(R.id.readinessWarningText)
@@ -158,7 +156,6 @@ class MainActivity : AppCompatActivity() {
         networkSettingsButton.setOnClickListener { openNetworkSettings() }
         toggleHotspotButton.setOnClickListener { openHotspotSettings() }
         
-        refreshInfoButton.setOnClickListener { updateServiceStatus() }
         moreActionsButton.setOnClickListener { openMoreActionsMenu() }
         openBatterySettingsButton.setOnClickListener { openBatteryOptimizationSettings() }
         openWriteSettingsButton.setOnClickListener { openWriteSettingsScreen() }
@@ -202,9 +199,6 @@ class MainActivity : AppCompatActivity() {
         val items = arrayOf(
             getString(R.string.more_network_settings),
             getString(R.string.more_hotspot),
-            getString(R.string.more_bluetooth_settings),
-            getString(R.string.more_power_system),
-            getString(if (runtimeDetailsVisible) R.string.more_hide_runtime else R.string.more_show_runtime),
             getString(if (debugVisible) R.string.more_hide_debug else R.string.more_show_debug),
             getString(R.string.more_app_info),
             getString(R.string.more_legacy_tools)
@@ -216,12 +210,9 @@ class MainActivity : AppCompatActivity() {
                 when (which) {
                     0 -> openNetworkSettings()
                     1 -> openHotspotSettings()
-                    2 -> openBluetoothSettings()
-                    3 -> openPowerSettingsHelper()
-                    4 -> toggleRuntimeDetails()
-                    5 -> toggleDebugPanel()
-                    6 -> openAppDetailsSettings()
-                    7 -> openLegacyToolsMenu()
+                    2 -> toggleDebugPanel()
+                    3 -> openAppDetailsSettings()
+                    4 -> openLegacyToolsMenu()
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
