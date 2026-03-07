@@ -385,21 +385,102 @@
                     android:focusable="true" />
             </LinearLayout>
 
-            <FrameLayout
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="24dp">
 
-                <WebView
-                    android:id="@+id/speedTestWebView"
+                <!-- Ping -->
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="Ping:"
+                        android:textColor="@color/text_mid"
+                        android:textSize="18sp" />
+                    <TextView
+                        android:id="@+id/pingResultText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="-- ms"
+                        android:textColor="@color/text_high"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Download -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="Download:"
+                        android:textColor="@color/text_mid"
+                        android:textSize="18sp" />
+                    <TextView
+                        android:id="@+id/downloadResultText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="-- Mbps"
+                        android:textColor="@color/text_high"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Upload -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="Upload:"
+                        android:textColor="@color/text_mid"
+                        android:textSize="18sp" />
+                    <TextView
+                        android:id="@+id/uploadResultText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="-- Mbps"
+                        android:textColor="@color/text_high"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
                 <ProgressBar
-                    android:id="@+id/webViewProgressBar"
-                    android:layout_width="wrap_content"
+                    android:id="@+id/speedTestProgressBar"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:progressDrawable="@drawable/progress_bar_horizontal" />
+
+                <TextView
+                    android:id="@+id/speedTestStatusText"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center" />
-            </FrameLayout>
+                    android:layout_marginTop="16dp"
+                    android:gravity="center"
+                    android:text="Ready"
+                    android:textColor="@color/text_mid"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
         </LinearLayout>
     </FrameLayout>
 </RelativeLayout>

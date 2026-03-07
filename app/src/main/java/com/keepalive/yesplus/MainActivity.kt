@@ -18,10 +18,6 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
 import android.view.View
-import android.webkit.WebChromeClient
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -115,9 +111,14 @@ class MainActivity : AppCompatActivity() {
     
     // Speed Test Overlay Views
     private lateinit var speedTestOverlay: FrameLayout
-    private lateinit var speedTestWebView: WebView
-    private lateinit var webViewProgressBar: ProgressBar
+    private lateinit var pingResultText: TextView
+    private lateinit var downloadResultText: TextView
+    private lateinit var uploadResultText: TextView
+    private lateinit var speedTestProgressBar: ProgressBar
+    private lateinit var speedTestStatusText: TextView
     private lateinit var closeSpeedTestButton: Button
+
+    private var speedTestThread: Thread? = null
 
     private val uiHandler = Handler(Looper.getMainLooper())
     private var telemetryRunnable: Runnable? = null
@@ -147,11 +148,12 @@ class MainActivity : AppCompatActivity() {
         runSpeedTestButton = findViewById(R.id.runSpeedTestButton)
         showQrCodeButton = findViewById(R.id.showQrCodeButton)
         speedTestOverlay = findViewById(R.id.speedTestOverlay)
-        speedTestWebView = findViewById(R.id.speedTestWebView)
-        webViewProgressBar = findViewById(R.id.webViewProgressBar)
+        pingResultText = findViewById(R.id.pingResultText)
+        downloadResultText = findViewById(R.id.downloadResultText)
+        uploadResultText = findViewById(R.id.uploadResultText)
+        speedTestProgressBar = findViewById(R.id.speedTestProgressBar)
+        speedTestStatusText = findViewById(R.id.speedTestStatusText)
         closeSpeedTestButton = findViewById(R.id.closeSpeedTestButton)
-
-        setupSpeedTestWebView()
 
         versionText.text = getInstalledVersionText()
 
@@ -865,49 +867,126 @@ class MainActivity : AppCompatActivity() {
         activeCalibration = null
     }
 
-    private fun setupSpeedTestWebView() {
-        val settings = speedTestWebView.settings
-        settings.javaScriptEnabled = true
-        settings.domStorageEnabled = true
-        settings.mediaPlaybackRequiresUserGesture = false
-        settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-        settings.cacheMode = WebSettings.LOAD_NO_CACHE
-
-        speedTestWebView.webViewClient = object : WebViewClient() {
-            override fun onPageFinished(view: WebView?, url: String?) {
-                super.onPageFinished(view, url)
-                webViewProgressBar.visibility = View.GONE
-            }
-        }
-        speedTestWebView.webChromeClient = object : WebChromeClient() {
-            override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                if (newProgress < 100) {
-                    webViewProgressBar.visibility = View.VISIBLE
-                    webViewProgressBar.progress = newProgress
-                } else {
-                    webViewProgressBar.visibility = View.GONE
-                }
-            }
-        }
-    }
-
     private fun onRunSpeedTestClicked() {
-        val now = System.currentTimeMillis()
-        val prefs = getSharedPreferences(SPEED_PREFS, Context.MODE_PRIVATE)
-        prefs.edit()
-            .putString(SPEED_LAST_RESULT, getString(R.string.speed_test_placeholder_result))
-            .putLong(SPEED_LAST_AT, now)
-            .apply()
-
         updateServiceStatus()
         speedTestOverlay.visibility = View.VISIBLE
-        speedTestWebView.loadUrl("https://fast.com")
+        
+        pingResultText.text = "-- ms"
+        downloadResultText.text = "-- Mbps"
+        uploadResultText.text = "-- Mbps"
+        speedTestStatusText.text = "Starting test..."
+        speedTestProgressBar.progress = 0
+
+        speedTestThread?.interrupt()
+        speedTestThread = Thread {
+            runNativeSpeedTest()
+        }.apply { start() }
     }
 
     private fun closeSpeedTestOverlay() {
+        speedTestThread?.interrupt()
+        speedTestThread = null
         speedTestOverlay.visibility = View.GONE
-        speedTestWebView.loadUrl("about:blank")
         updateServiceStatus()
+    }
+
+    private fun runNativeSpeedTest() {
+        var pingMs = "--"
+        var downMbps = "--"
+        var upMbps = "--"
+
+        try {
+            // Stage 1: Ping
+            updateSpeedUi(0, "Testing Ping...")
+            val pingStart = System.currentTimeMillis()
+            val pingConn = java.net.URL("https://speed.cloudflare.com/cdn-cgi/trace").openConnection() as java.net.HttpURLConnection
+            pingConn.requestMethod = "GET"
+            pingConn.connectTimeout = 3000
+            pingConn.readTimeout = 3000
+            pingConn.inputStream.use { it.readBytes() }
+            val pingEnd = System.currentTimeMillis()
+            pingMs = (pingEnd - pingStart).toString()
+            
+            uiHandler.post { pingResultText.text = "$pingMs ms" }
+            if (Thread.interrupted()) return
+
+            // Stage 2: Download
+            updateSpeedUi(33, "Testing Download (15MB)...")
+            val downStart = System.currentTimeMillis()
+            val downConn = java.net.URL("https://speed.cloudflare.com/__down?bytes=15000000").openConnection() as java.net.HttpURLConnection
+            downConn.requestMethod = "GET"
+            downConn.connectTimeout = 5000
+            downConn.readTimeout = 10000
+            
+            var downloadedBytes = 0L
+            val buffer = ByteArray(8192)
+            downConn.inputStream.use { input ->
+                var bytesRead: Int
+                while (input.read(buffer).also { bytesRead = it } != -1) {
+                    if (Thread.interrupted()) return
+                    downloadedBytes += bytesRead
+                }
+            }
+            val downEnd = System.currentTimeMillis()
+            val downTimeSecs = (downEnd - downStart) / 1000.0
+            val downBits = downloadedBytes * 8
+            val dMbps = if (downTimeSecs > 0) (downBits / downTimeSecs) / 1000000.0 else 0.0
+            downMbps = String.format(java.util.Locale.US, "%.1f", dMbps)
+
+            uiHandler.post { downloadResultText.text = "$downMbps Mbps" }
+            if (Thread.interrupted()) return
+
+            // Stage 3: Upload
+            updateSpeedUi(66, "Testing Upload (5MB)...")
+            val payloadSize = 5 * 1024 * 1024
+            val upStart = System.currentTimeMillis()
+            val upConn = java.net.URL("https://speed.cloudflare.com/__up").openConnection() as java.net.HttpURLConnection
+            upConn.requestMethod = "POST"
+            upConn.connectTimeout = 5000
+            upConn.readTimeout = 10000
+            upConn.doOutput = true
+            upConn.setFixedLengthStreamingMode(payloadSize)
+            
+            upConn.outputStream.use { output ->
+                val chunk = ByteArray(8192)
+                var uploaded = 0
+                while (uploaded < payloadSize) {
+                    if (Thread.interrupted()) return
+                    val toWrite = java.lang.Math.min(chunk.size, payloadSize - uploaded)
+                    output.write(chunk, 0, toWrite)
+                    uploaded += toWrite
+                }
+            }
+            val upStatus = upConn.responseCode
+            val upEnd = System.currentTimeMillis()
+            val upTimeSecs = (upEnd - upStart) / 1000.0
+            val upBits = payloadSize * 8
+            val uMbps = if (upTimeSecs > 0 && upStatus == 200) (upBits / upTimeSecs) / 1000000.0 else 0.0
+            upMbps = String.format(java.util.Locale.US, "%.1f", uMbps)
+
+            uiHandler.post { uploadResultText.text = "$upMbps Mbps" }
+            updateSpeedUi(100, "Done")
+
+            // Save result
+            val resultStr = "P: ${pingMs}ms | D: ${downMbps}M | U: ${upMbps}M"
+            val now = System.currentTimeMillis()
+            getSharedPreferences(SPEED_PREFS, Context.MODE_PRIVATE).edit()
+                .putString(SPEED_LAST_RESULT, resultStr)
+                .putLong(SPEED_LAST_AT, now)
+                .apply()
+
+            uiHandler.post { updateServiceStatus() }
+
+        } catch (e: Exception) {
+            updateSpeedUi(100, "Error: ${e.message}")
+        }
+    }
+
+    private fun updateSpeedUi(progress: Int, status: String) {
+        uiHandler.post {
+            speedTestProgressBar.progress = progress
+            speedTestStatusText.text = status
+        }
     }
 
     private fun readInternetStatus(): InternetStatus {
