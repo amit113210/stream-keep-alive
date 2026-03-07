@@ -38,7 +38,9 @@ object ScreenTimeoutManager {
         val prefs = prefs(context)
         if (!prefs.contains(KEY_ORIGINAL_TIMEOUT_MS)) {
             val original = readCurrentScreenOffTimeoutMs(context) ?: return false
-            prefs.edit().putLong(KEY_ORIGINAL_TIMEOUT_MS, original).apply()
+            if (original != SESSION_TIMEOUT_MS) {
+                prefs.edit().putLong(KEY_ORIGINAL_TIMEOUT_MS, original).apply()
+            }
         }
 
         val applied = writeScreenOffTimeoutMs(context, SESSION_TIMEOUT_MS)

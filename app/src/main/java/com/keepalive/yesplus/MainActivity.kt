@@ -476,7 +476,7 @@ class MainActivity : AppCompatActivity() {
         val playbackActive = telemetry.playbackStateFriendly == PlaybackFriendlyState.PLAYING_ACTIVE.name
         val heartbeatAllowed = telemetry.shouldRunHeartbeatNow
         val heartbeatReason = telemetry.heartbeatSuppressedReason.ifEmpty { "-" }
-        val gestureHealth = if (telemetry.gestureCancellationWarning) "CANCELLING" else "OK"
+        val gestureHealth = telemetry.gestureEngineHealth
         val netflixHunterState = when {
             telemetry.currentPackage.startsWith("com.netflix").not() &&
                 telemetry.activePlaybackPackage.startsWith("com.netflix").not() -> "IDLE"
@@ -536,6 +536,13 @@ class MainActivity : AppCompatActivity() {
                     "• Mode: %s\n" +
                     "• Playback Source: %s\n" +
                     "• Playback Confidence: %s\n" +
+                    "• Last Gesture Attempt Package: %s\n" +
+                    "• Last Gesture Zone Index: %d\n" +
+                    "• Last Gesture Coordinates: %s\n" +
+                    "• Last Gesture Dialog Driven: %s\n" +
+                    "• Last Gesture Heartbeat Driven: %s\n" +
+                    "• Last Gesture Cancel Reason: %s\n" +
+                    "• Consecutive Gesture Cancels: %d\n" +
                     "• Last Dialog Windows: %d\n" +
                     "• Last Dialog Package: %s\n" +
                     "• Last Dialog Positive Phrase: %s\n" +
@@ -567,6 +574,13 @@ class MainActivity : AppCompatActivity() {
                 telemetry.currentMode,
                 telemetry.playbackSignalSource,
                 telemetry.playbackConfidence,
+                telemetry.lastGestureAttemptPackage.ifEmpty { "-" },
+                telemetry.lastGestureZoneIndex,
+                telemetry.lastGestureCoordinates.ifEmpty { "-" },
+                telemetry.lastGestureWasDialogDriven.toString(),
+                telemetry.lastGestureWasHeartbeatDriven.toString(),
+                telemetry.lastGestureCancelReasonHint.ifEmpty { "-" },
+                telemetry.consecutiveGestureCancels,
                 telemetry.lastDialogWindowCount,
                 dialogPackageText,
                 dialogPositivePhraseText,
@@ -599,8 +613,10 @@ class MainActivity : AppCompatActivity() {
         if (!timeoutOverrideActive && protectionActive && writeSettingsGranted) {
             warningLines.add("Timeout override active: MISSING")
         }
-        if (telemetry.gestureCancellationWarning) {
-            warningLines.add("Gestures are being cancelled repeatedly")
+        if (telemetry.gestureEngineHealth == "BROKEN") {
+            warningLines.add("Gesture engine is broken on this device")
+        } else if (telemetry.gestureEngineHealth == "DEGRADED") {
+            warningLines.add("Gesture engine is degraded on this device (cancellations)")
         }
 
         if (warningLines.isNotEmpty()) {
@@ -689,7 +705,7 @@ class MainActivity : AppCompatActivity() {
                 "Current: pkg=%s profile=%s mode=%s interval=%dms esc=%d burst=%s\n" +
                 "DialogWin: pkg=%s count=%d positive=%s confirm=%s negative=%s noTarget=%s block=%s target=%s win=%d click=%s sample=%s\n" +
                 "Heartbeat: scheduled=%d executed=%d\n" +
-                "Gesture: result=%s dispatchReturned=%s action=%s pkg=%s zone=%d coords=%s completion=%d cancelAt=%d cancelHint=%s warn=%s fail=%d cancel=%d\n" +
+                "Gesture: result=%s dispatchReturned=%s action=%s attemptPkg=%s FGPkg=%s windows=%d dialog=%s hb=%s zone=%d coords=%s completion=%d cancelAt=%d cancelHint=%s health=%s fail=%d cancel=%d\n" +
                 "Dialog: detectedAt=%d dismissedAt=%d strategy=%s stats=%d/%d/%d\n" +
                 "Gestures: sent=%d done=%d cancel=%d reject=%d\n" +
                 "Calibration: mode=%s action=%s zone=%d\n" +
@@ -730,13 +746,17 @@ class MainActivity : AppCompatActivity() {
             t.lastGestureDispatchResult.ifEmpty { "-" },
             t.lastGestureDispatchReturned,
             t.lastGestureAction.ifEmpty { "-" },
-            t.lastGesturePackage.ifEmpty { "-" },
+            t.lastGestureAttemptPackage.ifEmpty { "-" },
+            t.lastGestureAttemptWhileForegroundPackage.ifEmpty { "-" },
+            t.lastGestureWindowCount,
+            t.lastGestureWasDialogDriven.toString(),
+            t.lastGestureWasHeartbeatDriven.toString(),
             t.lastGestureZoneIndex,
             t.lastGestureCoordinates.ifEmpty { "-" },
             t.lastGestureCompletionAt,
             t.lastGestureCancelAt,
             t.lastGestureCancelReasonHint.ifEmpty { "-" },
-            t.gestureCancellationWarning,
+            t.gestureEngineHealth,
             t.consecutiveGestureFailures,
             t.consecutiveGestureCancels,
             t.lastDialogDetectionAt,

@@ -56,6 +56,10 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         private const val DOUBLE_ATTEMPT_DELAY_MS = 1400L
         private const val DOUBLE_ATTEMPT_COOLDOWN_MS = 60_000L
 
+        private const val GESTURE_TAP_DURATION_MS = 100L
+        private const val GESTURE_SWIPE_DURATION_MS = 250L
+        private const val GESTURE_CANCEL_BACKOFF_THRESHOLD = 5
+
         // Partial wake lock is only a helper for process continuity during active protection.
         private const val USE_PARTIAL_WAKE_LOCK = true
         private const val WAKELOCK_SAFETY_TIMEOUT_MS = 90L * 60L * 1000L
@@ -85,6 +89,11 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val currentEscalationStep: Int = 0,
             val lastHeartbeatScheduledAt: Long = 0L,
             val lastHeartbeatExecutedAt: Long = 0L,
+            val lastGestureAttemptPackage: String = "",
+            val lastGestureAttemptWhileForegroundPackage: String = "",
+            val lastGestureWindowCount: Int = 0,
+            val lastGestureWasDialogDriven: Boolean = false,
+            val lastGestureWasHeartbeatDriven: Boolean = false,
             val lastGestureDispatchResult: String = "",
             val lastGestureDispatchReturned: Boolean = false,
             val lastGestureAction: String = "",
@@ -119,6 +128,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val gesturesDispatchRejected: Long = 0L,
             val consecutiveGestureFailures: Int = 0,
             val consecutiveGestureCancels: Int = 0,
+            val gestureEngineHealth: String = "OK",
             val wakeAcquires: Long = 0L,
             val wakeReleases: Long = 0L,
             val batteryOptimizationExempt: Boolean = true,
@@ -253,6 +263,13 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     private var lastGestureCoordinates = ""
     private var lastGestureAction = ""
     private var lastSecondaryAttemptAtMs = 0L
+
+    private var lastGestureAttemptPackage = ""
+    private var lastGestureAttemptWhileForegroundPackage = ""
+    private var lastGestureWindowCount = 0
+    private var lastGestureWasDialogDriven = false
+    private var lastGestureWasHeartbeatDriven = false
+    private var gestureEngineHealth = "OK"
 
     private var consecutiveGestureFailures = 0
     private var consecutiveGestureCancels = 0
@@ -1377,12 +1394,19 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
         val path = Path().apply { moveTo(x, y) }
         val gesture = GestureDescription.Builder()
-            .addStroke(GestureDescription.StrokeDescription(path, 0, 45))
+            .addStroke(GestureDescription.StrokeDescription(path, 0, GESTURE_TAP_DURATION_MS))
             .build()
 
         val coords = "${x.toInt()},${y.toInt()}"
         val windowsCount = windows?.size ?: 0
         val playback = PlaybackStateManager.snapshot()
+
+        lastGestureAttemptPackage = packageName
+        lastGestureAttemptWhileForegroundPackage = currentPackage
+        lastGestureWindowCount = windowsCount
+        lastGestureWasDialogDriven = true
+        lastGestureWasHeartbeatDriven = false
+
         lastGestureAction = "DIALOG_BOUNDS_TAP"
         lastGesturePackage = packageName
         lastGestureZoneIndex = -2
@@ -1622,6 +1646,14 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         val gesture = gestureBuild.first
         val coordinates = gestureBuild.second
 
+        val windowsCount = windows?.size ?: 0
+
+        lastGestureAttemptPackage = currentPackage
+        lastGestureAttemptWhileForegroundPackage = currentPackage
+        lastGestureWindowCount = windowsCount
+        lastGestureWasDialogDriven = false
+        lastGestureWasHeartbeatDriven = true
+
         lastHeartbeatExecutedAtMs = System.currentTimeMillis()
         lastGestureAction = action.name
         lastGesturePackage = currentPackage
@@ -1630,6 +1662,13 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         lastGestureDispatchReturned = false
         lastGestureCancelReasonHint = ""
 
+        if (consecutiveGestureCancels >= GESTURE_CANCEL_BACKOFF_THRESHOLD) {
+            Log.w(TAG, "[GESTURE] skipped type=heartbeat package=$currentPackage reason=backoff consecutiveCancels=$consecutiveGestureCancels")
+            lastGestureCancelReasonHint = "backoff_threshold_reached_health_$gestureEngineHealth"
+            publishTelemetrySnapshot()
+            return false
+        }
+
         if (gesture == null) {
             onGestureDispatchRejected("gesture_build_failed")
             return false
@@ -1637,7 +1676,6 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
         gesturesDispatchedCount++
         val playback = PlaybackStateManager.snapshot()
-        val windowsCount = windows?.size ?: 0
         Log.i(
             TAG,
             "[GESTURE] attempt type=heartbeat package=$currentPackage playback=${playback.friendlyState} mode=${currentMode().name} action=${action.name} zone=${zoneSelection.index} coords=$coordinates windows=$windowsCount supported=${isSupportedActivePackage()} positiveDialogMatched=false reason=$reason secondary=$secondary"
@@ -1714,7 +1752,13 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     }
 
     private fun updateGestureCancellationWarning() {
-        gestureCancellationWarning = consecutiveGestureCancels >= 5
+        gestureCancellationWarning = consecutiveGestureCancels >= GESTURE_CANCEL_BACKOFF_THRESHOLD
+        gestureEngineHealth = when {
+            consecutiveGestureCancels >= GESTURE_CANCEL_BACKOFF_THRESHOLD -> "BROKEN"
+            consecutiveGestureCancels > 0 && gesturesCompletedCount == 0L -> "BROKEN"
+            consecutiveGestureCancels > 0 -> "DEGRADED"
+            else -> "OK"
+        }
     }
 
     private fun updateEscalationStep() {
@@ -1742,7 +1786,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         val point = toSafePoint(zone)
         val path = Path().apply { moveTo(point.x, point.y) }
         val gesture = GestureDescription.Builder()
-            .addStroke(GestureDescription.StrokeDescription(path, 0, 45))
+            .addStroke(GestureDescription.StrokeDescription(path, 0, GESTURE_TAP_DURATION_MS))
             .build()
         return gesture to "${point.x.toInt()},${point.y.toInt()}"
     }
@@ -1759,7 +1803,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         }
 
         val gesture = GestureDescription.Builder()
-            .addStroke(GestureDescription.StrokeDescription(path, 0, 100))
+            .addStroke(GestureDescription.StrokeDescription(path, 0, GESTURE_SWIPE_DURATION_MS))
             .build()
         return gesture to "${start.x.toInt()},${start.y.toInt()} -> ${endX.toInt()},${endY.toInt()}"
     }
@@ -1983,6 +2027,11 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             currentEscalationStep = escalationStep,
             lastHeartbeatScheduledAt = lastHeartbeatScheduledAtMs,
             lastHeartbeatExecutedAt = lastHeartbeatExecutedAtMs,
+            lastGestureAttemptPackage = lastGestureAttemptPackage,
+            lastGestureAttemptWhileForegroundPackage = lastGestureAttemptWhileForegroundPackage,
+            lastGestureWindowCount = lastGestureWindowCount,
+            lastGestureWasDialogDriven = lastGestureWasDialogDriven,
+            lastGestureWasHeartbeatDriven = lastGestureWasHeartbeatDriven,
             lastGestureDispatchResult = lastGestureDispatchResult,
             lastGestureDispatchReturned = lastGestureDispatchReturned,
             lastGestureAction = lastGestureAction,
@@ -2017,6 +2066,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             gesturesDispatchRejected = gesturesDispatchRejectedCount,
             consecutiveGestureFailures = consecutiveGestureFailures,
             consecutiveGestureCancels = consecutiveGestureCancels,
+            gestureEngineHealth = gestureEngineHealth,
             wakeAcquires = wakeLockAcquireCount,
             wakeReleases = wakeLockReleaseCount,
             batteryOptimizationExempt = isBatteryOptimizationExempt(),
