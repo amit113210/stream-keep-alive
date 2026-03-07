@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Stream Keep Alive</string>
-    <string name="version_placeholder">גרסה --</string>
-    <string name="app_subtitle">צפייה ללא הפרעות בכל אפליקציית סטרימינג</string>
+    <string name="app_name">TV Connectivity Hub</string>
+    <string name="version_placeholder">Version --</string>
+    <string name="app_subtitle">Hotspot, settings shortcuts, and readiness checks for Android TV</string>
 
-    <string name="status_active">✅ פעיל</string>
-    <string name="status_inactive">⏸ לא פעיל</string>
+    <string name="status_active">✅ Ready</string>
+    <string name="status_inactive">⏸ Setup needed</string>
 
-    <string name="description_active">השירות פעיל ומגן עליך מהודעות המתנה.\nתומך ב: Netflix, YouTube, Disney+, Prime ועוד.\nמזהה וסוגר הודעות אוטומטית + מדמה פעילות חכמה לפי האפליקציה.</string>
-    <string name="description_inactive">השירות לא פעיל.\nלחץ על הכפתור למטה כדי לעבור להגדרות הנגישות\nוהפעל את \"Stream Keep Alive\".</string>
+    <string name="description_active">Utility session is active.
+Use the dashboard for connectivity shortcuts, power hardening, and permission readiness.</string>
+    <string name="description_inactive">Utility session is currently off.
+Use Start Utility to enable the helper session and diagnostics.</string>
 
-    <string name="button_enable">הגדרות נגישות</string>
-    <string name="button_disable">הגדרות נגישות</string>
-    <string name="button_hotspot">נקודת גישה (Hotspot)</string>
-    <string name="button_start_protection">Start Protection</string>
-    <string name="button_stop_protection">Stop Protection</string>
+    <string name="button_enable">Accessibility settings</string>
+    <string name="button_disable">Accessibility settings</string>
+    <string name="button_hotspot">Hotspot settings</string>
+    <string name="button_start_protection">Start Utility</string>
+    <string name="button_stop_protection">Stop Utility</string>
     <string name="button_start_calibration">Calibration Run (12 min)</string>
     <string name="button_notification_access">Notification Access</string>
     <string name="button_power_settings">Power &amp; System Settings</string>
@@ -22,22 +24,23 @@
     <string name="button_mode_selector">Mode: NORMAL</string>
     <string name="mode_selector_format">Mode: %1$s</string>
 
-    <string name="protection_status_on">Protection: ON</string>
-    <string name="protection_status_off">Protection: OFF</string>
+    <string name="protection_status_on">Utility Session: ON</string>
+    <string name="protection_status_off">Utility Session: OFF</string>
 
-    <string name="status_indicator_desc">מצב השירות</string>
+    <string name="status_indicator_desc">Utility status</string>
 
-    <string name="accessibility_service_description">שירות זה מונע הודעות \"האם אתם עדיין צופים?\" בכל אפליקציות הסטרימינג.\nתומך ב: Netflix, YouTube, Disney+, Amazon Prime, HBO, Hulu, Cellcom TV, Partner TV, HOT ועוד.\nמזהה הודעות בעברית ובאנגלית, סוגר אותן אוטומטית, ומדמה פעילות שלט חכמה לפי האפליקציה.</string>
+    <string name="accessibility_service_description">This accessibility service powers quick actions and readiness diagnostics for TV Connectivity Hub.
+It runs locally on your Android TV and helps keep utility actions responsive.</string>
 
     <string name="debug_title">Debug Telemetry</string>
-    <string name="debug_waiting">מחכה לנתוני שירות...</string>
+    <string name="debug_waiting">Waiting for service telemetry...</string>
     <string name="debug_show">Show Debug Telemetry</string>
     <string name="debug_hide">Hide Debug Telemetry</string>
     <string name="details_show">Show Runtime Details</string>
     <string name="details_hide">Hide Runtime Details</string>
     <string name="more_accessibility_settings">Accessibility settings</string>
     <string name="more_notification_access">Notification access</string>
-    <string name="more_power_system">Power &amp; System settings</string>
+    <string name="more_power_system">Power &amp; system settings</string>
     <string name="more_hotspot">Hotspot settings</string>
     <string name="more_calibration">Calibration run (12 min)</string>
     <string name="more_show_runtime">Show runtime details</string>
@@ -51,26 +54,32 @@
     <string name="power_option_accessibility_settings">Accessibility settings</string>
     <string name="power_option_notification_access">Notification access</string>
     <string name="power_option_app_info">App info</string>
-    <string name="power_guidance_title">Display timeout hardening guidance</string>
-    <string name="power_guidance_message">To improve the chance that the TV display stays on during protection sessions:\n\n1) Allow \"Screen timeout permission\" (WRITE_SETTINGS) so the app can temporarily extend timeout and restore it later.\n2) Disable battery optimization for this app for better reliability.\n3) If your TV has a display timeout option, consider setting it to Never.\n\nThis is best-effort hardening and not a guaranteed Netflix fix.</string>
+    <string name="power_guidance_title">Power hardening guidance</string>
+    <string name="power_guidance_message">To improve session reliability on Android TV:
+
+1) Allow "Screen timeout permission" (WRITE_SETTINGS) so the app can temporarily extend timeout and restore it later.
+2) Disable battery optimization for this app for better continuity.
+3) If your TV supports a display timeout option, consider setting it to Never.
+
+This is practical hardening guidance, not a guarantee for every app behavior.</string>
     <string name="power_guidance_open_settings">Open TV settings</string>
 
-    <string name="notification_channel_name">Streaming protection</string>
-    <string name="notification_channel_description">Persistent session notification for active streaming protection</string>
-    <string name="notification_protection_title">Streaming protection active</string>
-    <string name="notification_protection_text">Keeping supported streaming apps active while you watch (%1$s)</string>
+    <string name="notification_channel_name">TV utility session</string>
+    <string name="notification_channel_description">Persistent notification while TV Connectivity Hub utility session is active</string>
+    <string name="notification_protection_title">TV utility session active</string>
+    <string name="notification_protection_text">Connectivity helper session is running (%1$s)</string>
     <string name="notification_action_stop">Stop</string>
 
-    <string name="notification_permission_needed">Please allow notifications so protection session can stay visible and compliant.</string>
-    <string name="boot_resume_reminder">המכשיר הופעל מחדש. פתח את האפליקציה כדי להפעיל Protection Session מחדש.</string>
+    <string name="notification_permission_needed">Allow notifications so the utility session status stays visible.</string>
+    <string name="boot_resume_reminder">Device rebooted. Open TV Connectivity Hub to resume your utility session.</string>
     <string name="notification_listener_label">Playback Notification Listener</string>
     <string name="status_yes">YES</string>
     <string name="status_no">NO</string>
     <string name="playback_fallback_mode">Package-only fallback mode</string>
-    <string name="battery_optimization_required">Battery optimization exemption is strongly recommended so Stream Keep Alive can keep running while the TV is idle.</string>
+    <string name="battery_optimization_required">Battery optimization exemption is strongly recommended so TV Connectivity Hub can stay active while TV is idle.</string>
     <string name="battery_optimization_title">Battery optimization</string>
     <string name="screen_timeout_permission_title">Screen timeout permission</string>
-    <string name="screen_timeout_permission_message">Allowing this access lets the app extend screen timeout during an active Protection Session and restore your original timeout after the session ends.</string>
+    <string name="screen_timeout_permission_message">Allowing this access lets the app extend screen timeout during an active utility session and restore your original timeout after the session ends.</string>
     <string name="action_allow">Allow</string>
     <string name="action_continue_anyway">Continue anyway</string>
     <string name="mode_changed_to">Mode changed to %1$s</string>

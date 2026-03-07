@@ -1,97 +1,92 @@
-# Stream Keep Alive - Android TV App
+# TV Connectivity Hub (Android TV)
 
-[![Android CI](https://github.com/amit113210/stream-keep-alive/actions/workflows/android-ci.yml/badge.svg)](https://github.com/amit113210/stream-keep-alive/actions/workflows/android-ci.yml)
-[![Latest Release](https://img.shields.io/github/v/release/amit113210/stream-keep-alive?display_name=tag)](https://github.com/amit113210/stream-keep-alive/releases/latest)
+TV Connectivity Hub is a personal-use Android TV utility for quick connectivity actions, settings shortcuts, and readiness diagnostics.
 
-אפליקציית Android TV שמונעת הודעות "האם אתם עדיין צופים?" באפליקציות סטרימינג.
+It is designed to be practical and transparent:
+- local utility workflow
+- TV-friendly UI
+- clear permission/status checks
+- built-in setup/troubleshooting guidance
 
-## מה זה עושה
-- מזהה אוטומטית חלונות "האם אתם עדיין צופים?" וסוגר אותם.
-- מפעיל מנגנון keep-alive חכם כדי להפחית הופעת הודעות מראש.
-- כולל מצב הגנה מפורש עם בחירת Mode ישירה מהמסך: `NORMAL` / `AGGRESSIVE` / `MAXIMUM`.
-- עובד מקומית על המכשיר, ללא שרת חיצוני.
-- תואם Android TV (API 21+) ללא Root.
+## Product Positioning
 
-## חדש ב-1.7.5
-- שדרוג ממוקד ל-Netflix dialog auto-dismiss עם סריקה של כל חלונות הנגישות (multi-window), לא רק active root.
-- נוספה לולאת Netflix אגרסיבית (1s) לזיהוי מהיר של "עדיין צופה" גם כשאירועי UI דלילים.
-- נוספה אסטרטגיית לחיצה מדורגת עם fallback בטוח ל-Bounds Tap על כפתור היעד בלבד.
-- נוספה טלמטריה ייעודית לדיאלוגים: מספר חלונות, טקסט יעד, חלון יעד, ושיטת קליק בפועל.
+**Tagline:** Connectivity shortcuts and readiness checks for Android TV.
 
-## חדש ב-1.7.4
-- מסך בית מינימלי אמיתי ל‑TV: רק Start/Stop + Mode + More Actions.
-- כל הפעולות המתקדמות רוכזו תחת More Actions (נגישות, Notification, Power, Hotspot, Calibration, Debug/Runtime).
-- אזור עדכונים באתר עבר למבנה מרוכז של 2 אקורדיונים בלבד.
-- אחידות מתקינים: Mac + Windows עם ברירת מחדל `main` וולידציית גרסה אחרי התקנה.
+TV Connectivity Hub helps you reach common TV network/system settings quickly, monitor utility-session readiness, and apply optional power/display hardening for better session continuity.
 
-## חדש ב-1.7.3
-- שיפורי UI נוספים למסך TV: כפתורים קומפקטיים יותר ופריסה מאוזנת.
-- שיפור תצוגת אזור העדכונים באתר (Accordion קומפקטי יותר).
-- ליטושים אחרונים ליציבות התקנה ופריסה לקראת פרודקשן.
+## Core Features
 
-## חדש ב-1.7.2
-- מצב `TV Minimal` חדש: סטטוס קצר וברור כברירת מחדל.
-- כפתור `Show Runtime Details` להצגה/הסתרה של פירוט Checklist מלא.
-- נראות מסך בית נקייה יותר עם עומס מופחת לטלוויזיה.
+- **Hotspot & connectivity helper**
+  Quick access paths for network/hotspot workflows (device support varies by OEM/Android TV build).
+- **Power & system shortcuts**
+  One place to open battery optimization, write settings permission, app info, accessibility, and notification access.
+- **Readiness dashboard**
+  Clear YES/NO checklist for critical requirements.
+- **Utility session with telemetry**
+  Persistent foreground companion + runtime telemetry for debugging and support.
+- **TV-first UX**
+  D-pad friendly controls, compact layout, and focused primary actions.
 
-## חדש ב-1.7.1
-- שיפורי UX למסך Android TV: בחירת מצב נוחה וברורה יותר עם השלט.
-- ליטוש פריסת כפתורים למסך נקי ופחות מגושם.
-- עדכון אתר עם אזור עדכונים נפתח (Accordion Changelog).
+## What This App Does NOT Do
 
-## חדש ב-1.7
-- כפתור מצב ייעודי במסך הראשי (ללא Long-Press נסתר).
-- `MAXIMUM` זמין ונגיש ישירות עם השלט.
-- Protection Session + Telemetry משופרים לניטור מצב בזמן אמת.
-- שיפורי יציבות וניהול צריכת חשמל במכשירי Android TV.
+- It does **not** promise to bypass streaming-service policies.
+- It does **not** guarantee removal of every in-app interruption in every app/device combination.
+- It does **not** use kiosk mode, device owner, or lock-task appliance behavior.
 
-## התקנה מהירה
-- אתר ההתקנה: [stream-keep-alive.vercel.app](https://stream-keep-alive.vercel.app/index.html)
-- הורדת סקריפטים ישירות:
-  - Mac: [install_mac.command](https://github.com/amit113210/stream-keep-alive/raw/main/installer/install_mac.command)
-  - Windows: [install_windows.bat](https://github.com/amit113210/stream-keep-alive/raw/main/installer/install_windows.bat)
-- ברירת מחדל במתקין:
-  - `main` כברירת מחדל (מומלץ) להבטחת APK הכי עדכני.
-  - אפשר לבחור `release` אם רוצים רק נכסים שפורסמו כ-Release.
-  - תמיד יש fallback אוטומטי בין המקורות במקרה כשל הורדה.
-  - המתקין מציג מקור הורדה, SHA256, וגרסה מותקנת בפועל (versionName/versionCode)
+## Installation
 
-## עדכון / הסרה
-- עדכון: הרץ שוב את סקריפט ההתקנה (מתקין את הגרסה העדכנית).
-- הסרה:
-  1. כבה את שירות הנגישות ב-TV.
-  2. הסר את האפליקציה דרך Settings → Apps.
-  3. או דרך ADB: `adb uninstall com.keepalive.yesplus`
+### Option A: Mac Installer
+Run:
 
-## FAQ קצר
+```bash
+APK_CHANNEL=main ./installer/install_mac.command
+```
 
-**זה בטוח?**  
-כן. האפליקציה עובדת מקומית ולא דורשת חשבון משתמש.
+### Option B: Windows Installer
+Run `installer/install_windows.bat` and choose channel `main` (recommended).
 
-**למה צריך ADB?**  
-ADB משמש להתקנה והגדרה ראשונית אוטומטית על Android TV.
+### Option C: Manual ADB
+Install from:
+- `installer/apk/StreamKeepAlive.apk` (stable installer artifact)
 
-**זה עובד על כל סטרימר?**  
-עובד על רוב מכשירי Android TV. תמיכה משתפרת לפי דיווחים מהשטח.
+## Setup (first run)
 
-**מה עושים אם זה לא עובד מיד?**  
-הרץ את סקריפט ההתקנה שוב וודא ששירות הנגישות פעיל.
+1. Enable Accessibility service for TV Connectivity Hub.
+2. Enable Notification Access (recommended for richer telemetry/signals).
+3. Disable battery optimization for the app (recommended).
+4. Allow Write Settings (optional but recommended) for display-timeout hardening.
+5. Start Utility Session from the main screen.
 
-## קישורים חשובים
-- Releases: [Latest Release](https://github.com/amit113210/stream-keep-alive/releases/latest)
-- Issues / בקשות פיצ'ר: [GitHub Issues](https://github.com/amit113210/stream-keep-alive/issues)
-- אתר + מדריך מלא: [stream-keep-alive.vercel.app](https://stream-keep-alive.vercel.app/index.html)
-- פרטיות ותנאי שימוש: באתר הרשמי בעמוד הראשי.
+## Permissions Explained
 
-## למפתחים
-- Build מקומי:
-  ```bash
-  ./gradlew testDebugUnitTest assembleDebug
-  ```
-- CI רץ אוטומטית בכל Push/PR ל-`main`.
-- תגית `v*` מפעילה release workflow.
-- הכנת APK להפצה למתקין:
-  ```bash
-  ./scripts/prepare_installer_apk.sh --allow-debug
-  ```
-  (בלי `--allow-debug` הסקריפט דורש סביבת חתימה ל־release חתום.)
+- `BIND_ACCESSIBILITY_SERVICE` — local UI automation/readiness workflows.
+- `POST_NOTIFICATIONS` — persistent foreground session notification.
+- `WAKE_LOCK` — best-effort continuity while utility session is active.
+- `WRITE_SETTINGS` — optional display timeout hardening apply/restore.
+- `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` — optional reliability improvement.
+
+## Development
+
+```bash
+./gradlew :app:assembleDebug
+./gradlew :app:testDebugUnitTest
+```
+
+## Documentation
+
+- [Quick Start](./QUICK_START.md)
+- [Features](./FEATURES.md)
+- [Permissions & Settings](./PERMISSIONS_AND_SETTINGS.md)
+- [Troubleshooting](./TROUBLESHOOTING.md)
+
+## Release
+
+Current pivot release target: **v2.0.0**
+
+APK distribution paths remain technically compatible:
+- `installer/apk/StreamKeepAlive.apk`
+- versioned artifacts in `installer/apk/`
+
+## License
+
+MIT License.

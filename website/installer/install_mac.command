@@ -1,9 +1,9 @@
 #!/bin/bash
-# © 2025 Stream Keep Alive. All rights reserved.
+# © 2025 TV Connectivity Hub. All rights reserved.
 # Licensed under the MIT License. See LICENSE file.
 #
 # ╔══════════════════════════════════════════════════════════╗
-# ║       Stream Keep Alive — מתקין אוטומטי (Mac)           ║
+# ║       TV Connectivity Hub — מתקין אוטומטי (Mac)           ║
 # ║                                                          ║
 # ║  מתקין את האפליקציה על Android TV ומפעיל הכל אוטומטית  ║
 # ╚══════════════════════════════════════════════════════════╝
@@ -64,9 +64,9 @@ fi
 print_header() {
     echo ""
     echo -e "${BLUE}╔══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║${BOLD}${CYAN}       Stream Keep Alive — מתקין אוטומטי                ${NC}${BLUE}║${NC}"
+    echo -e "${BLUE}║${BOLD}${CYAN}       TV Connectivity Hub — מתקין אוטומטי                ${NC}${BLUE}║${NC}"
     echo -e "${BLUE}║${NC}                                                          ${BLUE}║${NC}"
-    echo -e "${BLUE}║${NC}  ${GREEN}צפייה ללא הפרעות בכל אפליקציית סטרימינג${NC}              ${BLUE}║${NC}"
+    echo -e "${BLUE}║${NC}  ${GREEN}כלי עזר לקישוריות והגדרות ב-Android TV${NC}              ${BLUE}║${NC}"
     echo -e "${BLUE}╚══════════════════════════════════════════════════════════╝${NC}"
     echo ""
 }
@@ -99,7 +99,7 @@ wait_for_enter() {
 
 resolve_latest_release_info() {
     local release_json
-    release_json=$(curl -fsSL -H "User-Agent: stream-keep-alive-installer" "$RELEASE_API_URL" 2>/dev/null || true)
+    release_json=$(curl -fsSL -H "User-Agent: tv-connectivity-hub-installer" "$RELEASE_API_URL" 2>/dev/null || true)
     if [ -z "$release_json" ]; then
         return 1
     fi
@@ -176,7 +176,7 @@ resolve_apk_channel() {
 
 parse_main_version_metadata() {
     local gradle_text
-    gradle_text=$(curl -fsSL -H "User-Agent: stream-keep-alive-installer" "$MAIN_GRADLE_RAW_URL" 2>/dev/null || true)
+    gradle_text=$(curl -fsSL -H "User-Agent: tv-connectivity-hub-installer" "$MAIN_GRADLE_RAW_URL" 2>/dev/null || true)
     if [ -z "$gradle_text" ] && [ -f "$SCRIPT_DIR/../app/build.gradle.kts" ]; then
         gradle_text=$(cat "$SCRIPT_DIR/../app/build.gradle.kts")
     fi
@@ -728,10 +728,10 @@ print_done() {
     echo -e "${GREEN}║${BOLD}            ✅ ההתקנה הושלמה בהצלחה!                     ${NC}${GREEN}║${NC}"
     echo -e "${GREEN}║                                                          ║${NC}"
     echo -e "${GREEN}║${NC}  האפליקציה מותקנת ושירות הנגישות פעיל.                  ${GREEN}║${NC}"
-    echo -e "${GREEN}║${NC}  הודעת ״האם אתם עדיין צופים?״ לא תופיע יותר!          ${GREEN}║${NC}"
+    echo -e "${GREEN}║${NC}  קיצורי ההגדרות ולוח המוכנות הוגדרו בהצלחה.             ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}  Hotspot ניתן להפעלה ישירות מהאפליקציה!                ${GREEN}║${NC}"
     echo -e "${GREEN}║                                                          ║${NC}"
-    echo -e "${GREEN}║${NC}  ${CYAN}פתח אפליקציית סטרימינג ותיהנה מצפייה ללא הפרעות 🎬${NC}  ${GREEN}║${NC}"
+    echo -e "${GREEN}║${NC}  ${CYAN}פתח את TV Connectivity Hub ובדוק שהמערכת מוכנה ✅${NC}  ${GREEN}║${NC}"
     echo -e "${GREEN}║                                                          ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════╝${NC}"
     echo ""
@@ -790,7 +790,7 @@ main() {
 
         if [ "$answer" != "y" ] && [ "$answer" != "Y" ] && [ "$answer" != "כ" ]; then
             echo ""
-            echo -e "  ${GREEN}👋 תודה! תיהנה מצפייה ללא הפרעות!${NC}"
+            echo -e "  ${GREEN}👋 תודה! השימוש הושלם בהצלחה!${NC}"
             echo ""
             break
         fi

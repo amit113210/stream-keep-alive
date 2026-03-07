@@ -2,14 +2,14 @@
 chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
 
-:: © 2025 Stream Keep Alive. All rights reserved.
+:: © 2025 TV Connectivity Hub. All rights reserved.
 :: Licensed under the MIT License. See LICENSE file.
 ::
 :: ╔══════════════════════════════════════════════════════════╗
-:: ║       Stream Keep Alive — Automatic Installer (Win)     ║
+:: ║       TV Connectivity Hub — Automatic Installer (Win)     ║
 :: ╚══════════════════════════════════════════════════════════╝
 
-title Stream Keep Alive - Installer
+title TV Connectivity Hub - Installer
 
 set "SCRIPT_DIR=%~dp0"
 set "APK_PATH=%SCRIPT_DIR%apk\StreamKeepAlive.apk"
@@ -32,9 +32,9 @@ set "RELEASE_TAG="
 cls
 echo.
 echo  ╔══════════════════════════════════════════════════════════╗
-echo  ║       Stream Keep Alive — Automatic Installer              ║
+echo  ║       TV Connectivity Hub — Automatic Installer              ║
 echo  ║                                                          ║
-echo  ║  Prevents "Are you still watching?" on streaming apps     ║
+echo  ║  Installs the Android TV connectivity utility     ║
 echo  ╚══════════════════════════════════════════════════════════╝
 echo.
 
@@ -122,7 +122,7 @@ for /f "usebackq tokens=1,2 delims=|" %%a in (`powershell -NoProfile -Command "$
 
 set "RELEASE_ASSET_URL="
 set "RELEASE_ASSET_NAME="
-for /f "usebackq tokens=1,2,3 delims=|" %%a in (`powershell -NoProfile -Command "$ErrorActionPreference='Stop'; try { $r=Invoke-RestMethod -Uri '%RELEASE_API_URL%' -Headers @{ 'User-Agent'='stream-keep-alive-installer' }; $a=$r.assets | Where-Object { $_.name -like 'StreamKeepAlive-v*.apk' } | Select-Object -First 1; if(-not $a){ $a=$r.assets | Where-Object { $_.name -eq 'StreamKeepAlive.apk' } | Select-Object -First 1 }; if($a){ Write-Output ($a.browser_download_url + '|' + $a.name + '|' + $r.tag_name) } } catch { }"` ) do (
+for /f "usebackq tokens=1,2,3 delims=|" %%a in (`powershell -NoProfile -Command "$ErrorActionPreference='Stop'; try { $r=Invoke-RestMethod -Uri '%RELEASE_API_URL%' -Headers @{ 'User-Agent'='tv-connectivity-hub-installer' }; $a=$r.assets | Where-Object { $_.name -like 'StreamKeepAlive-v*.apk' } | Select-Object -First 1; if(-not $a){ $a=$r.assets | Where-Object { $_.name -eq 'StreamKeepAlive.apk' } | Select-Object -First 1 }; if($a){ Write-Output ($a.browser_download_url + '|' + $a.name + '|' + $r.tag_name) } } catch { }"` ) do (
     set "RELEASE_ASSET_URL=%%a"
     set "RELEASE_ASSET_NAME=%%b"
     set "RELEASE_TAG=%%c"
@@ -423,10 +423,10 @@ echo  ║                                                          ║
 echo  ║            ✅ Installation Complete!                      ║
 echo  ║                                                          ║
 echo  ║  The app is installed and accessibility service active.   ║
-echo  ║  "Are you still watching?" will no longer appear!         ║
+echo  ║  Utility session and helper permissions were configured.   ║
 echo  ║  Hotspot can be toggled directly from the app!            ║
 echo  ║                                                          ║
-echo  ║  Open a streaming app and enjoy uninterrupted viewing! 🎬  ║
+echo  ║  Open TV Connectivity Hub and verify readiness status.     ║
 echo  ║                                                          ║
 echo  ╚══════════════════════════════════════════════════════════╝
 
@@ -453,6 +453,6 @@ if /i "%ANOTHER%"=="y" (
 )
 
 echo.
-echo    👋 Thanks! Enjoy uninterrupted viewing!
+        echo    👋 Done. You can now use TV Connectivity Hub.
 echo.
 pause

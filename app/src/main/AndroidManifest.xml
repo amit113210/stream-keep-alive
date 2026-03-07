@@ -29,7 +29,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.StreamKeepAlive">
+        android:theme="@style/Theme.TvConnectivityHub">
 
         <!-- Main Activity -->
         <activity
@@ -62,7 +62,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="user-initiated TV streaming protection session that keeps a package-aware accessibility keep-alive workflow active while watching supported streaming apps" />
+                android:value="user-initiated Android TV connectivity utility session for local shortcuts, readiness diagnostics, and optional display-timeout hardening" />
         </service>
 
         <service

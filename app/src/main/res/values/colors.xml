@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="background_dark">#FF121212</color>
-    <color name="surface_dark">#FF1E1E1E</color>
+    <color name="background_dark">#FF081019</color>
+    <color name="surface_dark">#FF0F1B2C</color>
     <color name="text_primary">#FFFFFFFF</color>
-    <color name="text_secondary">#FFB0B0B0</color>
-    <color name="status_active">#FF4CAF50</color>
-    <color name="status_inactive">#FFFF5722</color>
-    <color name="accent">#FF2196F3</color>
-    <color name="accent_dark">#FF1565C0</color>
-    <color name="button_bg">#FF2196F3</color>
-    <color name="button_focused">#FF42A5F5</color>
+    <color name="text_secondary">#FFA8BEDA</color>
+    <color name="status_active">#FF7FE29A</color>
+    <color name="status_inactive">#FFFFB74D</color>
+    <color name="accent">#FF2EC4B6</color>
+    <color name="accent_dark">#FF169A90</color>
+    <color name="button_bg">#FF2D5AA0</color>
+    <color name="button_focused">#FF48A8FF</color>
 </resources>

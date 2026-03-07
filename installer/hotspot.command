@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Stream Keep Alive — Hotspot ON/OFF Toggle
+# TV Connectivity Hub — Hotspot ON/OFF Toggle
 #
 
 RED='\033[0;31m'
@@ -100,7 +100,7 @@ stop_hotspot() {
 clear
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║${BOLD}   Stream Keep Alive — Hotspot Control     ${NC}${CYAN}║${NC}"
+echo -e "${CYAN}║${BOLD}   TV Connectivity Hub — Hotspot Control     ${NC}${CYAN}║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════╝${NC}"
 echo ""
 

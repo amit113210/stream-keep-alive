@@ -26,7 +26,7 @@ import java.util.Locale
 import kotlin.math.max
 
 /**
- * Main Activity for Stream Keep Alive.
+ * Main Activity for TV Connectivity Hub.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -362,7 +362,7 @@ class MainActivity : AppCompatActivity() {
         ContextCompat.startForegroundService(this, ProtectionSessionService.createStartIntent(this, mode))
         applyScreenTimeoutHardeningIfPossible()
         updateServiceStatus()
-        Toast.makeText(this, "Protection Session התחיל (${mode.name})", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Utility session started (${mode.name})", Toast.LENGTH_SHORT).show()
     }
 
     private fun stopProtectionSession() {
@@ -374,7 +374,7 @@ class MainActivity : AppCompatActivity() {
         ProtectionSessionManager.stopProtection(this)
         restoreScreenTimeoutIfPossible(reason = "ui-stop")
         updateServiceStatus()
-        Toast.makeText(this, "Protection Session נעצר", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Utility session stopped", Toast.LENGTH_SHORT).show()
     }
 
     private fun applyScreenTimeoutHardeningIfPossible() {
@@ -477,7 +477,7 @@ class MainActivity : AppCompatActivity() {
         val heartbeatAllowed = telemetry.shouldRunHeartbeatNow
         val heartbeatReason = telemetry.heartbeatSuppressedReason.ifEmpty { "-" }
         val gestureHealth = telemetry.gestureEngineHealth
-        val netflixHunterState = when {
+        val dialogHunterState = when {
             telemetry.currentPackage.startsWith("com.netflix").not() &&
                 telemetry.activePlaybackPackage.startsWith("com.netflix").not() -> "IDLE"
             telemetry.lastDialogPositivePhrase.isNotEmpty() && telemetry.lastDialogDismissAt > 0L -> "MATCHING"
@@ -514,7 +514,7 @@ class MainActivity : AppCompatActivity() {
                 Locale.US,
                 "Checklist\n" +
                     "• Accessibility: %s\n" +
-                    "• Protection Session: %s\n" +
+                    "• Utility Session: %s\n" +
                     "• Notification Access: %s\n" +
                     "• Foreground Companion: %s\n" +
                     "• Battery Optimization Exempt: %s\n" +
@@ -523,9 +523,9 @@ class MainActivity : AppCompatActivity() {
                     "• Playback Signals Available: %s\n" +
                     "• Active Playback: %s\n" +
                     "• Gesture Engine Health: %s\n" +
-                    "• Netflix Dialog Hunter: %s\n\n" +
+                    "• Dialog Hunter: %s\n\n" +
                     "Runtime\n" +
-                    "• Display hardening: best effort only (not a guaranteed Netflix fix)\n" +
+                    "• Display hardening: best effort only\n" +
                     "• Selected Mode: %s\n" +
                     "• Heartbeat Allowed: %s\n" +
                     "• Heartbeat Gate Reason: %s\n" +
@@ -563,7 +563,7 @@ class MainActivity : AppCompatActivity() {
                 playbackSignalsText,
                 playbackText,
                 gestureHealth,
-                netflixHunterState,
+                dialogHunterState,
                 selectedMode.name,
                 heartbeatAllowedText,
                 heartbeatReason,
@@ -595,14 +595,14 @@ class MainActivity : AppCompatActivity() {
         } else {
             String.format(
                 Locale.US,
-                "Quick Status: Accessibility %s  |  Protection %s  |  Mode %s  |  Playback %s  |  Heartbeat %s  |  Gesture %s  |  Netflix Hunter %s",
+                "Quick Status: Accessibility %s  |  Session %s  |  Mode %s  |  Playback %s  |  Heartbeat %s  |  Gesture %s  |  Dialog Hunter %s",
                 accessibilityText,
                 protectionText,
                 selectedMode.name,
                 playbackText,
                 heartbeatAllowedText,
                 gestureHealth,
-                netflixHunterState
+                dialogHunterState
             )
         }
         updateModeButtonLabel(selectedMode)
