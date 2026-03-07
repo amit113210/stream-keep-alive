@@ -43,6 +43,12 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".SpeedTestActivity"
+            android:exported="false"
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.TvConnectivityHub" />
+
         <!-- Accessibility Service -->
         <service
             android:name=".KeepAliveAccessibilityService"

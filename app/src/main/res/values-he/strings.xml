@@ -13,6 +13,14 @@
     <string name="description_inactive">יש להשלים הגדרה כדי לפתוח את כל הכלים.
 השתמש בצקליסט ובכפתורי התיקון למטה.</string>
 
+    <string name="button_network_settings">הגדרות רשת מורחבות</string>
+    <string name="button_hotspot_settings">הגדרות נקודת גישה</string>
+    <string name="button_refresh_info">רענן מידע</string>
+    <string name="button_start_hotspot">הפעל נקודה חמה (אפליקציה)</string>
+    <string name="button_stop_hotspot">כבה נקודה חמה (אפליקציה)</string>
+    <string name="button_power_settings">הגדרות חשמל ומערכת</string>
+    <string name="button_more_actions">כלים נוספים</string>
+    <string name="hotspot_app_active">הנקודה החמה מנוהלת כעת דרך האפליקציה. סרוק להתחברות!</string>
     <string name="button_enable">הגדרות נגישות</string>
     <string name="button_disable">הגדרות נגישות</string>
     <string name="button_hotspot">הגדרות נקודת גישה</string>
@@ -102,26 +110,20 @@
     <string name="button_show_qr_code">הצג קוד QR</string>
     <string name="dialog_qr_code_title">קוד QR לנקודת הגישה</string>
     <string name="speed_not_run_yet">עדיין אין תוצאת בדיקת מהירות. לחץ "הרץ בדיקת מהירות".</string>
-    <string name="speed_last_result_format">תוצאה אחרונה: %1$s
-חותמת זמן: %2$d</string>
+    <string name="speed_last_result_format">תוצאה אחרונה: %1$s\nחותמת זמן: %2$s</string>
     <string name="speed_test_placeholder_result">נשלחה בקשת בדיקה ידנית (fast.com)</string>
     <string name="speed_test_placeholder_toast">לא ניתן לפתוח דפדפן. פתח fast.com ידנית.</string>
     <string name="issue_no_internet">לא זוהה חיבור אינטרנט</string>
     <string name="internet_connected">מחובר</string>
     <string name="internet_disconnected">מנותק</string>
-    <string name="internet_card_format">מצב: %1$s
-סוג: %2$s
-SSID: %3$s
-IP מקומי: %4$s</string>
+    <string name="internet_card_format">מצב: %1$s\nסוג: %2$s\nSSID: %3$s\nIP מקומי: %4$s</string>
     <string name="hotspot_state_active">פעיל</string>
     <string name="hotspot_state_inactive">כבוי</string>
     <string name="hotspot_state_unavailable">לא זמין</string>
     <string name="hotspot_note_active">נראה שנקודת הגישה פעילה במכשיר זה.</string>
     <string name="hotspot_note_inactive">נקודת הגישה כבויה כרגע.</string>
     <string name="hotspot_note_unavailable">מצב נקודת הגישה חסום או לא זמין במכשיר זה.</string>
-    <string name="hotspot_card_format">מצב: %1$s
-SSID: %2$s
-הערה: %3$s</string>
+    <string name="hotspot_card_format">מצב: %1$s\nSSID: %2$s\nהערה: %3$s</string>
     <string name="more_bluetooth_settings">הגדרות Bluetooth</string>
     <string name="more_legacy_tools">כלים מתקדמים / Legacy</string>
 

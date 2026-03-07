@@ -19,6 +19,9 @@ Use the quick checklist and fix buttons below.</string>
     <string name="button_network_settings">Network Settings</string>
     <string name="button_hotspot_settings">Hotspot Settings</string>
     <string name="button_refresh_info">Refresh Info</string>
+    <string name="button_start_hotspot">Start App Hotspot</string>
+    <string name="button_stop_hotspot">Stop App Hotspot</string>
+    <string name="hotspot_app_active">App-managed hotspot is active. Scan to connect!</string>
     <string name="button_start_calibration">Calibration Run (12 min)</string>
     <string name="button_notification_access">Notification Access</string>
     <string name="button_power_settings">Power &amp; System Settings</string>
@@ -111,26 +114,20 @@ This is best-effort hardening, not a universal guarantee.</string>
     <string name="button_show_qr_code">Show QR Code</string>
     <string name="dialog_qr_code_title">Hotspot QR Code</string>
     <string name="speed_not_run_yet">No speed test result yet. Press "Run Speed Test".</string>
-    <string name="speed_last_result_format">Last result: %1$s
-Timestamp: %2$d</string>
+    <string name="speed_last_result_format">Last result: %1$s\nTimestamp: %2$s</string>
     <string name="speed_test_placeholder_result">Manual speed test requested (open fast.com)</string>
     <string name="speed_test_placeholder_toast">Could not open browser. Please open fast.com manually.</string>
     <string name="issue_no_internet">No internet connection detected</string>
     <string name="internet_connected">Connected</string>
     <string name="internet_disconnected">Disconnected</string>
-    <string name="internet_card_format">State: %1$s
-Type: %2$s
-SSID: %3$s
-Local IP: %4$s</string>
+    <string name="internet_card_format">State: %1$s\nType: %2$s\nSSID: %3$s\nLocal IP: %4$s</string>
     <string name="hotspot_state_active">Active</string>
     <string name="hotspot_state_inactive">Inactive</string>
     <string name="hotspot_state_unavailable">Unavailable</string>
     <string name="hotspot_note_active">Hotspot appears active on this device.</string>
     <string name="hotspot_note_inactive">Hotspot is currently turned off.</string>
     <string name="hotspot_note_unavailable">Hotspot state is device-restricted or unavailable.</string>
-    <string name="hotspot_card_format">State: %1$s
-SSID: %2$s
-Note: %3$s</string>
+    <string name="hotspot_card_format">State: %1$s\nSSID: %2$s\nNote: %3$s</string>
     <string name="more_bluetooth_settings">Bluetooth settings</string>
     <string name="more_legacy_tools">Advanced / Legacy tools</string>
 

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark">
+
+    <!-- Top Bar -->
+    <LinearLayout
+        android:id="@+id/speedTestHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:background="@color/card_bg"
+        android:elevation="4dp"
+        android:padding="16dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/speed_card_title"
+            android:textColor="@color/text_high"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/closeButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:background="@drawable/btn_secondary"
+            android:text="סגור"
+            android:textColor="@color/text_high"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:focusable="true" />
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/webViewProgressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_below="@id/speedTestHeader"
+        android:indeterminate="true"
+        android:progressTint="@color/brand_primary" />
+
+    <WebView
+        android:id="@+id/speedTestWebView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/webViewProgressBar"
+        android:background="@color/bg_dark" />
+
+</RelativeLayout>
