@@ -893,17 +893,27 @@ class MainActivity : AppCompatActivity() {
         try {
             // Stage 1: Ping
             updateSpeedUi(0, "Testing Ping...")
-            val pingStart = System.currentTimeMillis()
-            val pingConn = java.net.URL("https://speed.cloudflare.com/cdn-cgi/trace").openConnection() as java.net.HttpURLConnection
-            pingConn.requestMethod = "GET"
-            pingConn.connectTimeout = 3000
-            pingConn.readTimeout = 3000
-            pingConn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-            pingConn.setRequestProperty("Origin", "https://speed.cloudflare.com")
-            pingConn.setRequestProperty("Referer", "https://speed.cloudflare.com/")
-            pingConn.inputStream.use { it.readBytes() }
-            val pingEnd = System.currentTimeMillis()
-            pingMs = (pingEnd - pingStart).toString()
+            
+            var icmpPing = getIcmpPing("1.1.1.1") // Cloudflare DNS
+            if (icmpPing < 0) icmpPing = getIcmpPing("8.8.8.8") // Google DNS fallback
+            
+            if (icmpPing >= 0) {
+                pingMs = icmpPing.toString()
+                Thread.sleep(500) // Brief pause for UI fluidity
+            } else {
+                // Fallback to HTTP overhead ping if ICMP is blocked by network
+                val pingStart = System.currentTimeMillis()
+                val pingConn = java.net.URL("https://speed.cloudflare.com/cdn-cgi/trace").openConnection() as java.net.HttpURLConnection
+                pingConn.requestMethod = "GET"
+                pingConn.connectTimeout = 3000
+                pingConn.readTimeout = 3000
+                pingConn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                pingConn.setRequestProperty("Origin", "https://speed.cloudflare.com")
+                pingConn.setRequestProperty("Referer", "https://speed.cloudflare.com/")
+                pingConn.inputStream.use { it.readBytes() }
+                val pingEnd = System.currentTimeMillis()
+                pingMs = (pingEnd - pingStart).toString()
+            }
             
             uiHandler.post { pingResultText.text = "$pingMs ms" }
             if (Thread.interrupted()) return
@@ -1040,6 +1050,29 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun getIcmpPing(host: String): Int {
+        try {
+            val process = Runtime.getRuntime().exec("ping -c 3 -W 2 $host")
+            val reader = java.io.BufferedReader(java.io.InputStreamReader(process.inputStream))
+            var line: String?
+            val times = mutableListOf<Double>()
+            while (reader.readLine().also { line = it } != null) {
+                if (line!!.contains("time=")) {
+                    val timeStr = line!!.substringAfter("time=").substringBefore(" ms")
+                    timeStr.toDoubleOrNull()?.let { times.add(it) }
+                }
+            }
+            process.waitFor()
+            if (times.isNotEmpty()) {
+                return times.average().toInt()
+            }
+        } catch (e: Exception) {
+            // Ignored, will fallback
+        }
+        return -1
+    }
+
+    // --- End Speed Test Logic ---
     private fun readInternetStatus(): InternetStatus {
         val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             ?: return InternetStatus(false, "unknown", "-", "-")
