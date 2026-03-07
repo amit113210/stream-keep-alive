@@ -31,6 +31,9 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
+import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdView
 import java.util.Locale
 import kotlin.math.max
 
@@ -116,6 +119,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var speedTestProgressBar: ProgressBar
     private lateinit var speedTestStatusText: TextView
 
+    private lateinit var adView: AdView
+
     private var speedTestThread: Thread? = null
 
     private val uiHandler = Handler(Looper.getMainLooper())
@@ -164,6 +169,12 @@ class MainActivity : AppCompatActivity() {
         updateModeButtonLabel(ProtectionSessionManager.currentMode(this))
         applyDebugVisibility()
         updateServiceStatus()
+
+        // Initialize AdMob
+        MobileAds.initialize(this) {}
+        adView = findViewById(R.id.adView)
+        val adRequest = AdRequest.Builder().build()
+        adView.loadAd(adRequest)
     }
 
     override fun onResume() {

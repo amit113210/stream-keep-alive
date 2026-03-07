@@ -33,6 +33,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TvConnectivityHub">
 
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3348812047145151~3220489153" />
+
         <!-- Main Activity -->
         <activity
             android:name=".MainActivity"
