@@ -86,8 +86,15 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val lastHeartbeatScheduledAt: Long = 0L,
             val lastHeartbeatExecutedAt: Long = 0L,
             val lastGestureDispatchResult: String = "",
+            val lastGestureDispatchReturned: Boolean = false,
             val lastGestureAction: String = "",
             val lastGestureCompletionAt: Long = 0L,
+            val lastGestureCancelAt: Long = 0L,
+            val lastGestureCancelReasonHint: String = "",
+            val lastGesturePackage: String = "",
+            val lastGestureZoneIndex: Int = -1,
+            val lastGestureCoordinates: String = "",
+            val gestureCancellationWarning: Boolean = false,
             val lastDialogDetectionAt: Long = 0L,
             val lastDialogDismissAt: Long = 0L,
             val lastDialogWindowCount: Int = 0,
@@ -98,6 +105,8 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val lastDialogPackage: String = "",
             val lastDialogPositivePhrase: String = "",
             val lastDialogConfirmPhrase: String = "",
+            val lastDialogNegativeMatch: String = "",
+            val lastDialogNoTargetReason: String = "",
             val lastDialogNegativeBlockReason: String = "",
             val dialogBurstModeActive: Boolean = false,
             val dialogScans: Long = 0L,
@@ -166,6 +175,11 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         val dismissOutcome: DialogDismissOutcome? = null
     )
 
+    private data class SafeZoneSelection(
+        val index: Int,
+        val zone: SafeZone
+    )
+
     private var handler: Handler? = null
     private var heartbeatRunnable: Runnable? = null
     private var dialogScanRunnable: Runnable? = null
@@ -203,6 +217,8 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     private var lastDialogPackage = ""
     private var lastDialogPositivePhrase = ""
     private var lastDialogConfirmPhrase = ""
+    private var lastDialogNegativeMatch = ""
+    private var lastDialogNoTargetReason = ""
     private var lastDialogNegativeBlockReason = ""
     private var lastDialogDismissStrategy = ""
     private var lastPackageTransitionTimestampMs = 0L
@@ -228,12 +244,19 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     private var lastHeartbeatScheduledAtMs = 0L
     private var lastHeartbeatExecutedAtMs = 0L
     private var lastGestureCompletionAtMs = 0L
+    private var lastGestureCancelAtMs = 0L
     private var lastGestureDispatchResult = ""
+    private var lastGestureDispatchReturned = false
+    private var lastGestureCancelReasonHint = ""
+    private var lastGesturePackage = ""
+    private var lastGestureZoneIndex = -1
+    private var lastGestureCoordinates = ""
     private var lastGestureAction = ""
     private var lastSecondaryAttemptAtMs = 0L
 
     private var consecutiveGestureFailures = 0
     private var consecutiveGestureCancels = 0
+    private var gestureCancellationWarning = false
     private var escalationStep = 0
 
     private var shouldRunHeartbeatNowFlag = false
@@ -684,6 +707,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         if (roots.isEmpty()) {
             lastDialogWindowCount = 0
             lastDialogClickMethod = "NONE"
+            lastDialogNoTargetReason = "no_windows"
             publishTelemetrySnapshot()
             return
         }
@@ -697,6 +721,8 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         lastDialogPackage = currentPackage
         lastDialogPositivePhrase = ""
         lastDialogConfirmPhrase = ""
+        lastDialogNegativeMatch = ""
+        lastDialogNoTargetReason = ""
         lastDialogNegativeBlockReason = ""
 
         if (shouldSkipDialogScanByFingerprint(roots, now, bypassFingerprint)) {
@@ -735,6 +761,8 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             lastDialogPackage = dismissOutcome.packageName.ifEmpty { currentPackage }
             lastDialogPositivePhrase = dismissOutcome.positivePhrase
             lastDialogConfirmPhrase = dismissOutcome.confirmPhrase
+            lastDialogNegativeMatch = ""
+            lastDialogNoTargetReason = ""
             lastDialogNegativeBlockReason = dismissOutcome.blockedReason
             dialogBurstModeActive = false
             Log.i(
@@ -743,6 +771,9 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             )
         } else {
             lastDialogClickMethod = "NONE"
+            if (lastDialogNoTargetReason.isBlank()) {
+                lastDialogNoTargetReason = "dismiss_action_failed"
+            }
             Log.w(TAG, "[DIALOG][BLOCK] package=$currentPackage positive=true but no confirm action succeeded")
             enterDialogBurstMode("dismiss_failed")
         }
@@ -762,6 +793,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         val isSameWindow = fingerprint == lastDialogWindowFingerprint
         val isCooldownActive = now - lastDialogWindowFingerprintMs < WINDOW_FINGERPRINT_COOLDOWN_MS
         if (isSameWindow && isCooldownActive) {
+            lastDialogNoTargetReason = "same_fingerprint_cooldown"
             Log.d(TAG, "[DIALOG][BLOCK] package=$currentPackage reason=same_fingerprint_cooldown")
             return true
         }
@@ -888,17 +920,28 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             latestVisibleSample = visibleTexts.joinToString(", ").take(320)
             lastDialogVisibleTextsSample = latestVisibleSample
             lastDialogPackage = packageName
+            lastDialogNoTargetReason = ""
 
             Log.d(
                 TAG,
                 "[DIALOG][WIN] package=$packageName index=${ref.index} source=${ref.source} id=${ref.windowId} type=${windowTypeName(ref.windowType)} visible=${visibleTexts.take(12)} clickable=${clickableTexts.take(8)}"
             )
 
+            val negativeMatch = findNegativePhraseInTexts(
+                texts = visibleTexts + clickableTexts,
+                extraNegativePhrases = extraNegativePhrases
+            )
+            if (negativeMatch.isNotEmpty()) {
+                lastDialogNegativeMatch = negativeMatch
+                Log.d(TAG, "[DIALOG][MATCH] package=$packageName window=${ref.index} negative=\"$negativeMatch\"")
+            }
+
             val positivePhrase = DialogTextMatcher.findDialogPhrase(
                 visibleTexts = visibleTexts,
                 additionalKeywords = profile.dialogPositivePhrases + profile.dialogKeywords + PackagePolicy.genericDialogPositivePhrases
             )
             if (positivePhrase == null) {
+                lastDialogNoTargetReason = "no_positive_phrase"
                 Log.d(TAG, "[DIALOG][BLOCK] package=$packageName window=${ref.index} reason=no_positive_phrase")
                 continue
             }
@@ -909,6 +952,9 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
             for (phrase in confirmCandidates) {
                 val exactNode = findNodeByExactText(ref.root, phrase, extraNegativePhrases)
+                if (exactNode != null) {
+                    Log.i(TAG, "[DIALOG][MATCH] package=$packageName window=${ref.index} exact_confirm=\"$phrase\"")
+                }
                 val exactOutcome = findAndActivateTargetNode(
                     node = exactNode,
                     windowIndex = ref.index,
@@ -927,6 +973,9 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
             for (phrase in confirmCandidates) {
                 val containsNode = findNodeContainingText(ref.root, phrase, extraNegativePhrases)
+                if (containsNode != null) {
+                    Log.i(TAG, "[DIALOG][MATCH] package=$packageName window=${ref.index} contains_confirm=\"$phrase\"")
+                }
                 val containsOutcome = findAndActivateTargetNode(
                     node = containsNode,
                     windowIndex = ref.index,
@@ -972,6 +1021,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             if (matcherOutcome != null) return ProfileDialogScanOutcome(true, matcherOutcome)
 
             latestBlockedReason = "positive_without_confirm_target"
+            lastDialogNoTargetReason = latestBlockedReason
             lastDialogNegativeBlockReason = latestBlockedReason
             Log.w(TAG, "[DIALOG][BLOCK] package=$packageName window=${ref.index} reason=$latestBlockedReason")
         }
@@ -987,6 +1037,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
                 return ProfileDialogScanOutcome(true, fallbackOutcome)
             }
         } else if (positiveMatchFound) {
+            lastDialogNoTargetReason = "generic_fallback_disabled"
             Log.d(TAG, "[DIALOG][BLOCK] package=$packageName generic_fallback_disabled=true")
         }
 
@@ -998,6 +1049,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         }
 
         if (prioritizeProfile && !positiveMatchFound) {
+            lastDialogNoTargetReason = "observer_no_positive_phrase"
             Log.d(TAG, "[DIALOG][BLOCK] package=$packageName observer suppressed: no positive dialog phrase")
         }
 
@@ -1043,6 +1095,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             safeRecycle(node)
             if (outcome != null) return outcome
         }
+        lastDialogNoTargetReason = "generic_fallback_no_confirm_target"
         Log.d(TAG, "[DIALOG][BLOCK] package=$packageName generic fallback skipped because no confirm target")
         return null
     }
@@ -1067,6 +1120,8 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         )
         if (blockedPhrase != null) {
             val reason = "negative_target:$blockedPhrase"
+            lastDialogNegativeMatch = blockedPhrase
+            lastDialogNoTargetReason = reason
             lastDialogNegativeBlockReason = reason
             Log.w(TAG, "[DIALOG][BLOCK] package=$packageName strategy=$strategy reason=$reason")
             return null
@@ -1075,6 +1130,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         val normalizedTarget = targetText.ifBlank { node.text?.toString().orEmpty() }.trim()
         val actionFingerprint = "$packageName|$windowIndex|$windowFingerprint|$normalizedTarget|$strategy"
         if (isDialogRepeatActionBlocked(actionFingerprint)) {
+            lastDialogNoTargetReason = "anti_repeat_guard"
             Log.w(TAG, "[DIALOG][BLOCK] package=$packageName action blocked by anti-repeat guard")
             return null
         }
@@ -1088,7 +1144,10 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             TAG,
             "[DIALOG][CLICK] package=$packageName strategy=$strategy window=$windowIndex attempted=${clickMethod != null} succeeded=${clickMethod != null} method=${clickMethod ?: "NONE"}"
         )
-        if (clickMethod == null) return null
+        if (clickMethod == null) {
+            lastDialogNoTargetReason = "click_method_failed"
+            return null
+        }
         rememberDialogAction(actionFingerprint)
         lastDialogNegativeBlockReason = ""
 
@@ -1123,6 +1182,18 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         dialogBurstModeActive = false
         dialogBurstUntilMs = 0L
         Log.i(TAG, "[DIALOG][SCAN] action state cleared reason=$reason")
+    }
+
+    private fun findNegativePhraseInTexts(texts: List<String>, extraNegativePhrases: List<String>): String {
+        for (text in texts) {
+            val match = DialogTextMatcher.findNegativePhrase(
+                text = text,
+                contentDesc = null,
+                additionalKeywords = extraNegativePhrases
+            )
+            if (!match.isNullOrBlank()) return match
+        }
+        return ""
     }
 
     private fun collectVisibleTexts(
@@ -1285,7 +1356,9 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
     private fun tapBoundsCenterForNode(
         node: AccessibilityNodeInfo,
-        additionalNegativeKeywords: List<String> = emptyList()
+        additionalNegativeKeywords: List<String> = emptyList(),
+        packageName: String = currentPackage,
+        positiveDialogMatched: Boolean = true
     ): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false
         if (DialogTextMatcher.containsNegativeKeyword(node.text, node.contentDescription, additionalNegativeKeywords)) {
@@ -1307,20 +1380,56 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             .addStroke(GestureDescription.StrokeDescription(path, 0, 45))
             .build()
 
-        Log.i(TAG, "[DIALOG][CLICK] bounds tap attempt center=(${x.toInt()},${y.toInt()})")
-        return dispatchGesture(
+        val coords = "${x.toInt()},${y.toInt()}"
+        val windowsCount = windows?.size ?: 0
+        val playback = PlaybackStateManager.snapshot()
+        lastGestureAction = "DIALOG_BOUNDS_TAP"
+        lastGesturePackage = packageName
+        lastGestureZoneIndex = -2
+        lastGestureCoordinates = coords
+        lastGestureDispatchReturned = false
+        gesturesDispatchedCount++
+        Log.i(
+            TAG,
+            "[GESTURE] attempt type=dialog_bounds_tap package=$packageName playback=${playback.friendlyState} mode=${currentMode().name} action=DIALOG_BOUNDS_TAP zone=-2 coords=$coords windows=$windowsCount supported=${isSupportedActivePackage()} positiveDialogMatched=$positiveDialogMatched"
+        )
+        val accepted = dispatchGesture(
             gesture,
             object : GestureResultCallback() {
                 override fun onCompleted(gestureDescription: GestureDescription?) {
-                    Log.i(TAG, "[DIALOG][CLICK] bounds tap completed")
+                    gesturesCompletedCount++
+                    lastGestureCompletionAtMs = System.currentTimeMillis()
+                    lastGestureDispatchResult = "completed"
+                    consecutiveGestureCancels = 0
+                    updateGestureCancellationWarning()
+                    Log.i(TAG, "[GESTURE] callback=completed type=dialog_bounds_tap package=$packageName coords=$coords")
                 }
 
                 override fun onCancelled(gestureDescription: GestureDescription?) {
-                    Log.w(TAG, "[DIALOG][CLICK] bounds tap cancelled")
+                    gesturesCancelledCount++
+                    lastGestureDispatchResult = "cancelled"
+                    lastGestureCancelAtMs = System.currentTimeMillis()
+                    lastGestureCancelReasonHint = "dialog_bounds_tap_cancelled"
+                    consecutiveGestureCancels++
+                    updateGestureCancellationWarning()
+                    Log.w(
+                        TAG,
+                        "[GESTURE] callback=cancelled type=dialog_bounds_tap package=$packageName playback=${playback.friendlyState} mode=${currentMode().name} coords=$coords windows=$windowsCount supported=${isSupportedActivePackage()} positiveDialogMatched=$positiveDialogMatched"
+                    )
                 }
             },
             null
         )
+        lastGestureDispatchReturned = accepted
+        Log.i(TAG, "[GESTURE] dispatch_returned=$accepted type=dialog_bounds_tap package=$packageName coords=$coords")
+        if (!accepted) {
+            gesturesDispatchRejectedCount++
+            lastGestureDispatchResult = "dispatch_returned_false"
+            lastGestureCancelAtMs = System.currentTimeMillis()
+            lastGestureCancelReasonHint = "dialog_bounds_tap_dispatch_false"
+            updateGestureCancellationWarning()
+        }
+        return accepted
     }
 
     // ==========================================
@@ -1413,18 +1522,23 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             return
         }
 
-        val zone = pickSafeZone(profile)
+        val zoneSelection = pickSafeZone(profile)
         val action = resolveHeartbeatAction(profile, now)
         heartbeatSequence++
 
-        val dispatched = dispatchHeartbeatGesture(action, zone, reason, secondary = false)
+        val dispatched = dispatchHeartbeatGesture(
+            action = action,
+            zoneSelection = zoneSelection,
+            reason = reason,
+            secondary = false
+        )
         if (!dispatched && escalationStep >= 3) {
-            maybeScheduleSecondaryAttempt(profile, zone)
+            maybeScheduleSecondaryAttempt(profile, zoneSelection)
             enterDialogBurstMode("heartbeat_fail")
         }
     }
 
-    private fun maybeScheduleSecondaryAttempt(profile: StreamingAppProfile, zone: SafeZone) {
+    private fun maybeScheduleSecondaryAttempt(profile: StreamingAppProfile, zoneSelection: SafeZoneSelection) {
         val now = System.currentTimeMillis()
         if (now - lastSecondaryAttemptAtMs < DOUBLE_ATTEMPT_COOLDOWN_MS) return
 
@@ -1437,7 +1551,12 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
             val action = alternateAction(resolveHeartbeatAction(profile, System.currentTimeMillis()))
             Log.i(TAG, "[HB] escalation double-attempt action=${action.name}")
-            dispatchHeartbeatGesture(action, zone, "escalation-double", secondary = true)
+            dispatchHeartbeatGesture(
+                action = action,
+                zoneSelection = zoneSelection,
+                reason = "escalation-double",
+                secondary = true
+            )
         }, DOUBLE_ATTEMPT_DELAY_MS)
     }
 
@@ -1470,7 +1589,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun pickSafeZone(profile: StreamingAppProfile): SafeZone {
+    private fun pickSafeZone(profile: StreamingAppProfile): SafeZoneSelection {
         val zones = if (profile.safeZones.isEmpty()) {
             listOf(SafeZone(0.08f, 0.10f, 10))
         } else {
@@ -1486,23 +1605,30 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             else -> (preferredIndex + (heartbeatSequence.toInt() % max(1, zones.size))) % zones.size
         }
 
-        return zones[selectedIndex]
+        return SafeZoneSelection(index = selectedIndex, zone = zones[selectedIndex])
     }
 
     private fun dispatchHeartbeatGesture(
         action: HeartbeatAction,
-        zone: SafeZone,
+        zoneSelection: SafeZoneSelection,
         reason: String,
         secondary: Boolean
     ): Boolean {
-        val gesture = when (action) {
-            HeartbeatAction.MICRO_TAP -> buildMicroTapGesture(zone)
-            HeartbeatAction.MICRO_SWIPE -> buildMicroSwipeGesture(zone)
-            HeartbeatAction.HYBRID -> buildMicroTapGesture(zone)
+        val gestureBuild = when (action) {
+            HeartbeatAction.MICRO_TAP -> buildMicroTapGesture(zoneSelection.zone)
+            HeartbeatAction.MICRO_SWIPE -> buildMicroSwipeGesture(zoneSelection.zone)
+            HeartbeatAction.HYBRID -> buildMicroTapGesture(zoneSelection.zone)
         }
+        val gesture = gestureBuild.first
+        val coordinates = gestureBuild.second
 
         lastHeartbeatExecutedAtMs = System.currentTimeMillis()
         lastGestureAction = action.name
+        lastGesturePackage = currentPackage
+        lastGestureZoneIndex = zoneSelection.index
+        lastGestureCoordinates = coordinates
+        lastGestureDispatchReturned = false
+        lastGestureCancelReasonHint = ""
 
         if (gesture == null) {
             onGestureDispatchRejected("gesture_build_failed")
@@ -1510,9 +1636,11 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         }
 
         gesturesDispatchedCount++
+        val playback = PlaybackStateManager.snapshot()
+        val windowsCount = windows?.size ?: 0
         Log.i(
             TAG,
-            "[HB] fire reason=$reason secondary=$secondary package=$currentPackage action=${action.name}"
+            "[GESTURE] attempt type=heartbeat package=$currentPackage playback=${playback.friendlyState} mode=${currentMode().name} action=${action.name} zone=${zoneSelection.index} coords=$coordinates windows=$windowsCount supported=${isSupportedActivePackage()} positiveDialogMatched=false reason=$reason secondary=$secondary"
         )
 
         val accepted = dispatchGesture(
@@ -1524,6 +1652,12 @@ class KeepAliveAccessibilityService : AccessibilityService() {
                     lastGestureDispatchResult = "completed"
                     consecutiveGestureFailures = 0
                     consecutiveGestureCancels = 0
+                    lastGestureCancelReasonHint = ""
+                    updateGestureCancellationWarning()
+                    Log.i(
+                        TAG,
+                        "[GESTURE] callback=completed type=heartbeat package=$currentPackage action=${action.name} zone=${zoneSelection.index} coords=$coordinates"
+                    )
                     updateEscalationStep()
                     publishTelemetrySnapshot()
                 }
@@ -1531,8 +1665,15 @@ class KeepAliveAccessibilityService : AccessibilityService() {
                 override fun onCancelled(gestureDescription: GestureDescription?) {
                     gesturesCancelledCount++
                     lastGestureDispatchResult = "cancelled"
+                    lastGestureCancelAtMs = System.currentTimeMillis()
+                    lastGestureCancelReasonHint = "callback_cancelled"
                     consecutiveGestureCancels++
                     consecutiveGestureFailures++
+                    updateGestureCancellationWarning()
+                    Log.w(
+                        TAG,
+                        "[GESTURE] callback=cancelled type=heartbeat package=$currentPackage playback=${playback.friendlyState} mode=${currentMode().name} action=${action.name} zone=${zoneSelection.index} coords=$coordinates windows=$windowsCount supported=${isSupportedActivePackage()} positiveDialogMatched=false"
+                    )
                     updateEscalationStep()
                     enterDialogBurstMode("gesture_cancelled")
                     publishTelemetrySnapshot()
@@ -1540,9 +1681,14 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             },
             null
         )
+        lastGestureDispatchReturned = accepted
+        Log.i(
+            TAG,
+            "[GESTURE] dispatch_returned=$accepted type=heartbeat package=$currentPackage action=${action.name} zone=${zoneSelection.index} coords=$coordinates"
+        )
 
         if (!accepted) {
-            onGestureDispatchRejected("dispatch_rejected")
+            onGestureDispatchRejected("dispatch_returned_false")
             return false
         }
 
@@ -1553,10 +1699,22 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     private fun onGestureDispatchRejected(result: String) {
         gesturesDispatchRejectedCount++
         lastGestureDispatchResult = result
+        lastGestureDispatchReturned = false
+        lastGestureCancelAtMs = System.currentTimeMillis()
+        lastGestureCancelReasonHint = result
         consecutiveGestureFailures++
+        updateGestureCancellationWarning()
+        Log.w(
+            TAG,
+            "[GESTURE] dispatch_failed package=$currentPackage mode=${currentMode().name} result=$result zone=$lastGestureZoneIndex coords=$lastGestureCoordinates"
+        )
         updateEscalationStep()
         enterDialogBurstMode("dispatch_rejected")
         publishTelemetrySnapshot()
+    }
+
+    private fun updateGestureCancellationWarning() {
+        gestureCancellationWarning = consecutiveGestureCancels >= 5
     }
 
     private fun updateEscalationStep() {
@@ -1576,18 +1734,20 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     private fun resetEscalationState() {
         consecutiveGestureFailures = 0
         consecutiveGestureCancels = 0
+        gestureCancellationWarning = false
         escalationStep = 0
     }
 
-    private fun buildMicroTapGesture(zone: SafeZone): GestureDescription? {
+    private fun buildMicroTapGesture(zone: SafeZone): Pair<GestureDescription?, String> {
         val point = toSafePoint(zone)
         val path = Path().apply { moveTo(point.x, point.y) }
-        return GestureDescription.Builder()
+        val gesture = GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(path, 0, 45))
             .build()
+        return gesture to "${point.x.toInt()},${point.y.toInt()}"
     }
 
-    private fun buildMicroSwipeGesture(zone: SafeZone): GestureDescription? {
+    private fun buildMicroSwipeGesture(zone: SafeZone): Pair<GestureDescription?, String> {
         val start = toSafePoint(zone)
         val delta = 3f
         val endX = clamp(start.x + delta, 8f, max(8f, resources.displayMetrics.widthPixels - 8f))
@@ -1598,9 +1758,10 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             lineTo(endX, endY)
         }
 
-        return GestureDescription.Builder()
+        val gesture = GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(path, 0, 100))
             .build()
+        return gesture to "${start.x.toInt()},${start.y.toInt()} -> ${endX.toInt()},${endY.toInt()}"
     }
 
     private fun toSafePoint(zone: SafeZone): PointF {
@@ -1778,7 +1939,13 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             lastDialogPackage = ""
             lastDialogPositivePhrase = ""
             lastDialogConfirmPhrase = ""
+            lastDialogNegativeMatch = ""
+            lastDialogNoTargetReason = ""
             lastDialogNegativeBlockReason = ""
+            lastGestureCancelReasonHint = ""
+            lastGesturePackage = ""
+            lastGestureZoneIndex = -1
+            lastGestureCoordinates = ""
             resetEscalationState()
         }
 
@@ -1817,8 +1984,15 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             lastHeartbeatScheduledAt = lastHeartbeatScheduledAtMs,
             lastHeartbeatExecutedAt = lastHeartbeatExecutedAtMs,
             lastGestureDispatchResult = lastGestureDispatchResult,
+            lastGestureDispatchReturned = lastGestureDispatchReturned,
             lastGestureAction = lastGestureAction,
             lastGestureCompletionAt = lastGestureCompletionAtMs,
+            lastGestureCancelAt = lastGestureCancelAtMs,
+            lastGestureCancelReasonHint = lastGestureCancelReasonHint,
+            lastGesturePackage = lastGesturePackage,
+            lastGestureZoneIndex = lastGestureZoneIndex,
+            lastGestureCoordinates = lastGestureCoordinates,
+            gestureCancellationWarning = gestureCancellationWarning,
             lastDialogDetectionAt = lastDialogDetectionAtMs,
             lastDialogDismissAt = lastDialogDismissAtMs,
             lastDialogWindowCount = lastDialogWindowCount,
@@ -1829,6 +2003,8 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             lastDialogPackage = lastDialogPackage,
             lastDialogPositivePhrase = lastDialogPositivePhrase,
             lastDialogConfirmPhrase = lastDialogConfirmPhrase,
+            lastDialogNegativeMatch = lastDialogNegativeMatch,
+            lastDialogNoTargetReason = lastDialogNoTargetReason,
             lastDialogNegativeBlockReason = lastDialogNegativeBlockReason,
             dialogBurstModeActive = dialogBurstModeActive,
             dialogScans = dialogScanCount,

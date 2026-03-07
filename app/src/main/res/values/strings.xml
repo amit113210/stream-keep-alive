@@ -74,4 +74,7 @@
     <string name="action_allow">Allow</string>
     <string name="action_continue_anyway">Continue anyway</string>
     <string name="mode_changed_to">Mode changed to %1$s</string>
+    <string name="readiness_warning_default">Readiness checks are OK.</string>
+    <string name="button_fix_battery">Fix Battery</string>
+    <string name="button_fix_write_settings">Fix Write Settings</string>
 </resources>

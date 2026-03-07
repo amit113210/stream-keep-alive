@@ -15,6 +15,7 @@ import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -72,6 +73,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var moreActionsButton: Button
     private lateinit var startProtectionButton: Button
     private lateinit var stopProtectionButton: Button
+    private lateinit var readinessWarningContainer: LinearLayout
+    private lateinit var readinessWarningText: TextView
+    private lateinit var openBatterySettingsButton: Button
+    private lateinit var openWriteSettingsButton: Button
     private lateinit var debugTelemetryText: TextView
 
     private val uiHandler = Handler(Looper.getMainLooper())
@@ -95,6 +100,10 @@ class MainActivity : AppCompatActivity() {
         moreActionsButton = findViewById(R.id.moreActionsButton)
         startProtectionButton = findViewById(R.id.startProtectionButton)
         stopProtectionButton = findViewById(R.id.stopProtectionButton)
+        readinessWarningContainer = findViewById(R.id.readinessWarningContainer)
+        readinessWarningText = findViewById(R.id.readinessWarningText)
+        openBatterySettingsButton = findViewById(R.id.openBatterySettingsButton)
+        openWriteSettingsButton = findViewById(R.id.openWriteSettingsButton)
         debugTelemetryText = findViewById(R.id.debugTelemetryText)
 
         versionText.text = getInstalledVersionText()
@@ -103,6 +112,8 @@ class MainActivity : AppCompatActivity() {
         modeSelectorButton.setOnClickListener { cycleProtectionMode() }
         moreActionsButton.setOnClickListener { openMoreActionsMenu() }
         stopProtectionButton.setOnClickListener { stopProtectionSession() }
+        openBatterySettingsButton.setOnClickListener { openBatteryOptimizationSettings() }
+        openWriteSettingsButton.setOnClickListener { openWriteSettingsScreen() }
 
         updateModeButtonLabel(ProtectionSessionManager.currentMode(this))
         applyDebugVisibility()
@@ -465,6 +476,14 @@ class MainActivity : AppCompatActivity() {
         val playbackActive = telemetry.playbackStateFriendly == PlaybackFriendlyState.PLAYING_ACTIVE.name
         val heartbeatAllowed = telemetry.shouldRunHeartbeatNow
         val heartbeatReason = telemetry.heartbeatSuppressedReason.ifEmpty { "-" }
+        val gestureHealth = if (telemetry.gestureCancellationWarning) "CANCELLING" else "OK"
+        val netflixHunterState = when {
+            telemetry.currentPackage.startsWith("com.netflix").not() &&
+                telemetry.activePlaybackPackage.startsWith("com.netflix").not() -> "IDLE"
+            telemetry.lastDialogPositivePhrase.isNotEmpty() && telemetry.lastDialogDismissAt > 0L -> "MATCHING"
+            telemetry.lastDialogNoTargetReason.isNotEmpty() -> "FAILED"
+            else -> "MATCHING"
+        }
         val dialogTargetWindowText = if (telemetry.lastDialogTargetWindowIndex >= 0) {
             telemetry.lastDialogTargetWindowIndex.toString()
         } else {
@@ -473,6 +492,8 @@ class MainActivity : AppCompatActivity() {
         val dialogPackageText = telemetry.lastDialogPackage.ifEmpty { "-" }
         val dialogPositivePhraseText = telemetry.lastDialogPositivePhrase.ifEmpty { "-" }
         val dialogConfirmPhraseText = telemetry.lastDialogConfirmPhrase.ifEmpty { "-" }
+        val dialogNegativeMatchText = telemetry.lastDialogNegativeMatch.ifEmpty { "-" }
+        val dialogNoTargetReasonText = telemetry.lastDialogNoTargetReason.ifEmpty { "-" }
         val dialogBlockReasonText = telemetry.lastDialogNegativeBlockReason.ifEmpty { "-" }
         val dialogTargetText = telemetry.lastDialogTargetText.ifEmpty { "-" }
         val dialogClickMethod = telemetry.lastDialogClickMethod.ifEmpty { "NONE" }
@@ -500,7 +521,9 @@ class MainActivity : AppCompatActivity() {
                     "• Write Settings Permission: %s\n" +
                     "• Screen Timeout Override Active: %s\n" +
                     "• Playback Signals Available: %s\n" +
-                    "• Active Playback: %s\n\n" +
+                    "• Active Playback: %s\n" +
+                    "• Gesture Engine Health: %s\n" +
+                    "• Netflix Dialog Hunter: %s\n\n" +
                     "Runtime\n" +
                     "• Display hardening: best effort only (not a guaranteed Netflix fix)\n" +
                     "• Selected Mode: %s\n" +
@@ -517,6 +540,8 @@ class MainActivity : AppCompatActivity() {
                     "• Last Dialog Package: %s\n" +
                     "• Last Dialog Positive Phrase: %s\n" +
                     "• Last Dialog Confirm Phrase: %s\n" +
+                    "• Last Dialog Negative Match: %s\n" +
+                    "• Last Dialog No-Target Reason: %s\n" +
                     "• Last Dialog Block Reason: %s\n" +
                     "• Last Dialog Target: %s\n" +
                     "• Last Dialog Target Window: %s\n" +
@@ -530,6 +555,8 @@ class MainActivity : AppCompatActivity() {
                 timeoutOverrideText,
                 playbackSignalsText,
                 playbackText,
+                gestureHealth,
+                netflixHunterState,
                 selectedMode.name,
                 heartbeatAllowedText,
                 heartbeatReason,
@@ -544,6 +571,8 @@ class MainActivity : AppCompatActivity() {
                 dialogPackageText,
                 dialogPositivePhraseText,
                 dialogConfirmPhraseText,
+                dialogNegativeMatchText,
+                dialogNoTargetReasonText,
                 dialogBlockReasonText,
                 dialogTargetText,
                 dialogTargetWindowText,
@@ -552,15 +581,37 @@ class MainActivity : AppCompatActivity() {
         } else {
             String.format(
                 Locale.US,
-                "Quick Status: Accessibility %s  |  Protection %s  |  Mode %s  |  Playback %s  |  Heartbeat %s",
+                "Quick Status: Accessibility %s  |  Protection %s  |  Mode %s  |  Playback %s  |  Heartbeat %s  |  Gesture %s  |  Netflix Hunter %s",
                 accessibilityText,
                 protectionText,
                 selectedMode.name,
                 playbackText,
-                heartbeatAllowedText
+                heartbeatAllowedText,
+                gestureHealth,
+                netflixHunterState
             )
         }
         updateModeButtonLabel(selectedMode)
+
+        val warningLines = mutableListOf<String>()
+        if (!batteryExempt) warningLines.add("Battery optimization exempt: MISSING")
+        if (!writeSettingsGranted) warningLines.add("Write settings permission: MISSING")
+        if (!timeoutOverrideActive && protectionActive && writeSettingsGranted) {
+            warningLines.add("Timeout override active: MISSING")
+        }
+        if (telemetry.gestureCancellationWarning) {
+            warningLines.add("Gestures are being cancelled repeatedly")
+        }
+
+        if (warningLines.isNotEmpty()) {
+            readinessWarningContainer.visibility = View.VISIBLE
+            readinessWarningText.text = warningLines.joinToString("\n")
+        } else {
+            readinessWarningContainer.visibility = View.GONE
+            readinessWarningText.text = getString(R.string.readiness_warning_default)
+        }
+        openBatterySettingsButton.visibility = if (!batteryExempt) View.VISIBLE else View.GONE
+        openWriteSettingsButton.visibility = if (!writeSettingsGranted) View.VISIBLE else View.GONE
 
         startProtectionButton.isEnabled = !protectionActive
         stopProtectionButton.isEnabled = protectionActive
@@ -636,9 +687,9 @@ class MainActivity : AppCompatActivity() {
                 "Playback: pkg=%s state=%s src=%s conf=%s changedAt=%d mediaAccess=%s\n" +
                 "Gate: runNow=%s reason=%s\n" +
                 "Current: pkg=%s profile=%s mode=%s interval=%dms esc=%d burst=%s\n" +
-                "DialogWin: pkg=%s count=%d positive=%s confirm=%s block=%s target=%s win=%d click=%s sample=%s\n" +
+                "DialogWin: pkg=%s count=%d positive=%s confirm=%s negative=%s noTarget=%s block=%s target=%s win=%d click=%s sample=%s\n" +
                 "Heartbeat: scheduled=%d executed=%d\n" +
-                "Gesture: result=%s action=%s completion=%d fail=%d cancel=%d\n" +
+                "Gesture: result=%s dispatchReturned=%s action=%s pkg=%s zone=%d coords=%s completion=%d cancelAt=%d cancelHint=%s warn=%s fail=%d cancel=%d\n" +
                 "Dialog: detectedAt=%d dismissedAt=%d strategy=%s stats=%d/%d/%d\n" +
                 "Gestures: sent=%d done=%d cancel=%d reject=%d\n" +
                 "Calibration: mode=%s action=%s zone=%d\n" +
@@ -667,6 +718,8 @@ class MainActivity : AppCompatActivity() {
             t.lastDialogWindowCount,
             t.lastDialogPositivePhrase.ifEmpty { "-" },
             t.lastDialogConfirmPhrase.ifEmpty { "-" },
+            t.lastDialogNegativeMatch.ifEmpty { "-" },
+            t.lastDialogNoTargetReason.ifEmpty { "-" },
             t.lastDialogNegativeBlockReason.ifEmpty { "-" },
             t.lastDialogTargetText.ifEmpty { "-" },
             t.lastDialogTargetWindowIndex,
@@ -675,8 +728,15 @@ class MainActivity : AppCompatActivity() {
             t.lastHeartbeatScheduledAt,
             t.lastHeartbeatExecutedAt,
             t.lastGestureDispatchResult.ifEmpty { "-" },
+            t.lastGestureDispatchReturned,
             t.lastGestureAction.ifEmpty { "-" },
+            t.lastGesturePackage.ifEmpty { "-" },
+            t.lastGestureZoneIndex,
+            t.lastGestureCoordinates.ifEmpty { "-" },
             t.lastGestureCompletionAt,
+            t.lastGestureCancelAt,
+            t.lastGestureCancelReasonHint.ifEmpty { "-" },
+            t.gestureCancellationWarning,
             t.consecutiveGestureFailures,
             t.consecutiveGestureCancels,
             t.lastDialogDetectionAt,
