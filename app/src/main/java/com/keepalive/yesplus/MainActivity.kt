@@ -109,14 +109,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var runSpeedTestButton: Button
     private lateinit var showQrCodeButton: Button
     
-    // Speed Test Overlay Views
-    private lateinit var speedTestOverlay: FrameLayout
+    // Inline Speed Test Views
+    private lateinit var speedMetricsContainer: LinearLayout
     private lateinit var pingResultText: TextView
     private lateinit var downloadResultText: TextView
     private lateinit var uploadResultText: TextView
     private lateinit var speedTestProgressBar: ProgressBar
     private lateinit var speedTestStatusText: TextView
-    private lateinit var closeSpeedTestButton: Button
 
     private var speedTestThread: Thread? = null
 
@@ -147,13 +146,12 @@ class MainActivity : AppCompatActivity() {
         speedStatusValue = findViewById(R.id.speedStatusValue)
         runSpeedTestButton = findViewById(R.id.runSpeedTestButton)
         showQrCodeButton = findViewById(R.id.showQrCodeButton)
-        speedTestOverlay = findViewById(R.id.speedTestOverlay)
+        speedMetricsContainer = findViewById(R.id.speedMetricsContainer)
         pingResultText = findViewById(R.id.pingResultText)
         downloadResultText = findViewById(R.id.downloadResultText)
         uploadResultText = findViewById(R.id.uploadResultText)
         speedTestProgressBar = findViewById(R.id.speedTestProgressBar)
         speedTestStatusText = findViewById(R.id.speedTestStatusText)
-        closeSpeedTestButton = findViewById(R.id.closeSpeedTestButton)
 
         versionText.text = getInstalledVersionText()
 
@@ -165,7 +163,6 @@ class MainActivity : AppCompatActivity() {
         openBatterySettingsButton.setOnClickListener { openBatteryOptimizationSettings() }
         openWriteSettingsButton.setOnClickListener { openWriteSettingsScreen() }
         runSpeedTestButton.setOnClickListener { onRunSpeedTestClicked() }
-        closeSpeedTestButton.setOnClickListener { closeSpeedTestOverlay() }
 
         updateModeButtonLabel(ProtectionSessionManager.currentMode(this))
         applyDebugVisibility()
@@ -868,8 +865,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onRunSpeedTestClicked() {
-        updateServiceStatus()
-        speedTestOverlay.visibility = View.VISIBLE
+        if (speedTestThread != null) {
+            // Already running
+            return
+        }
+        
+        speedMetricsContainer.visibility = View.VISIBLE
+        speedStatusValue.visibility = View.GONE
+        runSpeedTestButton.isEnabled = false
         
         pingResultText.text = "-- ms"
         downloadResultText.text = "-- Mbps"
@@ -877,17 +880,9 @@ class MainActivity : AppCompatActivity() {
         speedTestStatusText.text = "Starting test..."
         speedTestProgressBar.progress = 0
 
-        speedTestThread?.interrupt()
         speedTestThread = Thread {
             runNativeSpeedTest()
         }.apply { start() }
-    }
-
-    private fun closeSpeedTestOverlay() {
-        speedTestThread?.interrupt()
-        speedTestThread = null
-        speedTestOverlay.visibility = View.GONE
-        updateServiceStatus()
     }
 
     private fun runNativeSpeedTest() {
@@ -984,10 +979,20 @@ class MainActivity : AppCompatActivity() {
                 .putLong(SPEED_LAST_AT, now)
                 .apply()
 
-            uiHandler.post { updateServiceStatus() }
+            uiHandler.post { 
+                speedTestThread = null
+                runSpeedTestButton.isEnabled = true
+                speedMetricsContainer.visibility = View.GONE
+                speedStatusValue.visibility = View.VISIBLE
+                updateServiceStatus()
+            }
 
         } catch (e: Exception) {
             updateSpeedUi(100, "Error: ${e.message}")
+            uiHandler.post {
+                speedTestThread = null
+                runSpeedTestButton.isEnabled = true
+            }
         }
     }
 

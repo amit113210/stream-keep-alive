@@ -176,6 +176,100 @@
                         android:textSize="18sp"
                         android:textStyle="bold" />
 
+                    <!-- Metrics Container -->
+                    <LinearLayout
+                        android:id="@+id/speedMetricsContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginTop="12dp"
+                        android:orientation="vertical"
+                        android:gravity="center_vertical"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+                            <TextView
+                                android:layout_width="80dp"
+                                android:layout_height="wrap_content"
+                                android:text="Ping:"
+                                android:textColor="@color/text_mid"
+                                android:textSize="14sp" />
+                            <TextView
+                                android:id="@+id/pingResultText"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="-- ms"
+                                android:textColor="@color/text_high"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:orientation="horizontal">
+                            <TextView
+                                android:layout_width="80dp"
+                                android:layout_height="wrap_content"
+                                android:text="Down:"
+                                android:textColor="@color/text_mid"
+                                android:textSize="14sp" />
+                            <TextView
+                                android:id="@+id/downloadResultText"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="-- Mbps"
+                                android:textColor="@color/text_high"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:orientation="horizontal">
+                            <TextView
+                                android:layout_width="80dp"
+                                android:layout_height="wrap_content"
+                                android:text="Up:"
+                                android:textColor="@color/text_mid"
+                                android:textSize="14sp" />
+                            <TextView
+                                android:id="@+id/uploadResultText"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="-- Mbps"
+                                android:textColor="@color/text_high"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <ProgressBar
+                            android:id="@+id/speedTestProgressBar"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="4dp"
+                            android:layout_marginTop="8dp"
+                            android:max="100"
+                            android:progress="0"
+                            android:progressDrawable="@drawable/progress_bar_horizontal" />
+
+                        <TextView
+                            android:id="@+id/speedTestStatusText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Ready"
+                            android:textColor="@color/text_mid"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+
+                    <!-- Legacy History text -->
                     <TextView
                         android:id="@+id/speedStatusValue"
                         android:layout_width="match_parent"
@@ -184,7 +278,7 @@
                         android:layout_marginTop="12dp"
                         android:text="-"
                         android:textColor="@color/text_mid"
-                        android:textSize="14sp"
+                        android:textSize="12sp"
                         android:lineSpacingExtra="4dp" />
 
                     <Button
@@ -337,151 +431,4 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- Speed Test Overlay -->
-    <FrameLayout
-        android:id="@+id/speedTestOverlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#DD000000"
-        android:clickable="true"
-        android:focusable="true"
-        android:elevation="10dp"
-        android:visibility="gone">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_margin="24dp"
-            android:background="@drawable/card_bg"
-            android:orientation="vertical">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="16dp"
-                android:gravity="center_vertical"
-                android:background="#222222">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="@string/speed_card_title"
-                    android:textColor="@color/text_high"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/closeSpeedTestButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:background="@drawable/btn_secondary"
-                    android:text="@string/button_close_speed_test"
-                    android:textAllCaps="false"
-                    android:textColor="@color/text_high"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:focusable="true" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:layoutDirection="ltr"
-                android:padding="24dp">
-
-                <!-- Ping -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-                    <TextView
-                        android:layout_width="120dp"
-                        android:layout_height="wrap_content"
-                        android:text="Ping:"
-                        android:textColor="@color/text_mid"
-                        android:textSize="18sp" />
-                    <TextView
-                        android:id="@+id/pingResultText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="-- ms"
-                        android:textColor="@color/text_high"
-                        android:textSize="24sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <!-- Download -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-                    <TextView
-                        android:layout_width="120dp"
-                        android:layout_height="wrap_content"
-                        android:text="Download:"
-                        android:textColor="@color/text_mid"
-                        android:textSize="18sp" />
-                    <TextView
-                        android:id="@+id/downloadResultText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="-- Mbps"
-                        android:textColor="@color/text_high"
-                        android:textSize="24sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <!-- Upload -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="24dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-                    <TextView
-                        android:layout_width="120dp"
-                        android:layout_height="wrap_content"
-                        android:text="Upload:"
-                        android:textColor="@color/text_mid"
-                        android:textSize="18sp" />
-                    <TextView
-                        android:id="@+id/uploadResultText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="-- Mbps"
-                        android:textColor="@color/text_high"
-                        android:textSize="24sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <ProgressBar
-                    android:id="@+id/speedTestProgressBar"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="8dp"
-                    android:max="100"
-                    android:progress="0"
-                    android:progressDrawable="@drawable/progress_bar_horizontal" />
-
-                <TextView
-                    android:id="@+id/speedTestStatusText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:gravity="center"
-                    android:text="Ready"
-                    android:textColor="@color/text_mid"
-                    android:textSize="14sp" />
-
-            </LinearLayout>
-        </LinearLayout>
-    </FrameLayout>
 </RelativeLayout>
