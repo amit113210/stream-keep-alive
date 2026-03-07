@@ -18,9 +18,15 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
 import android.view.View
+import android.webkit.WebChromeClient
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -44,6 +50,9 @@ class MainActivity : AppCompatActivity() {
         private const val SPEED_PREFS = "speed_test_prefs"
         private const val SPEED_LAST_RESULT = "last_result"
         private const val SPEED_LAST_AT = "last_at"
+        private const val QR_PREFS = "qr_prefs"
+        private const val QR_SAVED_SSID = "qr_saved_ssid"
+        private const val QR_SAVED_PASS = "qr_saved_pass"
     }
 
     private data class InternetStatus(
@@ -103,6 +112,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var speedStatusValue: TextView
     private lateinit var runSpeedTestButton: Button
     private lateinit var showQrCodeButton: Button
+    
+    // Speed Test Overlay Views
+    private lateinit var speedTestOverlay: FrameLayout
+    private lateinit var speedTestWebView: WebView
+    private lateinit var webViewProgressBar: ProgressBar
+    private lateinit var closeSpeedTestButton: Button
 
     private val uiHandler = Handler(Looper.getMainLooper())
     private var telemetryRunnable: Runnable? = null
@@ -131,6 +146,12 @@ class MainActivity : AppCompatActivity() {
         speedStatusValue = findViewById(R.id.speedStatusValue)
         runSpeedTestButton = findViewById(R.id.runSpeedTestButton)
         showQrCodeButton = findViewById(R.id.showQrCodeButton)
+        speedTestOverlay = findViewById(R.id.speedTestOverlay)
+        speedTestWebView = findViewById(R.id.speedTestWebView)
+        webViewProgressBar = findViewById(R.id.webViewProgressBar)
+        closeSpeedTestButton = findViewById(R.id.closeSpeedTestButton)
+
+        setupSpeedTestWebView()
 
         versionText.text = getInstalledVersionText()
 
@@ -142,6 +163,7 @@ class MainActivity : AppCompatActivity() {
         openBatterySettingsButton.setOnClickListener { openBatteryOptimizationSettings() }
         openWriteSettingsButton.setOnClickListener { openWriteSettingsScreen() }
         runSpeedTestButton.setOnClickListener { onRunSpeedTestClicked() }
+        closeSpeedTestButton.setOnClickListener { closeSpeedTestOverlay() }
 
         updateModeButtonLabel(ProtectionSessionManager.currentMode(this))
         applyDebugVisibility()
@@ -506,9 +528,15 @@ class MainActivity : AppCompatActivity() {
         speedStatusValue.text = buildSpeedCardText()
 
         toggleHotspotButton.text = getString(R.string.button_hotspot_settings)
-        if (hotspot.state == getString(R.string.hotspot_state_active) && hotspot.ssid != "-" && hotspot.ssid.isNotBlank()) {
+        if (hotspot.state == getString(R.string.hotspot_state_active)) {
             showQrCodeButton.visibility = View.VISIBLE
-            showQrCodeButton.setOnClickListener { showQrCodeDialog(hotspot.ssid, hotspot.password) }
+            if (hotspot.ssid != "-" && hotspot.ssid.isNotBlank()) {
+                showQrCodeButton.text = getString(R.string.button_show_qr_code)
+                showQrCodeButton.setOnClickListener { showQrCodeDialog(hotspot.ssid, hotspot.password) }
+            } else {
+                showQrCodeButton.text = getString(R.string.button_config_qr_code)
+                showQrCodeButton.setOnClickListener { showManualQrConfigDialog() }
+            }
         } else {
             showQrCodeButton.visibility = View.GONE
             showQrCodeButton.setOnClickListener(null)
@@ -837,6 +865,32 @@ class MainActivity : AppCompatActivity() {
         activeCalibration = null
     }
 
+    private fun setupSpeedTestWebView() {
+        val settings = speedTestWebView.settings
+        settings.javaScriptEnabled = true
+        settings.domStorageEnabled = true
+        settings.mediaPlaybackRequiresUserGesture = false
+        settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+        settings.cacheMode = WebSettings.LOAD_NO_CACHE
+
+        speedTestWebView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                webViewProgressBar.visibility = View.GONE
+            }
+        }
+        speedTestWebView.webChromeClient = object : WebChromeClient() {
+            override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                if (newProgress < 100) {
+                    webViewProgressBar.visibility = View.VISIBLE
+                    webViewProgressBar.progress = newProgress
+                } else {
+                    webViewProgressBar.visibility = View.GONE
+                }
+            }
+        }
+    }
+
     private fun onRunSpeedTestClicked() {
         val now = System.currentTimeMillis()
         val prefs = getSharedPreferences(SPEED_PREFS, Context.MODE_PRIVATE)
@@ -846,7 +900,14 @@ class MainActivity : AppCompatActivity() {
             .apply()
 
         updateServiceStatus()
-        startActivity(Intent(this, SpeedTestActivity::class.java))
+        speedTestOverlay.visibility = View.VISIBLE
+        speedTestWebView.loadUrl("https://fast.com")
+    }
+
+    private fun closeSpeedTestOverlay() {
+        speedTestOverlay.visibility = View.GONE
+        speedTestWebView.loadUrl("about:blank")
+        updateServiceStatus()
     }
 
     private fun readInternetStatus(): InternetStatus {
@@ -918,7 +979,14 @@ class MainActivity : AppCompatActivity() {
                      } catch (_: Exception) {}
                 }
                 
-                HotspotStatus(state = getString(R.string.hotspot_state_active), ssid = apSsid, note = getString(R.string.hotspot_note_active), password = apPass)
+                if (apSsid == "-" || apSsid.isBlank()) {
+                    val prefs = getSharedPreferences(QR_PREFS, Context.MODE_PRIVATE)
+                    apSsid = prefs.getString(QR_SAVED_SSID, "-") ?: "-"
+                    apPass = prefs.getString(QR_SAVED_PASS, "") ?: ""
+                }
+                
+                val displayNote = if (apSsid == "-") getString(R.string.hotspot_note_active) else getString(R.string.hotspot_note_active) + " (Stored)"
+                HotspotStatus(state = getString(R.string.hotspot_state_active), ssid = apSsid, note = displayNote, password = apPass)
             } else {
                 HotspotStatus(state = getString(R.string.hotspot_state_inactive), ssid = "-", note = getString(R.string.hotspot_note_inactive))
             }
@@ -949,6 +1017,50 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Toast.makeText(this, "Could not generate QR code", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun showManualQrConfigDialog() {
+        val prefs = getSharedPreferences(QR_PREFS, Context.MODE_PRIVATE)
+        val currentSsid = prefs.getString(QR_SAVED_SSID, "") ?: ""
+        val currentPass = prefs.getString(QR_SAVED_PASS, "") ?: ""
+
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(50, 40, 50, 10)
+        }
+
+        val ssidInput = android.widget.EditText(this).apply {
+            hint = getString(R.string.hint_ssid)
+            setText(currentSsid)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+        }
+
+        val passInput = android.widget.EditText(this).apply {
+            hint = getString(R.string.hint_password)
+            setText(currentPass)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+
+        layout.addView(ssidInput)
+        layout.addView(passInput)
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.hotspot_manual_config_title))
+            .setMessage(getString(R.string.hotspot_manual_config_msg))
+            .setView(layout)
+            .setPositiveButton(getString(R.string.action_save)) { _, _ ->
+                prefs.edit()
+                    .putString(QR_SAVED_SSID, ssidInput.text.toString().trim())
+                    .putString(QR_SAVED_PASS, passInput.text.toString())
+                    .apply()
+                updateServiceStatus()
+            }
+            .setNeutralButton(getString(R.string.action_clear)) { _, _ ->
+                prefs.edit().clear().apply()
+                updateServiceStatus()
+            }
+            .setNegativeButton(getString(R.string.action_cancel), null)
+            .show()
     }
 
     private fun buildInternetCardText(status: InternetStatus): String {

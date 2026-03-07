@@ -20,6 +20,15 @@
     <string name="button_stop_hotspot">כבה נקודה חמה (אפליקציה)</string>
     <string name="button_power_settings">הגדרות חשמל ומערכת</string>
     <string name="button_more_actions">כלים נוספים</string>
+    <string name="button_config_qr_code">הגדר קוד QR ידנית</string>
+    <string name="hotspot_manual_config_title">הגדרת פרטי נקודה חמה</string>
+    <string name="hotspot_manual_config_msg">אנדרואיד 11+ חוסם קריאה של הסיסמה. הזן כאן את השם והסיסמה של הנקודה החמה שלך פעם אחת כדי להציג קוד QR בקלות.</string>
+    <string name="hint_ssid">שם הרשת (SSID)</string>
+    <string name="hint_password">סיסמת הרשת</string>
+    <string name="action_save">שמור</string>
+    <string name="action_cancel">ביטול</string>
+    <string name="action_clear">מחק נתונים</string>
+    <string name="button_close_speed_test">סגור בדיקה</string>
     <string name="hotspot_app_active">הנקודה החמה מנוהלת כעת דרך האפליקציה. סרוק להתחברות!</string>
     <string name="button_enable">הגדרות נגישות</string>
     <string name="button_disable">הגדרות נגישות</string>

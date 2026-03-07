@@ -21,6 +21,15 @@ Use the quick checklist and fix buttons below.</string>
     <string name="button_refresh_info">Refresh Info</string>
     <string name="button_start_hotspot">Start App Hotspot</string>
     <string name="button_stop_hotspot">Stop App Hotspot</string>
+    <string name="button_config_qr_code">Configure QR Code</string>
+    <string name="hotspot_manual_config_title">Set Hotspot Details</string>
+    <string name="hotspot_manual_config_msg">Android 11+ hides system hotspot passwords. Enter your TV hotspot name and password once to easily share it via QR.</string>
+    <string name="hint_ssid">Hotspot Network Name</string>
+    <string name="hint_password">Hotspot Password</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_clear">Clear Saved Data</string>
+    <string name="button_close_speed_test">Close</string>
     <string name="hotspot_app_active">App-managed hotspot is active. Scan to connect!</string>
     <string name="button_start_calibration">Calibration Run (12 min)</string>
     <string name="button_notification_access">Notification Access</string>
