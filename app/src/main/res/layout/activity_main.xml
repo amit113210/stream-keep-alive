@@ -24,28 +24,28 @@
             android:orientation="horizontal">
 
             <Button
-                android:id="@+id/startProtectionButton"
+                android:id="@+id/networkSettingsButton"
                 android:layout_width="0dp"
                 android:layout_height="46dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
                 android:background="@drawable/button_background"
                 android:focusable="true"
-                android:text="@string/button_start_protection"
+                android:text="@string/button_network_settings"
                 android:textAllCaps="false"
                 android:textColor="@android:color/white"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
             <Button
-                android:id="@+id/stopProtectionButton"
+                android:id="@+id/hotspotSettingsButton"
                 android:layout_width="0dp"
                 android:layout_height="46dp"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/button_background"
                 android:focusable="true"
-                android:text="@string/button_stop_protection"
+                android:text="@string/button_hotspot_settings"
                 android:textAllCaps="false"
                 android:textColor="@android:color/white"
                 android:textSize="14sp"
@@ -58,14 +58,14 @@
             android:orientation="horizontal">
 
             <Button
-                android:id="@+id/modeSelectorButton"
+                android:id="@+id/refreshInfoButton"
                 android:layout_width="0dp"
                 android:layout_height="42dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
                 android:background="@drawable/button_background_secondary"
                 android:focusable="true"
-                android:text="@string/button_mode_selector"
+                android:text="@string/button_refresh_info"
                 android:textAllCaps="false"
                 android:textColor="@android:color/white"
                 android:textSize="13sp"
@@ -111,33 +111,23 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/subtitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/app_subtitle"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+
+            <TextView
                 android:id="@+id/versionText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
+                android:layout_marginBottom="16dp"
                 android:text="@string/version_placeholder"
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp" />
-
-            <TextView
-                android:id="@+id/protectionStatusText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/protection_status_off"
-                android:textColor="@color/text_primary"
-                android:textSize="17sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/statusText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:text="@string/status_inactive"
-                android:textColor="@color/status_inactive"
-                android:textSize="20sp"
-                android:textStyle="bold" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -191,6 +181,19 @@
                     android:text="-"
                     android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
+
+                <Button
+                    android:id="@+id/showQrCodeButton"
+                    android:layout_width="220dp"
+                    android:layout_height="38dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/button_background_secondary"
+                    android:text="@string/button_show_qr_code"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <LinearLayout
@@ -232,16 +235,7 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/descriptionText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:gravity="center"
-                android:maxWidth="860dp"
-                android:text="@string/description_inactive"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp" />
+
 
             <LinearLayout
                 android:id="@+id/readinessWarningContainer"
@@ -321,12 +315,7 @@
                 android:textSize="12sp"
                 android:visibility="gone" />
 
-            <ImageView
-                android:id="@+id/statusIndicator"
-                android:layout_width="1dp"
-                android:layout_height="1dp"
-                android:contentDescription="@string/status_indicator_desc"
-                android:visibility="gone" />
+
         </LinearLayout>
     </ScrollView>
 </RelativeLayout>

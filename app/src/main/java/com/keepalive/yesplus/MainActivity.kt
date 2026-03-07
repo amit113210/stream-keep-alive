@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiManager
 import android.net.Uri
 import android.os.Build
@@ -26,6 +27,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.google.zxing.BarcodeFormat
+import com.journeyapps.barcodescanner.BarcodeEncoder
 import java.util.Locale
 import kotlin.math.max
 
@@ -53,7 +56,8 @@ class MainActivity : AppCompatActivity() {
     private data class HotspotStatus(
         val state: String,
         val ssid: String,
-        val note: String
+        val note: String,
+        val password: String = ""
     )
 
     private data class CalibrationStep(
@@ -83,16 +87,12 @@ class MainActivity : AppCompatActivity() {
         val scores: MutableMap<String, CalibrationScore> = mutableMapOf()
     )
 
-    private lateinit var statusIndicator: ImageView
-    private lateinit var statusText: TextView
-    private lateinit var protectionStatusText: TextView
-    private lateinit var descriptionText: TextView
     private lateinit var versionText: TextView
     private lateinit var debugTitleText: TextView
-    private lateinit var modeSelectorButton: Button
+    private lateinit var networkSettingsButton: Button
+    private lateinit var hotspotSettingsButton: Button
+    private lateinit var refreshInfoButton: Button
     private lateinit var moreActionsButton: Button
-    private lateinit var startProtectionButton: Button
-    private lateinit var stopProtectionButton: Button
     private lateinit var readinessWarningContainer: LinearLayout
     private lateinit var readinessWarningText: TextView
     private lateinit var openBatterySettingsButton: Button
@@ -102,6 +102,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var hotspotStatusValue: TextView
     private lateinit var speedStatusValue: TextView
     private lateinit var runSpeedTestButton: Button
+    private lateinit var showQrCodeButton: Button
 
     private val uiHandler = Handler(Looper.getMainLooper())
     private var telemetryRunnable: Runnable? = null
@@ -114,16 +115,12 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        statusIndicator = findViewById(R.id.statusIndicator)
-        statusText = findViewById(R.id.statusText)
-        protectionStatusText = findViewById(R.id.protectionStatusText)
-        descriptionText = findViewById(R.id.descriptionText)
         versionText = findViewById(R.id.versionText)
         debugTitleText = findViewById(R.id.debugTitleText)
-        modeSelectorButton = findViewById(R.id.modeSelectorButton)
+        networkSettingsButton = findViewById(R.id.networkSettingsButton)
+        hotspotSettingsButton = findViewById(R.id.hotspotSettingsButton)
+        refreshInfoButton = findViewById(R.id.refreshInfoButton)
         moreActionsButton = findViewById(R.id.moreActionsButton)
-        startProtectionButton = findViewById(R.id.startProtectionButton)
-        stopProtectionButton = findViewById(R.id.stopProtectionButton)
         readinessWarningContainer = findViewById(R.id.readinessWarningContainer)
         readinessWarningText = findViewById(R.id.readinessWarningText)
         openBatterySettingsButton = findViewById(R.id.openBatterySettingsButton)
@@ -133,13 +130,14 @@ class MainActivity : AppCompatActivity() {
         hotspotStatusValue = findViewById(R.id.hotspotStatusValue)
         speedStatusValue = findViewById(R.id.speedStatusValue)
         runSpeedTestButton = findViewById(R.id.runSpeedTestButton)
+        showQrCodeButton = findViewById(R.id.showQrCodeButton)
 
         versionText.text = getInstalledVersionText()
 
-        startProtectionButton.setOnClickListener { openNetworkSettings() }
-        modeSelectorButton.setOnClickListener { updateServiceStatus() }
+        networkSettingsButton.setOnClickListener { openNetworkSettings() }
+        hotspotSettingsButton.setOnClickListener { openHotspotSettings() }
+        refreshInfoButton.setOnClickListener { updateServiceStatus() }
         moreActionsButton.setOnClickListener { openMoreActionsMenu() }
-        stopProtectionButton.setOnClickListener { openHotspotSettings() }
         openBatterySettingsButton.setOnClickListener { openBatteryOptimizationSettings() }
         openWriteSettingsButton.setOnClickListener { openWriteSettingsScreen() }
         runSpeedTestButton.setOnClickListener { onRunSpeedTestClicked() }
@@ -180,11 +178,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun openMoreActionsMenu() {
         val items = arrayOf(
-            getString(R.string.button_start_protection),
-            getString(R.string.button_stop_protection),
-            getString(R.string.button_notification_access),
+            getString(R.string.more_network_settings),
+            getString(R.string.more_hotspot),
             getString(R.string.more_bluetooth_settings),
-            getString(R.string.more_accessibility_settings),
             getString(R.string.more_power_system),
             getString(if (runtimeDetailsVisible) R.string.more_hide_runtime else R.string.more_show_runtime),
             getString(if (debugVisible) R.string.more_hide_debug else R.string.more_show_debug),
@@ -198,14 +194,12 @@ class MainActivity : AppCompatActivity() {
                 when (which) {
                     0 -> openNetworkSettings()
                     1 -> openHotspotSettings()
-                    2 -> openNotificationListenerSettings()
-                    3 -> openBluetoothSettings()
-                    4 -> openAccessibilitySettings()
-                    5 -> openPowerSettingsHelper()
-                    6 -> toggleRuntimeDetails()
-                    7 -> toggleDebugPanel()
-                    8 -> openAppDetailsSettings()
-                    9 -> openLegacyToolsMenu()
+                    2 -> openBluetoothSettings()
+                    3 -> openPowerSettingsHelper()
+                    4 -> toggleRuntimeDetails()
+                    5 -> toggleDebugPanel()
+                    6 -> openAppDetailsSettings()
+                    7 -> openLegacyToolsMenu()
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -214,6 +208,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun openLegacyToolsMenu() {
         val items = arrayOf(
+            getString(R.string.more_accessibility_settings),
+            getString(R.string.more_notification_access),
             getString(R.string.more_start_session),
             getString(R.string.more_stop_session),
             getString(R.string.more_cycle_mode),
@@ -224,10 +220,12 @@ class MainActivity : AppCompatActivity() {
             .setTitle(getString(R.string.more_legacy_tools))
             .setItems(items) { _, which ->
                 when (which) {
-                    0 -> onStartProtectionClicked()
-                    1 -> stopProtectionSession()
-                    2 -> cycleProtectionMode()
-                    3 -> openCalibrationPackagePicker()
+                    0 -> openAccessibilitySettings()
+                    1 -> openNotificationListenerSettings()
+                    2 -> onStartProtectionClicked()
+                    3 -> stopProtectionSession()
+                    4 -> cycleProtectionMode()
+                    5 -> openCalibrationPackagePicker()
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -409,7 +407,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateModeButtonLabel(mode: ServiceMode) {
-        modeSelectorButton.text = getString(R.string.button_mode_selector)
+        // legacy, keep empty for backwards compat
     }
 
     private fun startProtectionSession(mode: ServiceMode, durationTargetMinutes: Int = 0) {
@@ -499,17 +497,6 @@ class MainActivity : AppCompatActivity() {
         val batteryExempt = isBatteryOptimizationExempt()
         val writeSettingsGranted = canWriteSystemSettings()
         val timeoutOverrideActive = telemetry.screenTimeoutOverrideActive
-        val readinessGood = accessibilityEnabled && notificationAccessEnabled && batteryExempt && writeSettingsGranted
-
-        statusIndicator.setImageResource(if (readinessGood) R.drawable.ic_status_active else R.drawable.ic_status_inactive)
-        statusText.text = if (readinessGood) getString(R.string.status_active) else getString(R.string.status_inactive)
-        statusText.setTextColor(
-            ContextCompat.getColor(
-                this,
-                if (readinessGood) R.color.status_active else R.color.status_inactive
-            )
-        )
-        protectionStatusText.text = if (readinessGood) getString(R.string.protection_status_on) else getString(R.string.protection_status_off)
 
         val internet = readInternetStatus()
         val hotspot = readHotspotStatus()
@@ -517,52 +504,25 @@ class MainActivity : AppCompatActivity() {
         hotspotStatusValue.text = buildHotspotCardText(hotspot)
         speedStatusValue.text = buildSpeedCardText()
 
-        val accessibilityText = if (accessibilityEnabled) getString(R.string.status_yes) else getString(R.string.status_no)
-        val notificationText = if (notificationAccessEnabled) getString(R.string.status_yes) else getString(R.string.status_no)
-        val batteryText = if (batteryExempt) getString(R.string.status_yes) else getString(R.string.status_no)
-        val writeSettingsText = if (writeSettingsGranted) getString(R.string.status_yes) else getString(R.string.status_no)
-        val timeoutOverrideText = if (timeoutOverrideActive) getString(R.string.status_yes) else getString(R.string.status_no)
-
-        descriptionText.text = String.format(
-            Locale.US,
-            getString(R.string.quick_status_format),
-            accessibilityText,
-            notificationText,
-            batteryText,
-            writeSettingsText,
-            timeoutOverrideText
-        )
-
-        if (runtimeDetailsVisible) {
-            val selectedMode = ProtectionSessionManager.currentMode(this)
-            val originalTimeoutText = if (telemetry.originalScreenTimeoutMs > 0L) "${telemetry.originalScreenTimeoutMs}ms" else "-"
-            val requestedTimeoutText = if (telemetry.currentRequestedScreenTimeoutMs > 0L) "${telemetry.currentRequestedScreenTimeoutMs}ms" else "-"
-            val foregroundText = if (telemetry.foregroundServiceRunning) getString(R.string.status_yes) else getString(R.string.status_no)
-            val playbackSignalsText = if (telemetry.mediaSessionAccessAvailable || telemetry.notificationListenerEnabled) getString(R.string.status_yes) else getString(R.string.status_no)
-            val playbackText = if (telemetry.playbackStateFriendly == PlaybackFriendlyState.PLAYING_ACTIVE.name) getString(R.string.status_yes) else getString(R.string.status_no)
-            descriptionText.text = String.format(
-                Locale.US,
-                getString(R.string.runtime_summary_format),
-                accessibilityText,
-                notificationText,
-                batteryText,
-                writeSettingsText,
-                timeoutOverrideText,
-                foregroundText,
-                if (protectionActive) getString(R.string.status_yes) else getString(R.string.status_no),
-                selectedMode.name,
-                originalTimeoutText,
-                requestedTimeoutText,
-                playbackSignalsText,
-                playbackText
-            )
+        if (hotspot.state == getString(R.string.hotspot_state_active) && hotspot.ssid != "-" && hotspot.ssid.isNotBlank()) {
+            showQrCodeButton.visibility = View.VISIBLE
+            showQrCodeButton.setOnClickListener {
+                showQrCodeDialog(hotspot.ssid, hotspot.password)
+            }
+        } else {
+            showQrCodeButton.visibility = View.GONE
+            showQrCodeButton.setOnClickListener(null)
         }
 
         val warningLines = mutableListOf<String>()
         if (!internet.connected) warningLines.add(getString(R.string.issue_no_internet))
-        if (!batteryExempt) warningLines.add(getString(R.string.warning_battery_missing))
-        if (!writeSettingsGranted) warningLines.add(getString(R.string.warning_write_settings_missing))
-        if (!timeoutOverrideActive && protectionActive && writeSettingsGranted) warningLines.add(getString(R.string.warning_timeout_override_missing))
+        
+        // Only show system warnings if the user has actively turned on the utility session
+        if (protectionActive) {
+            if (!batteryExempt) warningLines.add(getString(R.string.warning_battery_missing))
+            if (!writeSettingsGranted) warningLines.add(getString(R.string.warning_write_settings_missing))
+            if (!timeoutOverrideActive && writeSettingsGranted) warningLines.add(getString(R.string.warning_timeout_override_missing))
+        }
 
         if (warningLines.isNotEmpty()) {
             readinessWarningContainer.visibility = View.VISIBLE
@@ -572,11 +532,8 @@ class MainActivity : AppCompatActivity() {
             readinessWarningText.text = getString(R.string.readiness_warning_default)
         }
 
-        openBatterySettingsButton.visibility = if (!batteryExempt) View.VISIBLE else View.GONE
-        openWriteSettingsButton.visibility = if (!writeSettingsGranted) View.VISIBLE else View.GONE
-        startProtectionButton.isEnabled = true
-        stopProtectionButton.isEnabled = true
-        updateModeButtonLabel(ProtectionSessionManager.currentMode(this))
+        openBatterySettingsButton.visibility = if (!batteryExempt && protectionActive) View.VISIBLE else View.GONE
+        openWriteSettingsButton.visibility = if (!writeSettingsGranted && protectionActive) View.VISIBLE else View.GONE
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
@@ -941,13 +898,60 @@ class MainActivity : AppCompatActivity() {
             val apMethod = wm?.javaClass?.getDeclaredMethod("isWifiApEnabled")
             apMethod?.isAccessible = true
             val enabled = apMethod?.invoke(wm) as? Boolean ?: false
+            
+            var apSsid = "-"
+            var apPass = ""
             if (enabled) {
-                HotspotStatus(state = getString(R.string.hotspot_state_active), ssid = "-", note = getString(R.string.hotspot_note_active))
+                try {
+                    val apConfigMethod = wm?.javaClass?.getDeclaredMethod("getWifiApConfiguration")
+                    apConfigMethod?.isAccessible = true
+                    val config = apConfigMethod?.invoke(wm) as? WifiConfiguration
+                    if (config != null) {
+                        apSsid = config.SSID ?: "-"
+                        apPass = config.preSharedKey ?: ""
+                    }
+                } catch (_: Exception) {}
+                
+                if (apSsid == "-" && Build.VERSION.SDK_INT >= 30) {
+                     try {
+                         val softApMethod = wm?.javaClass?.getDeclaredMethod("getSoftApConfiguration")
+                         softApMethod?.isAccessible = true
+                         val softApConfig = softApMethod?.invoke(wm)
+                         apSsid = softApConfig?.javaClass?.getMethod("getSsid")?.invoke(softApConfig) as? String ?: "-"
+                         apPass = softApConfig?.javaClass?.getMethod("getPassphrase")?.invoke(softApConfig) as? String ?: ""
+                     } catch (_: Exception) {}
+                }
+                
+                HotspotStatus(state = getString(R.string.hotspot_state_active), ssid = apSsid, note = getString(R.string.hotspot_note_active), password = apPass)
             } else {
                 HotspotStatus(state = getString(R.string.hotspot_state_inactive), ssid = "-", note = getString(R.string.hotspot_note_inactive))
             }
         } catch (_: Exception) {
             HotspotStatus(state = getString(R.string.hotspot_state_unavailable), ssid = "-", note = getString(R.string.hotspot_note_unavailable))
+        }
+    }
+
+    private fun showQrCodeDialog(ssid: String, password: String?) {
+        val wifiFormat = if (password.isNullOrEmpty()) {
+            "WIFI:T:nopass;S:$ssid;P:;;"
+        } else {
+            "WIFI:T:WPA;S:$ssid;P:$password;;"
+        }
+        
+        try {
+            val barcodeEncoder = BarcodeEncoder()
+            val bitmap = barcodeEncoder.encodeBitmap(wifiFormat, BarcodeFormat.QR_CODE, 600, 600)
+            val imageView = ImageView(this).apply {
+                setImageBitmap(bitmap)
+                setPadding(32, 32, 32, 32)
+            }
+            AlertDialog.Builder(this)
+                .setTitle(getString(R.string.dialog_qr_code_title))
+                .setView(imageView)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Could not generate QR code", Toast.LENGTH_SHORT).show()
         }
     }
 

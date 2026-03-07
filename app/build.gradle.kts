@@ -21,8 +21,8 @@ android {
         applicationId = "com.keepalive.yesplus"
         minSdk = 21
         targetSdk = 34
-        versionCode = 21
-        versionName = "2.0.1"
+        versionCode = 22
+        versionName = "2.0.2"
     }
 
     signingConfigs {
@@ -69,5 +69,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.leanback:leanback:1.0.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.zxing:core:3.5.3")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     testImplementation("junit:junit:4.13.2")
 }

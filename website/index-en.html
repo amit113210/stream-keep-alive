@@ -1,12 +1,15 @@
 <!doctype html>
 <html lang="en" dir="ltr">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TV Connectivity Hub</title>
-  <meta name="description" content="Android TV utility app for network/system shortcuts, readiness checks, and setup troubleshooting." />
+  <meta name="description"
+    content="Android TV utility app for network/system shortcuts, readiness checks, and setup troubleshooting." />
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <div class="container">
     <header>
@@ -23,15 +26,14 @@
     </header>
 
     <section class="hero">
-      <h2>One place for the settings and checks you use most</h2>
+      <h2>One place for all key connectivity settings</h2>
       <p>
-        Instead of jumping through deep Android TV menus, TV Connectivity Hub centralizes system shortcuts,
-        readiness checks (YES/NO), and practical troubleshooting helpers.
+        Instead of jumping through deep Android TV menus, TV Connectivity Hub centralizes network status,
+        smart Hotspot management with QR Codes, speed tests, and advanced system options.
       </p>
       <div class="hero-actions">
-        <a class="btn" href="installer/install_mac.command">Download for Mac</a>
-        <a class="btn" href="installer/install_windows.bat">Download for Windows</a>
-        <a class="btn secondary" href="guide-en.html">Full Setup Guide</a>
+        <a class="btn" href="https://github.com/amit113210/stream-keep-alive/releases/latest">Download Latest APK</a>
+        <a class="btn secondary" href="guide-en.html">Setup Guide</a>
       </div>
     </section>
 
@@ -48,10 +50,23 @@
     <section>
       <h2 class="section-title">Core features</h2>
       <div class="grid">
-        <article class="card"><h3>1) Connectivity & hotspot helper</h3><p>Quick entry points for Wi-Fi/network/hotspot flows with OEM-specific fallbacks.</p></article>
-        <article class="card"><h3>2) Power & System helper</h3><p>Central menu for Battery Optimization, Write Settings, App Info, Accessibility, and Notification Access.</p></article>
-        <article class="card"><h3>3) Readiness dashboard</h3><p>YES/NO visibility for Accessibility, Notification Access, Battery Exemption, and Write Settings.</p></article>
-        <article class="card"><h3>4) Troubleshooting telemetry</h3><p>Runtime diagnostics for advanced users: service state, permissions, timeout hardening, and more.</p></article>
+        <article class="card">
+          <h3>1) Network Status</h3>
+          <p>Quick view of your active connection, type, SSID, and local IP address directly on the big screen.</p>
+        </article>
+        <article class="card">
+          <h3>2) Hotspot QR Code</h3>
+          <p>Easily manage and view your TV's Hotspot credentials, generating a scannable <b>QR Code</b> for seamless
+            connection.</p>
+        </article>
+        <article class="card">
+          <h3>3) Speed Test</h3>
+          <p>Check the active connection to ensure the link quality is capable of reliable streaming.</p>
+        </article>
+        <article class="card">
+          <h3>4) Advanced Utilities</h3>
+          <p>Fast shortcuts to Wi-Fi settings, OEM power management, developer permissions, and legacy tools.</p>
+        </article>
       </div>
     </section>
 
@@ -69,10 +84,14 @@
     <section>
       <h2 class="section-title">Permissions explained</h2>
       <div class="card kv">
-        <div><b>Accessibility</b></div><div>Required for local utility actions and readiness checks.</div>
-        <div><b>Notification Access</b></div><div>Improves runtime signal visibility and diagnostics quality.</div>
-        <div><b>Battery Exemption</b></div><div>Recommended for continuity on aggressive OEM power management.</div>
-        <div><b>Write Settings</b></div><div>Optional but recommended for display-timeout hardening.</div>
+        <div><b>Accessibility</b></div>
+        <div>Required for local utility actions and readiness checks.</div>
+        <div><b>Notification Access</b></div>
+        <div>Improves runtime signal visibility and diagnostics quality.</div>
+        <div><b>Battery Exemption</b></div>
+        <div>Recommended for continuity on aggressive OEM power management.</div>
+        <div><b>Write Settings</b></div>
+        <div>Optional but recommended for display-timeout hardening.</div>
       </div>
     </section>
 
@@ -87,8 +106,23 @@
     <section>
       <h2 class="section-title">Updates</h2>
       <div class="accordion">
-        <details open><summary>Recent versions</summary><div class="details-body"><ul><li><b>v2.0.0</b>: full product pivot and rebrand.</li><li><b>v1.8.x</b>: reliability and telemetry hardening.</li></ul></div></details>
-        <details><summary>Previous versions</summary><div class="details-body"><ul><li><b>v1.7 / v1.6 / v1.4 ...</b> early internal iterations.</li></ul></div></details>
+        <details open>
+          <summary>Recent versions</summary>
+          <div class="details-body">
+            <ul>
+              <li><b>v2.0.0</b>: full product pivot and rebrand.</li>
+              <li><b>v1.8.x</b>: reliability and telemetry hardening.</li>
+            </ul>
+          </div>
+        </details>
+        <details>
+          <summary>Previous versions</summary>
+          <div class="details-body">
+            <ul>
+              <li><b>v1.7 / v1.6 / v1.4 ...</b> early internal iterations.</li>
+            </ul>
+          </div>
+        </details>
       </div>
     </section>
 
@@ -96,4 +130,5 @@
   </div>
   <script src="script.js"></script>
 </body>
+
 </html>

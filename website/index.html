@@ -1,12 +1,15 @@
 <!doctype html>
 <html lang="he" dir="rtl">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>מרכז קישוריות לטלוויזיה</title>
-  <meta name="description" content="אפליקציית Utility ל-Android TV: קיצורי רשת ומערכת, בדיקות מוכנות, והנחיות פתרון תקלות." />
+  <meta name="description"
+    content="אפליקציית Utility ל-Android TV: קיצורי רשת ומערכת, בדיקות מוכנות, והנחיות פתרון תקלות." />
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <div class="container">
     <header>
@@ -26,12 +29,12 @@
       <h2>מקום אחד לכל פעולות הקישוריות וההגדרות החשובות</h2>
       <p>
         במקום לקפוץ בין תפריטים עמוקים ב-Android TV, האפליקציה מרכזת קיצורי מערכת,
-        בדיקות מוכנות (YES/NO), וכלי פתרון תקלות בסיסיים למקרים של הרשאות/הגדרות חסרות.
+        ניהול Hotspot חכם כולל קוֹד QR, כלים לבדיקת מהירות וגישה לכלים מתקדמים.
       </p>
       <div class="hero-actions" dir="ltr">
-        <a class="btn" href="installer/install_mac.command">הורדה למק</a>
-        <a class="btn" href="installer/install_windows.bat">הורדה לווינדוס</a>
-        <a class="btn secondary" href="guide.html">מדריך התקנה מלא</a>
+        <a class="btn" href="https://github.com/amit113210/stream-keep-alive/releases/latest">הורדת הגרסה העדכנית
+          (APK)</a>
+        <a class="btn secondary" href="guide.html">מדריך התקנה</a>
       </div>
     </section>
 
@@ -49,27 +52,27 @@
       <h2 class="section-title">פיצ'רים מרכזיים</h2>
       <div class="grid">
         <article class="card">
-          <h3>1) עוזר קישוריות ונקודת גישה</h3>
+          <h3>1) סטטוס רשת</h3>
           <p>
-            פתיחה מהירה לזרימות רשת נפוצות (Wi-Fi/Network/Hotspot) עם fallbacks בהתאם ליצרן הטלוויזיה.
+            צפייה מהירה בסטטוס אינטרנט, סוג חיבור, SSID וכתובת IP מקומית של הטלוויזיה.
           </p>
         </article>
         <article class="card">
-          <h3>2) Power &amp; System Helper</h3>
+          <h3>2) נקודת גישה (Hotspot) וברקוד</h3>
           <p>
-            תפריט מרוכז ל-Battery Optimization, Write Settings, App Info, Accessibility ו-Notification Access.
+            קרא את פרטי ה-Hotspot של המכשיר בגדול, והשמש בקוד <b>QR בסריקה</b> כדי לחבר מכשירים בקלות.
           </p>
         </article>
         <article class="card">
-          <h3>3) Readiness Dashboard</h3>
+          <h3>3) מבחן מהירות</h3>
           <p>
-            מציג האם כל התנאים המרכזיים מוכנים: נגישות, התראות, החרגת סוללה והרשאת Write Settings.
+            בדיקה מהירה של איכות החיבור כדי לוודא שאיכות הרשת מתאימה לסטרימינג ללא הפרעות.
           </p>
         </article>
         <article class="card">
-          <h3>4) Telemetry לפתרון תקלות</h3>
+          <h3>4) כלים נוחים במקום אחד</h3>
           <p>
-            פרטי ריצה ודיבוג למשתמש מתקדם: מצב שירות, סטטוס הרשאות, Timeout hardening ועוד.
+            קיצורים להגדרות ה-Wi-Fi, ניהול צריכת סוללה, הרשאות למתקדמים ודיאגנוסטיקה.
           </p>
         </article>
       </div>
@@ -89,10 +92,14 @@
     <section>
       <h2 class="section-title">הרשאות והסברים</h2>
       <div class="card kv">
-        <div><b>Accessibility</b></div><div>נדרש לקיצורי פעולה מקומיים ולבדיקות מוכנות.</div>
-        <div><b>Notification Access</b></div><div>משפר נראות מצב בזמן ריצה ומסייע לדיאגנוסטיקה.</div>
-        <div><b>Battery Exemption</b></div><div>מומלץ לרציפות במכשירים עם חסכון אגרסיבי.</div>
-        <div><b>Write Settings</b></div><div>אופציונלי אך מומלץ להקשחת זמן כיבוי מסך.</div>
+        <div><b>Accessibility</b></div>
+        <div>נדרש לקיצורי פעולה מקומיים ולבדיקות מוכנות.</div>
+        <div><b>Notification Access</b></div>
+        <div>משפר נראות מצב בזמן ריצה ומסייע לדיאגנוסטיקה.</div>
+        <div><b>Battery Exemption</b></div>
+        <div>מומלץ לרציפות במכשירים עם חסכון אגרסיבי.</div>
+        <div><b>Write Settings</b></div>
+        <div>אופציונלי אך מומלץ להקשחת זמן כיבוי מסך.</div>
       </div>
     </section>
 
@@ -111,14 +118,18 @@
           <summary>גרסאות אחרונות</summary>
           <div class="details-body">
             <ul>
-              <li><b>v2.0.0</b>: פיבוט מוצר מלא ל-Connectivity Utility + מיתוג מחדש.</li>
-              <li><b>v1.8.x</b>: שיפורי יציבות, טלמטריה והקשחת מערכת.</li>
+              <li><b>v2.0.2</b>: הוספת התחברות מהירה ל-Hotspot דרך סריקת קוד QR ומיתוג מחדש.</li>
+              <li><b>v2.0.0</b>: פיבוט מוצר ל-Connectivity Utility נקי.</li>
             </ul>
           </div>
         </details>
         <details>
           <summary>גרסאות קודמות</summary>
-          <div class="details-body"><ul><li><b>v1.7 / v1.6 / v1.4 ...</b> איטרציות מוקדמות.</li></ul></div>
+          <div class="details-body">
+            <ul>
+              <li><b>v1.7 / v1.6 / v1.4 ...</b> איטרציות מוקדמות.</li>
+            </ul>
+          </div>
         </details>
       </div>
     </section>
@@ -127,4 +138,5 @@
   </div>
   <script src="script.js"></script>
 </body>
+
 </html>

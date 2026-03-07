@@ -16,18 +16,6 @@
     <string name="button_enable">הגדרות נגישות</string>
     <string name="button_disable">הגדרות נגישות</string>
     <string name="button_hotspot">הגדרות נקודת גישה</string>
-    <string name="button_start_protection">הגדרות רשת</string>
-    <string name="button_stop_protection">חשמל ומערכת</string>
-    <string name="button_start_calibration">כיול (Legacy, 12 דקות)</string>
-    <string name="button_notification_access">גישת התראות</string>
-    <string name="button_power_settings">הגדרות חשמל ומערכת</string>
-    <string name="button_more_actions">כלים נוספים</string>
-    <string name="button_mode_selector">לוח מוכנות</string>
-    <string name="mode_selector_format">מצב: %1$s</string>
-
-    <string name="protection_status_on">מוכנות: טובה</string>
-    <string name="protection_status_off">מוכנות: חלקית</string>
-
     <string name="status_indicator_desc">מצב כלי עזר</string>
 
     <string name="accessibility_service_description">תמיכת נגישות עבור פעולות כלי עזר מקומיות ובדיקות מוכנות.</string>
@@ -111,6 +99,8 @@
     <string name="hotspot_card_title">מצב נקודת גישה</string>
     <string name="speed_card_title">מהירות ואיכות</string>
     <string name="button_run_speed_test">הרץ בדיקת מהירות</string>
+    <string name="button_show_qr_code">הצג קוד QR</string>
+    <string name="dialog_qr_code_title">קוד QR לנקודת הגישה</string>
     <string name="speed_not_run_yet">עדיין אין תוצאת בדיקת מהירות. לחץ "הרץ בדיקת מהירות".</string>
     <string name="speed_last_result_format">תוצאה אחרונה: %1$s
 חותמת זמן: %2$d</string>

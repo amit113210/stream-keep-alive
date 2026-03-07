@@ -16,17 +16,14 @@ Use the quick checklist and fix buttons below.</string>
     <string name="button_enable">Accessibility settings</string>
     <string name="button_disable">Accessibility settings</string>
     <string name="button_hotspot">Hotspot settings</string>
-    <string name="button_start_protection">Network Settings</string>
-    <string name="button_stop_protection">Power &amp; System</string>
+    <string name="button_network_settings">Network Settings</string>
+    <string name="button_hotspot_settings">Hotspot Settings</string>
+    <string name="button_refresh_info">Refresh Info</string>
     <string name="button_start_calibration">Calibration Run (12 min)</string>
     <string name="button_notification_access">Notification Access</string>
     <string name="button_power_settings">Power &amp; System Settings</string>
     <string name="button_more_actions">More Tools</string>
-    <string name="button_mode_selector">Readiness Dashboard</string>
-    <string name="mode_selector_format">Mode: %1$s</string>
-
-    <string name="protection_status_on">Readiness: GOOD</string>
-    <string name="protection_status_off">Readiness: PARTIAL</string>
+    <string name="more_network_settings">Network Settings</string>
 
     <string name="status_indicator_desc">Utility status</string>
 
@@ -111,6 +108,8 @@ This is best-effort hardening, not a universal guarantee.</string>
     <string name="hotspot_card_title">Hotspot Status</string>
     <string name="speed_card_title">Speed &amp; Quality</string>
     <string name="button_run_speed_test">Run Speed Test</string>
+    <string name="button_show_qr_code">Show QR Code</string>
+    <string name="dialog_qr_code_title">Hotspot QR Code</string>
     <string name="speed_not_run_yet">No speed test result yet. Press "Run Speed Test".</string>
     <string name="speed_last_result_format">Last result: %1$s
 Timestamp: %2$d</string>
