@@ -60,6 +60,21 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         private const val GESTURE_SWIPE_DURATION_MS = 250L
         private const val GESTURE_CANCEL_BACKOFF_THRESHOLD = 5
 
+        private const val FOCUS_CLICK_DELAY_MS = 200L
+        private const val DIALOG_PENDING_OVERRIDE_TIMEOUT_MS = 5L * 60L * 1000L
+
+        private const val ANTI_SCREENSAVER_POKE_INTERVAL_MS = 75_000L
+        private const val ANTI_SCREENSAVER_POKE_JITTER_MS = 15_000L
+
+        private val SCREENSAVER_PACKAGES = listOf(
+            "com.google.android.apps.tv.dreamx",
+            "com.android.dreams",
+            "com.google.android.screensaver",
+            "com.android.screensaver"
+        )
+        private const val SCREENSAVER_ESCAPE_COOLDOWN_MS = 5_000L
+        private const val SCREENSAVER_POST_ESCAPE_SCAN_DELAY_MS = 1_500L
+
         // Partial wake lock is only a helper for process continuity during active protection.
         private const val USE_PARTIAL_WAKE_LOCK = true
         private const val WAKELOCK_SAFETY_TIMEOUT_MS = 90L * 60L * 1000L
@@ -141,7 +156,14 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             val lastScreenTimeoutRestoreAt: Long = 0L,
             val calibrationRecommendedMode: String = "",
             val calibrationRecommendedGesture: String = "",
-            val calibrationRecommendedZone: Int = -1
+            val calibrationRecommendedZone: Int = -1,
+            val dialogPendingHeartbeatOverride: Boolean = false,
+            val antiScreensaverPokeCount: Long = 0L,
+            val lastAntiScreensaverPokeAt: Long = 0L,
+            val antiScreensaverPokeActive: Boolean = false,
+            val screensaverEscapeCount: Long = 0L,
+            val lastScreensaverDetectedAt: Long = 0L,
+            val lastScreensaverEscapeAt: Long = 0L
         )
 
         @Volatile
@@ -279,6 +301,21 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     private var shouldRunHeartbeatNowFlag = false
     private var heartbeatSuppressedReason = ""
 
+    // Anti-screensaver poke subsystem
+    private var antiScreensaverPokeRunnable: Runnable? = null
+    private var antiScreensaverPokeCount = 0L
+    private var lastAntiScreensaverPokeAtMs = 0L
+    private val antiScreensaverPokeZone = SafeZone(
+        xPercent = 0.02f,
+        yPercent = 0.02f,
+        radiusPx = 4
+    )
+
+    // Screensaver detection & escape
+    private var lastScreensaverDetectedAtMs = 0L
+    private var lastScreensaverEscapeAtMs = 0L
+    private var screensaverEscapeCount = 0L
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         isRunning = true
@@ -292,6 +329,12 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val safeEvent = event ?: return
         val packageName = safeEvent.packageName?.toString() ?: return
+
+        // Screensaver detection - escape before normal processing
+        if (isProtectionSessionActive() && isScreensaverPackage(packageName)) {
+            attemptScreensaverEscape(packageName)
+            return
+        }
 
         if (shouldHandlePackageTransition(packageName, safeEvent.eventType)) {
             onPackageChanged(packageName)
@@ -331,6 +374,13 @@ class KeepAliveAccessibilityService : AccessibilityService() {
     }
 
     private fun onPackageChanged(newPackage: String) {
+        // Screensaver intercept - don't update currentPackage to a screensaver
+        if (isProtectionSessionActive() && isScreensaverPackage(newPackage)) {
+            Log.i(TAG, "[SCREENSAVER] package transition to screensaver=$newPackage")
+            attemptScreensaverEscape(newPackage)
+            return
+        }
+
         val previousPackage = currentPackage
         currentPackage = newPackage
         currentProfile = PackagePolicy.profileForPackage(newPackage)
@@ -435,13 +485,33 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         return override?.preferredMode ?: sessionMode
     }
 
+    private fun isDialogPendingForHeartbeatOverride(): Boolean {
+        if (dialogDetectedCount == 0L) return false
+        if (lastDialogDetectionAtMs <= 0L) return false
+        if (lastDialogDismissAtMs >= lastDialogDetectionAtMs) return false
+
+        val pendingDurationMs = System.currentTimeMillis() - lastDialogDetectionAtMs
+        if (pendingDurationMs > DIALOG_PENDING_OVERRIDE_TIMEOUT_MS) {
+            Log.d(TAG, "[HB] dialog pending override expired after ${pendingDurationMs}ms")
+            return false
+        }
+
+        Log.d(TAG, "[HB] dialog pending override active: pendingMs=$pendingDurationMs")
+        return true
+    }
+
     private fun shouldRunHeartbeatNow(): HeartbeatGateDecision {
         val sessionActive = isProtectionSessionActive()
         val supportedForeground = if (isSupportedActivePackage()) currentPackage else null
-        val decision = PlaybackStateManager.shouldRunHeartbeatNow(sessionActive, supportedForeground)
+        val dialogPending = isDialogPendingForHeartbeatOverride()
+        val decision = PlaybackStateManager.shouldRunHeartbeatNow(
+            sessionActive,
+            supportedForeground,
+            dialogPendingOverride = dialogPending
+        )
         shouldRunHeartbeatNowFlag = decision.first
         heartbeatSuppressedReason = if (decision.first) "" else decision.second
-        Log.d(TAG, "[HB] gated_by_playback=${decision.first} reason=${decision.second}")
+        Log.d(TAG, "[HB] gated_by_playback=${decision.first} reason=${decision.second} dialogPending=$dialogPending")
         return HeartbeatGateDecision(decision.first, decision.second)
     }
 
@@ -457,6 +527,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             stopHeartbeat()
             stopPeriodicDialogScan()
             syncPackageDialogObserver()
+            stopAntiScreensaverPoke()
             releaseWakeLock("session-off")
             publishTelemetrySnapshot()
             return
@@ -470,6 +541,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             stopHeartbeat()
             stopPeriodicDialogScan()
             syncPackageDialogObserver()
+            stopAntiScreensaverPoke()
             releaseWakeLock("unsupported-package")
             publishTelemetrySnapshot()
             return
@@ -478,6 +550,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         startPeriodicDialogScan()
         syncPackageDialogObserver()
         ensureWakeLockForSession()
+        startAntiScreensaverPoke()
 
         val modeChanged = mode != lastKnownMode
         lastKnownMode = mode
@@ -1349,8 +1422,58 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         additionalNegativeKeywords: List<String> = emptyList()
     ): String? {
         if (isNegativeActionNode(node, additionalNegativeKeywords)) return null
+
+        // Strategy 1: Direct ACTION_CLICK
         if (node.isClickable && node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return "ACTION_CLICK"
 
+        // Strategy 2: CLICKABLE_ANCESTOR (walk up 4 levels)
+        val ancestorResult = tryClickableAncestor(node, additionalNegativeKeywords)
+        if (ancestorResult != null) return ancestorResult
+
+        // Strategy 3: Focus then click (critical for Android TV leanback buttons)
+        if (node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)) {
+            Log.d(TAG, "[DIALOG][CLICK] ACTION_FOCUS succeeded, attempting ACTION_CLICK")
+            if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return "FOCUS_THEN_CLICK"
+        }
+
+        // Strategy 4: Accessibility focus then click
+        if (node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS)) {
+            Log.d(TAG, "[DIALOG][CLICK] ACTION_ACCESSIBILITY_FOCUS succeeded, attempting ACTION_CLICK")
+            if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return "A11Y_FOCUS_THEN_CLICK"
+        }
+
+        // Strategy 5: Focus + delayed click (some TV UIs need a brief pause between focus and click)
+        if (node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)) {
+            Log.d(TAG, "[DIALOG][CLICK] scheduling delayed FOCUS_THEN_CLICK")
+            val nodeSnapshot = AccessibilityNodeInfo.obtain(node)
+            handler?.postDelayed({
+                try {
+                    val clicked = nodeSnapshot.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                    Log.i(TAG, "[DIALOG][CLICK] delayed FOCUS_THEN_CLICK result=$clicked")
+                    if (clicked) {
+                        lastDialogClickMethod = "FOCUS_DELAYED_CLICK"
+                        lastDialogDismissAtMs = System.currentTimeMillis()
+                        dialogDismissedCount++
+                        publishTelemetrySnapshot()
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "[DIALOG][CLICK] delayed click failed: ${e.message}")
+                } finally {
+                    safeRecycle(nodeSnapshot)
+                }
+            }, FOCUS_CLICK_DELAY_MS)
+            return "FOCUS_DELAYED_CLICK_PENDING"
+        }
+
+        // Strategy 6: BOUNDS_TAP (last resort gesture at node center)
+        if (allowBoundsTap && tapBoundsCenterForNode(node, additionalNegativeKeywords)) return "BOUNDS_TAP"
+        return null
+    }
+
+    private fun tryClickableAncestor(
+        node: AccessibilityNodeInfo,
+        additionalNegativeKeywords: List<String>
+    ): String? {
         var parent = node.parent
         val toRecycle = mutableListOf<AccessibilityNodeInfo>()
         var depth = 0
@@ -1365,9 +1488,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             parent = parent.parent
             depth++
         }
-
         toRecycle.forEach { safeRecycle(it) }
-        if (allowBoundsTap && tapBoundsCenterForNode(node, additionalNegativeKeywords)) return "BOUNDS_TAP"
         return null
     }
 
@@ -1917,6 +2038,125 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         }
     }
 
+    // ==========================================
+    // Anti-Screensaver Poke
+    // ==========================================
+
+    private fun startAntiScreensaverPoke() {
+        if (antiScreensaverPokeRunnable != null) return
+        val localHandler = handler ?: return
+
+        Log.i(TAG, "[POKE] anti-screensaver poke started")
+
+        antiScreensaverPokeRunnable = object : Runnable {
+            override fun run() {
+                if (!isProtectionSessionActive() || !isSupportedActivePackage()) {
+                    Log.i(TAG, "[POKE] stopping: session or package no longer active")
+                    stopAntiScreensaverPoke()
+                    return
+                }
+
+                performAntiScreensaverPoke()
+
+                val nextDelay = ANTI_SCREENSAVER_POKE_INTERVAL_MS +
+                    Random.nextLong(-ANTI_SCREENSAVER_POKE_JITTER_MS, ANTI_SCREENSAVER_POKE_JITTER_MS + 1)
+                localHandler.postDelayed(this, nextDelay.coerceAtLeast(45_000L))
+            }
+        }
+
+        val initialDelay = ANTI_SCREENSAVER_POKE_INTERVAL_MS +
+            Random.nextLong(-ANTI_SCREENSAVER_POKE_JITTER_MS, ANTI_SCREENSAVER_POKE_JITTER_MS + 1)
+        localHandler.postDelayed(antiScreensaverPokeRunnable!!, initialDelay.coerceAtLeast(45_000L))
+    }
+
+    private fun stopAntiScreensaverPoke() {
+        antiScreensaverPokeRunnable?.let { handler?.removeCallbacks(it) }
+        if (antiScreensaverPokeRunnable != null) {
+            Log.i(TAG, "[POKE] anti-screensaver poke stopped")
+        }
+        antiScreensaverPokeRunnable = null
+    }
+
+    private fun performAntiScreensaverPoke() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
+
+        val point = toSafePoint(antiScreensaverPokeZone)
+        val path = Path().apply { moveTo(point.x, point.y) }
+        val gesture = GestureDescription.Builder()
+            .addStroke(GestureDescription.StrokeDescription(path, 0, GESTURE_TAP_DURATION_MS))
+            .build()
+
+        val coords = "${point.x.toInt()},${point.y.toInt()}"
+        Log.d(TAG, "[POKE] dispatching anti-screensaver micro-tap coords=$coords")
+
+        val accepted = dispatchGesture(
+            gesture,
+            object : GestureResultCallback() {
+                override fun onCompleted(gestureDescription: GestureDescription?) {
+                    antiScreensaverPokeCount++
+                    lastAntiScreensaverPokeAtMs = System.currentTimeMillis()
+                    Log.d(TAG, "[POKE] completed count=$antiScreensaverPokeCount coords=$coords")
+                }
+
+                override fun onCancelled(gestureDescription: GestureDescription?) {
+                    Log.w(TAG, "[POKE] cancelled coords=$coords")
+                }
+            },
+            null
+        )
+
+        if (!accepted) {
+            Log.w(TAG, "[POKE] dispatch rejected coords=$coords")
+        }
+    }
+
+    // ==========================================
+    // Screensaver Detection & Escape
+    // ==========================================
+
+    private fun isScreensaverPackage(packageName: String): Boolean {
+        val lower = packageName.lowercase()
+        return SCREENSAVER_PACKAGES.any { lower.startsWith(it) } ||
+            lower.contains("dream") ||
+            lower.contains("screensaver")
+    }
+
+    private fun attemptScreensaverEscape(triggerPackage: String): Boolean {
+        val now = System.currentTimeMillis()
+        if (now - lastScreensaverEscapeAtMs < SCREENSAVER_ESCAPE_COOLDOWN_MS) {
+            Log.d(TAG, "[SCREENSAVER] escape skipped: cooldown active")
+            return false
+        }
+
+        Log.i(TAG, "[SCREENSAVER] detected package=$triggerPackage; performing GLOBAL_ACTION_BACK")
+        lastScreensaverDetectedAtMs = now
+        val result = performGlobalAction(GLOBAL_ACTION_BACK)
+        if (result) {
+            lastScreensaverEscapeAtMs = now
+            screensaverEscapeCount++
+            Log.i(TAG, "[SCREENSAVER] escape dispatched successfully count=$screensaverEscapeCount")
+
+            handler?.postDelayed({
+                Log.i(TAG, "[SCREENSAVER] post-escape scan triggered")
+                updatePlaybackSignals("screensaver-escape")
+                refreshSessionState(reason = "screensaver-escape")
+                val profile = currentProfile
+                if (profile != null && isSupportedActivePackage()) {
+                    scanAllWindowsForDialog(
+                        reason = "screensaver-escape",
+                        profile = profile,
+                        prioritizeProfile = true,
+                        bypassFingerprint = true
+                    )
+                }
+            }, SCREENSAVER_POST_ESCAPE_SCAN_DELAY_MS)
+        } else {
+            Log.w(TAG, "[SCREENSAVER] GLOBAL_ACTION_BACK returned false")
+        }
+        publishTelemetrySnapshot()
+        return result
+    }
+
     private fun runWatchdogChecks() {
         if (!isProtectionSessionActive()) return
         if (ProtectionSessionManager.isForegroundServiceRunning(this)) return
@@ -1963,6 +2203,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
         stopPeriodicDialogScan()
         stopPackageDialogObserver()
         stopPackageProbe()
+        stopAntiScreensaverPoke()
         releaseWakeLock("cleanup")
 
         if (!keepHandler) {
@@ -1990,6 +2231,9 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             lastGesturePackage = ""
             lastGestureZoneIndex = -1
             lastGestureCoordinates = ""
+            lastAntiScreensaverPokeAtMs = 0L
+            lastScreensaverDetectedAtMs = 0L
+            lastScreensaverEscapeAtMs = 0L
             resetEscalationState()
         }
 
@@ -2079,7 +2323,14 @@ class KeepAliveAccessibilityService : AccessibilityService() {
             lastScreenTimeoutRestoreAt = ScreenTimeoutManager.lastRestoreAt(this),
             calibrationRecommendedMode = calibration?.preferredMode?.name.orEmpty(),
             calibrationRecommendedGesture = calibration?.preferredAction?.name.orEmpty(),
-            calibrationRecommendedZone = calibration?.preferredSafeZoneIndex ?: -1
+            calibrationRecommendedZone = calibration?.preferredSafeZoneIndex ?: -1,
+            dialogPendingHeartbeatOverride = isDialogPendingForHeartbeatOverride(),
+            antiScreensaverPokeCount = antiScreensaverPokeCount,
+            lastAntiScreensaverPokeAt = lastAntiScreensaverPokeAtMs,
+            antiScreensaverPokeActive = antiScreensaverPokeRunnable != null,
+            screensaverEscapeCount = screensaverEscapeCount,
+            lastScreensaverDetectedAt = lastScreensaverDetectedAtMs,
+            lastScreensaverEscapeAt = lastScreensaverEscapeAtMs
         )
     }
 

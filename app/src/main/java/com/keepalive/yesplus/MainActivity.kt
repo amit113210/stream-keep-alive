@@ -710,7 +710,10 @@ class MainActivity : AppCompatActivity() {
                 "Gestures: sent=%d done=%d cancel=%d reject=%d\n" +
                 "Calibration: mode=%s action=%s zone=%d\n" +
                 "Wake: acquire=%d release=%d held=%s\n" +
-                "Power: batteryExempt=%s writeSettings=%s timeoutOverride=%s originalTimeout=%d requestedTimeout=%d appliedAt=%d restoredAt=%d",
+                "Power: batteryExempt=%s writeSettings=%s timeoutOverride=%s originalTimeout=%d requestedTimeout=%d appliedAt=%d restoredAt=%d\n" +
+                "DialogPending: override=%s\n" +
+                "Poke: active=%s count=%d lastAt=%d\n" +
+                "Screensaver: escapes=%d lastDetect=%d lastEscape=%d",
             t.protectionSessionActive,
             t.protectionSessionStartedAt,
             t.foregroundServiceRunning,
@@ -781,7 +784,14 @@ class MainActivity : AppCompatActivity() {
             t.originalScreenTimeoutMs,
             t.currentRequestedScreenTimeoutMs,
             t.lastScreenTimeoutApplyAt,
-            t.lastScreenTimeoutRestoreAt
+            t.lastScreenTimeoutRestoreAt,
+            t.dialogPendingHeartbeatOverride,
+            t.antiScreensaverPokeActive,
+            t.antiScreensaverPokeCount,
+            t.lastAntiScreensaverPokeAt,
+            t.screensaverEscapeCount,
+            t.lastScreensaverDetectedAt,
+            t.lastScreensaverEscapeAt
         )
     }
 
