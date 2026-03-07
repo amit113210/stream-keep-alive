@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">מרכז קישוריות לטלוויזיה</string>
+    <string name="version_placeholder">גרסה --</string>
+    <string name="app_subtitle">נקודת גישה, קיצורי הגדרות ובדיקות מוכנות ל-Android TV</string>
+
+    <string name="status_active">✅ מוכן</string>
+    <string name="status_inactive">⏸ נדרשת הגדרה</string>
+
+    <string name="description_active">סשן כלי העזר פעיל.
+השתמש בלוח הבקרה לקיצורי קישוריות, הקשחת חשמל ובדיקות הרשאות.</string>
+    <string name="description_inactive">סשן כלי העזר כבוי כרגע.
+לחץ "הפעל כלי עזר" כדי להתחיל.</string>
+
+    <string name="button_enable">הגדרות נגישות</string>
+    <string name="button_disable">הגדרות נגישות</string>
+    <string name="button_hotspot">הגדרות נקודת גישה</string>
+    <string name="button_start_protection">הפעל כלי עזר</string>
+    <string name="button_stop_protection">עצור כלי עזר</string>
+    <string name="button_start_calibration">כיול (12 דקות)</string>
+    <string name="button_notification_access">גישת התראות</string>
+    <string name="button_power_settings">הגדרות חשמל ומערכת</string>
+    <string name="button_more_actions">פעולות נוספות</string>
+    <string name="button_mode_selector">מצב: NORMAL</string>
+    <string name="mode_selector_format">מצב: %1$s</string>
+
+    <string name="protection_status_on">סשן כלי עזר: פעיל</string>
+    <string name="protection_status_off">סשן כלי עזר: כבוי</string>
+
+    <string name="status_indicator_desc">מצב כלי עזר</string>
+
+    <string name="accessibility_service_description">שירות הנגישות מפעיל פעולות מהירות ובדיקות מוכנות עבור מרכז קישוריות לטלוויזיה.
+השירות רץ מקומית על ה-Android TV שלך.</string>
+
+    <string name="debug_title">טלמטריית ניפוי</string>
+    <string name="debug_waiting">ממתין לנתוני טלמטריה...</string>
+    <string name="debug_show">הצג טלמטריה</string>
+    <string name="debug_hide">הסתר טלמטריה</string>
+    <string name="details_show">הצג פרטי ריצה</string>
+    <string name="details_hide">הסתר פרטי ריצה</string>
+    <string name="more_accessibility_settings">הגדרות נגישות</string>
+    <string name="more_notification_access">גישת התראות</string>
+    <string name="more_power_system">הגדרות חשמל ומערכת</string>
+    <string name="more_hotspot">הגדרות נקודת גישה</string>
+    <string name="more_calibration">כיול (12 דקות)</string>
+    <string name="more_show_runtime">הצג פרטי ריצה</string>
+    <string name="more_hide_runtime">הסתר פרטי ריצה</string>
+    <string name="more_show_debug">הצג טלמטריה</string>
+    <string name="more_hide_debug">הסתר טלמטריה</string>
+    <string name="more_app_info">פרטי אפליקציה</string>
+    <string name="power_option_timeout_guidance">הנחיות זמן כיבוי מסך</string>
+    <string name="power_option_battery_optimization">אופטימיזציית סוללה</string>
+    <string name="power_option_screen_timeout_permission">הרשאת זמן כיבוי מסך</string>
+    <string name="power_option_accessibility_settings">הגדרות נגישות</string>
+    <string name="power_option_notification_access">גישת התראות</string>
+    <string name="power_option_app_info">פרטי אפליקציה</string>
+    <string name="power_guidance_title">הנחיות הקשחת חשמל</string>
+    <string name="power_guidance_message">כדי לשפר יציבות ב-Android TV:
+
+1) אשר "הרשאת זמן כיבוי מסך" (WRITE_SETTINGS) כדי להאריך זמנית את זמן הכיבוי ולהחזירו אחר כך.
+2) בטל אופטימיזציית סוללה לאפליקציה.
+3) אם קיימת בטלוויזיה אפשרות Screen timeout, מומלץ להגדיר Never.
+
+זו הקשחה מעשית, לא הבטחה מוחלטת לכל מכשיר.</string>
+    <string name="power_guidance_open_settings">פתח הגדרות טלוויזיה</string>
+
+    <string name="notification_channel_name">סשן כלי עזר לטלוויזיה</string>
+    <string name="notification_channel_description">התראה קבועה בזמן שסשן כלי העזר פעיל</string>
+    <string name="notification_protection_title">סשן כלי עזר פעיל</string>
+    <string name="notification_protection_text">סשן קישוריות פעיל (%1$s)</string>
+    <string name="notification_action_stop">עצור</string>
+
+    <string name="notification_permission_needed">אפשר התראות כדי שסטטוס הסשן יהיה גלוי.</string>
+    <string name="boot_resume_reminder">המכשיר הופעל מחדש. פתח את האפליקציה כדי לחדש את הסשן.</string>
+    <string name="notification_listener_label">מאזין התראות פלייבק</string>
+    <string name="status_yes">כן</string>
+    <string name="status_no">לא</string>
+    <string name="playback_fallback_mode">מצב נפילה לפי חבילה בלבד</string>
+    <string name="battery_optimization_required">מומלץ מאוד להחריג את האפליקציה מאופטימיזציית סוללה.</string>
+    <string name="battery_optimization_title">אופטימיזציית סוללה</string>
+    <string name="screen_timeout_permission_title">הרשאת זמן כיבוי מסך</string>
+    <string name="screen_timeout_permission_message">אישור ההרשאה מאפשר להאריך את זמן כיבוי המסך בזמן סשן פעיל ולהחזיר את ההגדרה המקורית בסיום.</string>
+    <string name="action_allow">אשר</string>
+    <string name="action_continue_anyway">המשך בכל זאת</string>
+    <string name="mode_changed_to">המצב הוחלף ל-%1$s</string>
+    <string name="readiness_warning_default">בדיקות המוכנות תקינות.</string>
+    <string name="button_fix_battery">תקן סוללה</string>
+    <string name="button_fix_write_settings">תקן Write Settings</string>
+
+    <string name="toast_enable_accessibility_first">הפעל קודם נגישות</string>
+    <string name="toast_utility_started">סשן כלי עזר התחיל (%1$s)</string>
+    <string name="toast_utility_stopped">סשן כלי עזר נעצר</string>
+    <string name="warning_battery_missing">חסרה החרגת אופטימיזציית סוללה</string>
+    <string name="warning_write_settings_missing">חסרה הרשאת Write Settings</string>
+    <string name="warning_timeout_override_missing">הקשחת זמן כיבוי מסך לא פעילה</string>
+    <string name="warning_gesture_broken">מנוע המחוות תקול במכשיר זה</string>
+    <string name="warning_gesture_degraded">מנוע המחוות חלש במכשיר זה (ביטולים רבים)</string>
+
+    <string name="calibration_package_title">חבילת כיול</string>
+    <string name="calibration_no_steps">אין שלבי כיול</string>
+    <string name="calibration_started">כיול התחיל עבור %1$s (12 דקות)</string>
+    <string name="calibration_step">שלב כיול %1$d/%2$d: אזור=%3$d, פעולה=%4$s, מצב=%5$s</string>
+    <string name="calibration_done_best">הכיול הסתיים: אזור=%1$d פעולה=%2$s מצב=%3$s</string>
+    <string name="calibration_done_empty">הכיול הסתיים ללא תוצאה מדידה</string>
+
+    <string name="quick_status_format">מצב מהיר: נגישות %1$s  |  סשן %2$s  |  מצב %3$s  |  פלייבק %4$s  |  Heartbeat %5$s  |  מחוות %6$s  |  צייד דיאלוג %7$s</string>
+</resources>

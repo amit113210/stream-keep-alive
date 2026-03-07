@@ -181,7 +181,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun onStartProtectionClicked() {
         if (!isAccessibilityServiceEnabled()) {
-            Toast.makeText(this, "Enable Accessibility first | הפעל קודם נגישות", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_enable_accessibility_first), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -217,10 +217,10 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.battery_optimization_title))
             .setMessage(getString(R.string.battery_optimization_required))
-            .setPositiveButton("Allow") { _, _ ->
+            .setPositiveButton(getString(R.string.action_allow)) { _, _ ->
                 openBatteryOptimizationSettings()
             }
-            .setNeutralButton("Continue anyway") { _, _ ->
+            .setNeutralButton(getString(R.string.action_continue_anyway)) { _, _ ->
                 if (ensureWriteSettingsPermission()) {
                     startProtectionSession(ProtectionSessionManager.currentMode(this))
                 }
@@ -362,7 +362,7 @@ class MainActivity : AppCompatActivity() {
         ContextCompat.startForegroundService(this, ProtectionSessionService.createStartIntent(this, mode))
         applyScreenTimeoutHardeningIfPossible()
         updateServiceStatus()
-        Toast.makeText(this, "Utility session started (${mode.name})", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.toast_utility_started, mode.name), Toast.LENGTH_SHORT).show()
     }
 
     private fun stopProtectionSession() {
@@ -374,7 +374,7 @@ class MainActivity : AppCompatActivity() {
         ProtectionSessionManager.stopProtection(this)
         restoreScreenTimeoutIfPossible(reason = "ui-stop")
         updateServiceStatus()
-        Toast.makeText(this, "Utility session stopped", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.toast_utility_stopped), Toast.LENGTH_SHORT).show()
     }
 
     private fun applyScreenTimeoutHardeningIfPossible() {
@@ -595,7 +595,7 @@ class MainActivity : AppCompatActivity() {
         } else {
             String.format(
                 Locale.US,
-                "Quick Status: Accessibility %s  |  Session %s  |  Mode %s  |  Playback %s  |  Heartbeat %s  |  Gesture %s  |  Dialog Hunter %s",
+                getString(R.string.quick_status_format),
                 accessibilityText,
                 protectionText,
                 selectedMode.name,
@@ -608,15 +608,15 @@ class MainActivity : AppCompatActivity() {
         updateModeButtonLabel(selectedMode)
 
         val warningLines = mutableListOf<String>()
-        if (!batteryExempt) warningLines.add("Battery optimization exempt: MISSING")
-        if (!writeSettingsGranted) warningLines.add("Write settings permission: MISSING")
+        if (!batteryExempt) warningLines.add(getString(R.string.warning_battery_missing))
+        if (!writeSettingsGranted) warningLines.add(getString(R.string.warning_write_settings_missing))
         if (!timeoutOverrideActive && protectionActive && writeSettingsGranted) {
-            warningLines.add("Timeout override active: MISSING")
+            warningLines.add(getString(R.string.warning_timeout_override_missing))
         }
         if (telemetry.gestureEngineHealth == "BROKEN") {
-            warningLines.add("Gesture engine is broken on this device")
+            warningLines.add(getString(R.string.warning_gesture_broken))
         } else if (telemetry.gestureEngineHealth == "DEGRADED") {
-            warningLines.add("Gesture engine is degraded on this device (cancellations)")
+            warningLines.add(getString(R.string.warning_gesture_degraded))
         }
 
         if (warningLines.isNotEmpty()) {
@@ -802,7 +802,7 @@ class MainActivity : AppCompatActivity() {
             .sorted()
 
         AlertDialog.Builder(this)
-            .setTitle("Calibration package")
+            .setTitle(getString(R.string.calibration_package_title))
             .setItems(packages.toTypedArray()) { _, which ->
                 startCalibration(packages[which])
             }
@@ -813,7 +813,7 @@ class MainActivity : AppCompatActivity() {
     private fun startCalibration(packagePrefix: String) {
         val steps = buildCalibrationSteps(packagePrefix)
         if (steps.isEmpty()) {
-            Toast.makeText(this, "No calibration steps", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.calibration_no_steps), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -824,7 +824,7 @@ class MainActivity : AppCompatActivity() {
             steps = steps
         )
 
-        Toast.makeText(this, "Calibration started for $packagePrefix (12 min)", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, getString(R.string.calibration_started, packagePrefix), Toast.LENGTH_LONG).show()
         runCalibrationStep()
     }
 
@@ -869,7 +869,14 @@ class MainActivity : AppCompatActivity() {
         val stepDurationMs = max(60_000L, CALIBRATION_TOTAL_MS / run.steps.size.toLong())
         Toast.makeText(
             this,
-            "Calibration step ${run.stepIndex + 1}/${run.steps.size}: zone=${step.zoneIndex}, action=${step.action.name}, mode=${step.mode.name}",
+            getString(
+                R.string.calibration_step,
+                run.stepIndex + 1,
+                run.steps.size,
+                step.zoneIndex,
+                step.action.name,
+                step.mode.name
+            ),
             Toast.LENGTH_SHORT
         ).show()
 
@@ -917,11 +924,11 @@ class MainActivity : AppCompatActivity() {
 
             Toast.makeText(
                 this,
-                "Calibration done: best zone=$zone action=${action.name} mode=${mode.name}",
+                getString(R.string.calibration_done_best, zone, action.name, mode.name),
                 Toast.LENGTH_LONG
             ).show()
         } else {
-            Toast.makeText(this, "Calibration completed with no measurable result", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.calibration_done_empty), Toast.LENGTH_LONG).show()
         }
 
         activeCalibration = null
