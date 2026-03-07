@@ -133,7 +133,7 @@
                             android:layout_height="38dp"
                             android:layout_marginEnd="6dp"
                             android:background="@drawable/btn_primary"
-                            android:text="@string/button_start_hotspot"
+                            android:text="@string/button_hotspot_settings"
                             android:focusable="true"
                             android:textAllCaps="false"
                             android:textColor="@android:color/white"

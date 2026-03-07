@@ -103,7 +103,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var speedStatusValue: TextView
     private lateinit var runSpeedTestButton: Button
     private lateinit var showQrCodeButton: Button
-    private lateinit var hotspotManager: HotspotManager
 
     private val uiHandler = Handler(Looper.getMainLooper())
     private var telemetryRunnable: Runnable? = null
@@ -136,19 +135,7 @@ class MainActivity : AppCompatActivity() {
         versionText.text = getInstalledVersionText()
 
         networkSettingsButton.setOnClickListener { openNetworkSettings() }
-        toggleHotspotButton.setOnClickListener { toggleAppHotspot() }
-        
-        val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        hotspotManager = HotspotManager(wifiManager)
-        
-        hotspotManager.onHotspotStarted = { _, _ -> uiHandler.post { updateServiceStatus() } }
-        hotspotManager.onHotspotStopped = { uiHandler.post { updateServiceStatus() } }
-        hotspotManager.onHotspotFailed = { reason ->
-            uiHandler.post { 
-                updateServiceStatus()
-                Toast.makeText(this@MainActivity, "Hotspot failed: $reason", Toast.LENGTH_LONG).show()
-            }
-        }
+        toggleHotspotButton.setOnClickListener { openHotspotSettings() }
         
         refreshInfoButton.setOnClickListener { updateServiceStatus() }
         moreActionsButton.setOnClickListener { openMoreActionsMenu() }
@@ -518,25 +505,13 @@ class MainActivity : AppCompatActivity() {
         hotspotStatusValue.text = buildHotspotCardText(hotspot)
         speedStatusValue.text = buildSpeedCardText()
 
-        if (hotspotManager.isHotspotActive) {
-            toggleHotspotButton.text = getString(R.string.button_stop_hotspot)
-            val hSsid = hotspotManager.activeSsid
-            val hPass = hotspotManager.activePassword
-            if (hSsid != "-" && hSsid.isNotBlank()) {
-                showQrCodeButton.visibility = View.VISIBLE
-                showQrCodeButton.setOnClickListener { showQrCodeDialog(hSsid, hPass) }
-            } else {
-                showQrCodeButton.visibility = View.GONE
-            }
+        toggleHotspotButton.text = getString(R.string.button_hotspot_settings)
+        if (hotspot.state == getString(R.string.hotspot_state_active) && hotspot.ssid != "-" && hotspot.ssid.isNotBlank()) {
+            showQrCodeButton.visibility = View.VISIBLE
+            showQrCodeButton.setOnClickListener { showQrCodeDialog(hotspot.ssid, hotspot.password) }
         } else {
-            toggleHotspotButton.text = getString(R.string.button_start_hotspot)
-            if (hotspot.state == getString(R.string.hotspot_state_active) && hotspot.ssid != "-" && hotspot.ssid.isNotBlank()) {
-                showQrCodeButton.visibility = View.VISIBLE
-                showQrCodeButton.setOnClickListener { showQrCodeDialog(hotspot.ssid, hotspot.password) }
-            } else {
-                showQrCodeButton.visibility = View.GONE
-                showQrCodeButton.setOnClickListener(null)
-            }
+            showQrCodeButton.visibility = View.GONE
+            showQrCodeButton.setOnClickListener(null)
         }
 
         val warningLines = mutableListOf<String>()
@@ -874,16 +849,6 @@ class MainActivity : AppCompatActivity() {
         startActivity(Intent(this, SpeedTestActivity::class.java))
     }
 
-    private fun toggleAppHotspot() {
-        if (hotspotManager.isHotspotActive) {
-            hotspotManager.stopHotspot()
-            Toast.makeText(this, getString(R.string.button_stop_hotspot), Toast.LENGTH_SHORT).show()
-        } else {
-            hotspotManager.startHotspot()
-            Toast.makeText(this, getString(R.string.button_start_hotspot), Toast.LENGTH_SHORT).show()
-        }
-    }
-
     private fun readInternetStatus(): InternetStatus {
         val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             ?: return InternetStatus(false, "unknown", "-", "-")
@@ -924,14 +889,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun readHotspotStatus(): HotspotStatus {
-        if (hotspotManager.isHotspotActive) {
-            return HotspotStatus(
-                state = getString(R.string.hotspot_state_active),
-                ssid = hotspotManager.activeSsid,
-                note = getString(R.string.hotspot_app_active),
-                password = hotspotManager.activePassword
-            )
-        }
         return try {
             val wm = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
             val apMethod = wm?.javaClass?.getDeclaredMethod("isWifiApEnabled")
@@ -1022,12 +979,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun openNetworkSettings() {
         val intents = listOf(
-            Intent().apply {
-                component = ComponentName(
-                    "com.droidlogic.tv.settings",
-                    "com.droidlogic.tv.settings.wifi.HotSpotActivity"
-                )
-            },
             Intent().apply {
                 component = ComponentName(
                     "com.android.tv.settings",
