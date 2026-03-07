@@ -903,6 +903,9 @@ class MainActivity : AppCompatActivity() {
             pingConn.requestMethod = "GET"
             pingConn.connectTimeout = 3000
             pingConn.readTimeout = 3000
+            pingConn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            pingConn.setRequestProperty("Origin", "https://speed.cloudflare.com")
+            pingConn.setRequestProperty("Referer", "https://speed.cloudflare.com/")
             pingConn.inputStream.use { it.readBytes() }
             val pingEnd = System.currentTimeMillis()
             pingMs = (pingEnd - pingStart).toString()
@@ -917,6 +920,9 @@ class MainActivity : AppCompatActivity() {
             downConn.requestMethod = "GET"
             downConn.connectTimeout = 5000
             downConn.readTimeout = 10000
+            downConn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            downConn.setRequestProperty("Origin", "https://speed.cloudflare.com")
+            downConn.setRequestProperty("Referer", "https://speed.cloudflare.com/")
             
             var downloadedBytes = 0L
             val buffer = ByteArray(8192)
@@ -946,6 +952,9 @@ class MainActivity : AppCompatActivity() {
             upConn.readTimeout = 10000
             upConn.doOutput = true
             upConn.setFixedLengthStreamingMode(payloadSize)
+            upConn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            upConn.setRequestProperty("Origin", "https://speed.cloudflare.com")
+            upConn.setRequestProperty("Referer", "https://speed.cloudflare.com/")
             
             upConn.outputStream.use { output ->
                 val chunk = ByteArray(8192)

@@ -390,6 +390,7 @@
                 android:layout_height="match_parent"
                 android:orientation="vertical"
                 android:gravity="center"
+                android:layoutDirection="ltr"
                 android:padding="24dp">
 
                 <!-- Ping -->

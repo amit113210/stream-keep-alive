@@ -21,8 +21,8 @@ android {
         applicationId = "com.keepalive.yesplus"
         minSdk = 21
         targetSdk = 34
-        versionCode = 26
-        versionName = "2.0.6"
+        versionCode = 27
+        versionName = "2.0.7"
     }
 
     signingConfigs {
