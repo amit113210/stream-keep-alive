@@ -4,18 +4,18 @@
     android:layout_height="match_parent"
     android:background="@color/background_dark"
     android:paddingStart="24dp"
-    android:paddingTop="20dp"
+    android:paddingTop="18dp"
     android:paddingEnd="24dp"
-    android:paddingBottom="20dp">
+    android:paddingBottom="18dp">
 
     <LinearLayout
         android:id="@+id/actionsContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:paddingStart="52dp"
-        android:paddingEnd="52dp"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -31,9 +31,6 @@
                 android:layout_marginEnd="8dp"
                 android:background="@drawable/button_background"
                 android:focusable="true"
-                android:gravity="center"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
                 android:text="@string/button_start_protection"
                 android:textAllCaps="false"
                 android:textColor="@android:color/white"
@@ -46,11 +43,8 @@
                 android:layout_height="46dp"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                android:background="@drawable/button_background_secondary"
+                android:background="@drawable/button_background"
                 android:focusable="true"
-                android:gravity="center"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
                 android:text="@string/button_stop_protection"
                 android:textAllCaps="false"
                 android:textColor="@android:color/white"
@@ -61,7 +55,6 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="6dp"
             android:orientation="horizontal">
 
             <Button
@@ -72,7 +65,6 @@
                 android:layout_marginEnd="8dp"
                 android:background="@drawable/button_background_secondary"
                 android:focusable="true"
-                android:gravity="center"
                 android:text="@string/button_mode_selector"
                 android:textAllCaps="false"
                 android:textColor="@android:color/white"
@@ -87,7 +79,6 @@
                 android:layout_marginStart="8dp"
                 android:background="@drawable/button_background_secondary"
                 android:focusable="true"
-                android:gravity="center"
                 android:text="@string/button_more_actions"
                 android:textAllCaps="false"
                 android:textColor="@android:color/white"
@@ -97,7 +88,6 @@
     </LinearLayout>
 
     <ScrollView
-        android:id="@+id/contentScroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/actionsContainer"
@@ -109,13 +99,12 @@
             android:layout_height="wrap_content"
             android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:paddingBottom="20dp">
+            android:paddingBottom="18dp">
 
             <TextView
                 android:id="@+id/titleText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
                 android:text="@string/app_name"
                 android:textColor="@color/text_primary"
                 android:textSize="30sp"
@@ -125,65 +114,142 @@
                 android:id="@+id/versionText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
+                android:layout_marginTop="4dp"
                 android:text="@string/version_placeholder"
                 android:textColor="@color/text_secondary"
-                android:textSize="13sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:text="@string/app_subtitle"
-                android:textColor="@color/text_secondary"
-                android:textSize="16sp" />
+                android:textSize="12sp" />
 
             <TextView
                 android:id="@+id/protectionStatusText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
+                android:layout_marginTop="8dp"
                 android:text="@string/protection_status_off"
                 android:textColor="@color/text_primary"
-                android:textSize="18sp"
+                android:textSize="17sp"
                 android:textStyle="bold" />
-
-            <ImageView
-                android:id="@+id/statusIndicator"
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:layout_marginBottom="12dp"
-                android:contentDescription="@string/status_indicator_desc"
-                android:src="@drawable/ic_status_inactive" />
 
             <TextView
                 android:id="@+id/statusText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="14dp"
+                android:layout_marginBottom="12dp"
                 android:text="@string/status_inactive"
                 android:textColor="@color/status_inactive"
-                android:textSize="26sp"
+                android:textSize="20sp"
                 android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/debug_panel_background"
+                android:maxWidth="860dp"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/internet_card_title"
+                    android:textColor="@android:color/white"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/internetStatusValue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="-"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/debug_panel_background"
+                android:maxWidth="860dp"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/hotspot_card_title"
+                    android:textColor="@android:color/white"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/hotspotStatusValue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="-"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/debug_panel_background"
+                android:maxWidth="860dp"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/speed_card_title"
+                    android:textColor="@android:color/white"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/speedStatusValue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="-"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+
+                <Button
+                    android:id="@+id/runSpeedTestButton"
+                    android:layout_width="220dp"
+                    android:layout_height="38dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/button_background_secondary"
+                    android:text="@string/button_run_speed_test"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/descriptionText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="12dp"
                 android:gravity="center"
-                android:maxWidth="760dp"
+                android:maxWidth="860dp"
                 android:text="@string/description_inactive"
                 android:textColor="@color/text_secondary"
-                android:textSize="15sp" />
+                android:textSize="14sp" />
 
             <LinearLayout
                 android:id="@+id/readinessWarningContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="14dp"
+                android:layout_marginBottom="12dp"
                 android:background="@drawable/debug_panel_background"
-                android:maxWidth="760dp"
+                android:maxWidth="860dp"
                 android:orientation="vertical"
                 android:padding="12dp"
                 android:visibility="gone">
@@ -207,7 +273,7 @@
                     <Button
                         android:id="@+id/openBatterySettingsButton"
                         android:layout_width="0dp"
-                        android:layout_height="38dp"
+                        android:layout_height="36dp"
                         android:layout_marginEnd="6dp"
                         android:layout_weight="1"
                         android:background="@drawable/button_background_secondary"
@@ -219,7 +285,7 @@
                     <Button
                         android:id="@+id/openWriteSettingsButton"
                         android:layout_width="0dp"
-                        android:layout_height="38dp"
+                        android:layout_height="36dp"
                         android:layout_marginStart="6dp"
                         android:layout_weight="1"
                         android:background="@drawable/button_background_secondary"
@@ -248,13 +314,19 @@
                 android:background="@drawable/debug_panel_background"
                 android:fontFamily="monospace"
                 android:gravity="start"
-                android:maxWidth="760dp"
+                android:maxWidth="860dp"
                 android:padding="12dp"
                 android:text="@string/debug_waiting"
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp"
                 android:visibility="gone" />
+
+            <ImageView
+                android:id="@+id/statusIndicator"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                android:contentDescription="@string/status_indicator_desc"
+                android:visibility="gone" />
         </LinearLayout>
     </ScrollView>
-
 </RelativeLayout>

@@ -106,4 +106,33 @@
 
     <string name="quick_status_format">צקליסט: נגישות %1$s | התראות %2$s | סוללה %3$s | Write Settings %4$s | Timeout Override %5$s</string>
     <string name="runtime_summary_format">מוכנות\n• נגישות: %1$s\n• גישת התראות: %2$s\n• החרגת סוללה: %3$s\n• הרשאת Write Settings: %4$s\n• הקשחת זמן כיבוי פעילה: %5$s\n\nמערכת\n• Companion פעיל: %6$s\n• סשן Utility פעיל: %7$s\n• מצב נבחר: %8$s\n• Timeout מקורי: %9$s\n• Timeout נוכחי: %10$s\n• אותות Playback זמינים: %11$s\n• Playback פעיל: %12$s</string>
+
+    <string name="internet_card_title">מצב אינטרנט</string>
+    <string name="hotspot_card_title">מצב נקודת גישה</string>
+    <string name="speed_card_title">מהירות ואיכות</string>
+    <string name="button_run_speed_test">הרץ בדיקת מהירות</string>
+    <string name="speed_not_run_yet">עדיין אין תוצאת בדיקת מהירות. לחץ "הרץ בדיקת מהירות".</string>
+    <string name="speed_last_result_format">תוצאה אחרונה: %1$s
+חותמת זמן: %2$d</string>
+    <string name="speed_test_placeholder_result">נשלחה בקשת בדיקה ידנית (fast.com)</string>
+    <string name="speed_test_placeholder_toast">לא ניתן לפתוח דפדפן. פתח fast.com ידנית.</string>
+    <string name="issue_no_internet">לא זוהה חיבור אינטרנט</string>
+    <string name="internet_connected">מחובר</string>
+    <string name="internet_disconnected">מנותק</string>
+    <string name="internet_card_format">מצב: %1$s
+סוג: %2$s
+SSID: %3$s
+IP מקומי: %4$s</string>
+    <string name="hotspot_state_active">פעיל</string>
+    <string name="hotspot_state_inactive">כבוי</string>
+    <string name="hotspot_state_unavailable">לא זמין</string>
+    <string name="hotspot_note_active">נראה שנקודת הגישה פעילה במכשיר זה.</string>
+    <string name="hotspot_note_inactive">נקודת הגישה כבויה כרגע.</string>
+    <string name="hotspot_note_unavailable">מצב נקודת הגישה חסום או לא זמין במכשיר זה.</string>
+    <string name="hotspot_card_format">מצב: %1$s
+SSID: %2$s
+הערה: %3$s</string>
+    <string name="more_bluetooth_settings">הגדרות Bluetooth</string>
+    <string name="more_legacy_tools">כלים מתקדמים / Legacy</string>
+
 </resources>

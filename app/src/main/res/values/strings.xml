@@ -106,4 +106,33 @@ This is best-effort hardening, not a universal guarantee.</string>
 
     <string name="quick_status_format">Checklist: Accessibility %1$s | Notifications %2$s | Battery %3$s | Write Settings %4$s | Timeout Override %5$s</string>
     <string name="runtime_summary_format">Readiness\n• Accessibility: %1$s\n• Notification Access: %2$s\n• Battery Optimization Exempt: %3$s\n• Write Settings Permission: %4$s\n• Screen Timeout Override Active: %5$s\n\nSystem\n• Foreground Companion: %6$s\n• Utility Session Active: %7$s\n• Selected Mode: %8$s\n• Original Screen Timeout: %9$s\n• Current Override Timeout: %10$s\n• Playback Signals Available: %11$s\n• Active Playback: %12$s</string>
+
+    <string name="internet_card_title">Internet Status</string>
+    <string name="hotspot_card_title">Hotspot Status</string>
+    <string name="speed_card_title">Speed &amp; Quality</string>
+    <string name="button_run_speed_test">Run Speed Test</string>
+    <string name="speed_not_run_yet">No speed test result yet. Press "Run Speed Test".</string>
+    <string name="speed_last_result_format">Last result: %1$s
+Timestamp: %2$d</string>
+    <string name="speed_test_placeholder_result">Manual speed test requested (open fast.com)</string>
+    <string name="speed_test_placeholder_toast">Could not open browser. Please open fast.com manually.</string>
+    <string name="issue_no_internet">No internet connection detected</string>
+    <string name="internet_connected">Connected</string>
+    <string name="internet_disconnected">Disconnected</string>
+    <string name="internet_card_format">State: %1$s
+Type: %2$s
+SSID: %3$s
+Local IP: %4$s</string>
+    <string name="hotspot_state_active">Active</string>
+    <string name="hotspot_state_inactive">Inactive</string>
+    <string name="hotspot_state_unavailable">Unavailable</string>
+    <string name="hotspot_note_active">Hotspot appears active on this device.</string>
+    <string name="hotspot_note_inactive">Hotspot is currently turned off.</string>
+    <string name="hotspot_note_unavailable">Hotspot state is device-restricted or unavailable.</string>
+    <string name="hotspot_card_format">State: %1$s
+SSID: %2$s
+Note: %3$s</string>
+    <string name="more_bluetooth_settings">Bluetooth settings</string>
+    <string name="more_legacy_tools">Advanced / Legacy tools</string>
+
 </resources>
