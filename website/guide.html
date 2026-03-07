@@ -10,22 +10,57 @@
   <div class="container">
     <header>
       <div class="brand">
-        <img src="logo.png" alt="לוגו" />
+        <img src="logo.png" alt="logo" />
         <div>
           <h1>מדריך התקנה</h1>
           <div class="tagline">מרכז קישוריות לטלוויזיה</div>
         </div>
       </div>
-      <div class="hero-actions" dir="ltr" style="margin-top:10px;"><a class="btn secondary" href="guide-en.html">English</a></div>
+      <div class="toolbar" dir="ltr">
+        <a class="btn secondary" href="guide-en.html">English</a>
+        <a class="btn secondary" href="index.html">דף הבית</a>
+      </div>
     </header>
 
-    <section class="card"><h2>1) התקנה</h2><ol><li>הורד והרץ מתקין מדף הבית.</li><li>השתמש בערוץ <b>main</b> אלא אם צריך release.</li><li>אמת versionName/versionCode בפלט המתקין.</li></ol></section>
-    <section class="card"><h2>2) הפעלת הרשאות</h2><ol><li>נגישות: פעיל</li><li>גישת התראות: מומלץ</li><li>החרגת סוללה: מומלץ</li><li>Write Settings: אופציונלי אך מומלץ</li></ol></section>
-    <section class="card"><h2>3) הפעלת סשן</h2><p>לחץ <b>הפעל כלי עזר</b> ובדוק שהצ'קליסט מציג YES.</p></section>
-    <section class="card"><h2>4) פתרון תקלות</h2><ul><li>אם Notification Access = NO, פתח הגדרות מאזין התראות.</li><li>אם Battery = NO, החרג את האפליקציה מאופטימיזציה.</li><li>אם Write Settings = NO, אשר דרך תפריט Power.</li></ul></section>
+    <section class="card">
+      <h2>שלב 1 - התקנה</h2>
+      <ol>
+        <li>הורד והרץ מתקין Mac/Windows.</li>
+        <li>בחר ערוץ <b>main</b> (מומלץ לרוב המשתמשים).</li>
+        <li>ודא שבפלט המתקין מופיעה הגרסה המותקנת (`versionName/versionCode`).</li>
+      </ol>
+    </section>
 
-    <p><a class="btn secondary" href="index.html">חזרה לדף הבית</a></p>
-    <footer>מרכז קישוריות לטלוויזיה</footer>
+    <section class="card">
+      <h2>שלב 2 - הרשאות חיוניות</h2>
+      <ol>
+        <li>Accessibility: הפעלה חובה.</li>
+        <li>Notification Access: מומלץ מאוד.</li>
+        <li>Battery Optimization Exemption: מומלץ ליציבות.</li>
+        <li>Write Settings: אופציונלי אך מומלץ להקשחת זמן כיבוי מסך.</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>שלב 3 - בדיקת מוכנות</h2>
+      <p>
+        פתח את האפליקציה ובדוק שבצ'קליסט רוב השורות מסומנות YES.
+        אם חסרה הרשאה, השתמש בכפתורי Fix או בתפריט Power &amp; System.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>פתרון בעיות נפוצות</h2>
+      <ul>
+        <li><b>Notification Access = NO</b> → פתח הגדרות מאזין התראות ואשר גישה.</li>
+        <li><b>Battery Exemption = NO</b> → החרג את האפליקציה מאופטימיזציית סוללה.</li>
+        <li><b>Write Settings = NO</b> → אשר הרשאה דרך Power &amp; System.</li>
+        <li><b>Timeout Override = NO</b> → אשר Write Settings והפעל מחדש את כלי העזר.</li>
+      </ul>
+    </section>
+
+    <footer>© <span id="year"></span> מרכז קישוריות לטלוויזיה</footer>
   </div>
+  <script src="script.js"></script>
 </body>
 </html>

@@ -108,10 +108,10 @@ class MainActivity : AppCompatActivity() {
 
         versionText.text = getInstalledVersionText()
 
-        startProtectionButton.setOnClickListener { onStartProtectionClicked() }
-        modeSelectorButton.setOnClickListener { cycleProtectionMode() }
+        startProtectionButton.setOnClickListener { openNetworkSettings() }
+        modeSelectorButton.setOnClickListener { toggleRuntimeDetails() }
         moreActionsButton.setOnClickListener { openMoreActionsMenu() }
-        stopProtectionButton.setOnClickListener { stopProtectionSession() }
+        stopProtectionButton.setOnClickListener { openPowerSettingsHelper() }
         openBatterySettingsButton.setOnClickListener { openBatteryOptimizationSettings() }
         openWriteSettingsButton.setOnClickListener { openWriteSettingsScreen() }
 
@@ -151,6 +151,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun openMoreActionsMenu() {
         val items = arrayOf(
+            getString(R.string.more_start_session),
+            getString(R.string.more_stop_session),
+            getString(R.string.more_cycle_mode),
             getString(R.string.more_accessibility_settings),
             getString(R.string.more_notification_access),
             getString(R.string.more_power_system),
@@ -165,14 +168,17 @@ class MainActivity : AppCompatActivity() {
             .setTitle(getString(R.string.button_more_actions))
             .setItems(items) { _, which ->
                 when (which) {
-                    0 -> openAccessibilitySettings()
-                    1 -> openNotificationListenerSettings()
-                    2 -> openPowerSettingsHelper()
-                    3 -> openNetworkSettings()
-                    4 -> openCalibrationPackagePicker()
-                    5 -> toggleRuntimeDetails()
-                    6 -> toggleDebugPanel()
-                    7 -> openAppDetailsSettings()
+                    0 -> onStartProtectionClicked()
+                    1 -> stopProtectionSession()
+                    2 -> cycleProtectionMode()
+                    3 -> openAccessibilitySettings()
+                    4 -> openNotificationListenerSettings()
+                    5 -> openPowerSettingsHelper()
+                    6 -> openNetworkSettings()
+                    7 -> openCalibrationPackagePicker()
+                    8 -> toggleRuntimeDetails()
+                    9 -> toggleDebugPanel()
+                    10 -> openAppDetailsSettings()
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -354,7 +360,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateModeButtonLabel(mode: ServiceMode) {
-        modeSelectorButton.text = getString(R.string.mode_selector_format, mode.name)
+        modeSelectorButton.text = getString(R.string.button_mode_selector)
     }
 
     private fun startProtectionSession(mode: ServiceMode, durationTargetMinutes: Int = 0) {
@@ -450,18 +456,20 @@ class MainActivity : AppCompatActivity() {
             statusText.setTextColor(ContextCompat.getColor(this, R.color.status_inactive))
         }
 
-        protectionStatusText.text = if (protectionActive) {
+        val telemetry = KeepAliveAccessibilityService.getTelemetrySnapshot()
+        val notificationAccessEnabled = isNotificationListenerEnabled()
+        val batteryExempt = isBatteryOptimizationExempt()
+        val writeSettingsGranted = canWriteSystemSettings()
+        val timeoutOverrideActive = telemetry.screenTimeoutOverrideActive
+        val readinessGood = accessibilityEnabled && notificationAccessEnabled && batteryExempt && writeSettingsGranted
+
+        protectionStatusText.text = if (readinessGood) {
             getString(R.string.protection_status_on)
         } else {
             getString(R.string.protection_status_off)
         }
 
-        val telemetry = KeepAliveAccessibilityService.getTelemetrySnapshot()
         val selectedMode = ProtectionSessionManager.currentMode(this)
-        val notificationAccessEnabled = isNotificationListenerEnabled()
-        val batteryExempt = isBatteryOptimizationExempt()
-        val writeSettingsGranted = canWriteSystemSettings()
-        val timeoutOverrideActive = telemetry.screenTimeoutOverrideActive
         val originalTimeoutText = if (telemetry.originalScreenTimeoutMs > 0L) {
             "${telemetry.originalScreenTimeoutMs}ms"
         } else {
@@ -474,32 +482,8 @@ class MainActivity : AppCompatActivity() {
         }
         val playbackSignalsAvailable = telemetry.mediaSessionAccessAvailable || telemetry.notificationListenerEnabled
         val playbackActive = telemetry.playbackStateFriendly == PlaybackFriendlyState.PLAYING_ACTIVE.name
-        val heartbeatAllowed = telemetry.shouldRunHeartbeatNow
-        val heartbeatReason = telemetry.heartbeatSuppressedReason.ifEmpty { "-" }
-        val gestureHealth = telemetry.gestureEngineHealth
-        val dialogHunterState = when {
-            telemetry.currentPackage.startsWith("com.netflix").not() &&
-                telemetry.activePlaybackPackage.startsWith("com.netflix").not() -> "IDLE"
-            telemetry.lastDialogPositivePhrase.isNotEmpty() && telemetry.lastDialogDismissAt > 0L -> "MATCHING"
-            telemetry.lastDialogNoTargetReason.isNotEmpty() -> "FAILED"
-            else -> "MATCHING"
-        }
-        val dialogTargetWindowText = if (telemetry.lastDialogTargetWindowIndex >= 0) {
-            telemetry.lastDialogTargetWindowIndex.toString()
-        } else {
-            "-"
-        }
-        val dialogPackageText = telemetry.lastDialogPackage.ifEmpty { "-" }
-        val dialogPositivePhraseText = telemetry.lastDialogPositivePhrase.ifEmpty { "-" }
-        val dialogConfirmPhraseText = telemetry.lastDialogConfirmPhrase.ifEmpty { "-" }
-        val dialogNegativeMatchText = telemetry.lastDialogNegativeMatch.ifEmpty { "-" }
-        val dialogNoTargetReasonText = telemetry.lastDialogNoTargetReason.ifEmpty { "-" }
-        val dialogBlockReasonText = telemetry.lastDialogNegativeBlockReason.ifEmpty { "-" }
-        val dialogTargetText = telemetry.lastDialogTargetText.ifEmpty { "-" }
-        val dialogClickMethod = telemetry.lastDialogClickMethod.ifEmpty { "NONE" }
 
         val accessibilityText = if (accessibilityEnabled) getString(R.string.status_yes) else getString(R.string.status_no)
-        val protectionText = if (protectionActive) getString(R.string.status_yes) else getString(R.string.status_no)
         val notificationText = if (notificationAccessEnabled) getString(R.string.status_yes) else getString(R.string.status_no)
         val foregroundText = if (telemetry.foregroundServiceRunning) getString(R.string.status_yes) else getString(R.string.status_no)
         val batteryText = if (batteryExempt) getString(R.string.status_yes) else getString(R.string.status_no)
@@ -507,102 +491,33 @@ class MainActivity : AppCompatActivity() {
         val timeoutOverrideText = if (timeoutOverrideActive) getString(R.string.status_yes) else getString(R.string.status_no)
         val playbackSignalsText = if (playbackSignalsAvailable) getString(R.string.status_yes) else getString(R.string.status_no)
         val playbackText = if (playbackActive) getString(R.string.status_yes) else getString(R.string.status_no)
-        val heartbeatAllowedText = if (heartbeatAllowed) getString(R.string.status_yes) else getString(R.string.status_no)
 
         descriptionText.text = if (runtimeDetailsVisible) {
             String.format(
                 Locale.US,
-                "Checklist\n" +
-                    "• Accessibility: %s\n" +
-                    "• Utility Session: %s\n" +
-                    "• Notification Access: %s\n" +
-                    "• Foreground Companion: %s\n" +
-                    "• Battery Optimization Exempt: %s\n" +
-                    "• Write Settings Permission: %s\n" +
-                    "• Screen Timeout Override Active: %s\n" +
-                    "• Playback Signals Available: %s\n" +
-                    "• Active Playback: %s\n" +
-                    "• Gesture Engine Health: %s\n" +
-                    "• Dialog Hunter: %s\n\n" +
-                    "Runtime\n" +
-                    "• Display hardening: best effort only\n" +
-                    "• Selected Mode: %s\n" +
-                    "• Heartbeat Allowed: %s\n" +
-                    "• Heartbeat Gate Reason: %s\n" +
-                    "• Original Screen Timeout: %s\n" +
-                    "• Current Screen Timeout Override: %s\n" +
-                    "• Package: %s\n" +
-                    "• Profile: %s\n" +
-                    "• Mode: %s\n" +
-                    "• Playback Source: %s\n" +
-                    "• Playback Confidence: %s\n" +
-                    "• Last Gesture Attempt Package: %s\n" +
-                    "• Last Gesture Zone Index: %d\n" +
-                    "• Last Gesture Coordinates: %s\n" +
-                    "• Last Gesture Dialog Driven: %s\n" +
-                    "• Last Gesture Heartbeat Driven: %s\n" +
-                    "• Last Gesture Cancel Reason: %s\n" +
-                    "• Consecutive Gesture Cancels: %d\n" +
-                    "• Last Dialog Windows: %d\n" +
-                    "• Last Dialog Package: %s\n" +
-                    "• Last Dialog Positive Phrase: %s\n" +
-                    "• Last Dialog Confirm Phrase: %s\n" +
-                    "• Last Dialog Negative Match: %s\n" +
-                    "• Last Dialog No-Target Reason: %s\n" +
-                    "• Last Dialog Block Reason: %s\n" +
-                    "• Last Dialog Target: %s\n" +
-                    "• Last Dialog Target Window: %s\n" +
-                    "• Last Dialog Click Method: %s",
+                getString(R.string.runtime_summary_format),
                 accessibilityText,
-                protectionText,
                 notificationText,
-                foregroundText,
                 batteryText,
                 writeSettingsText,
                 timeoutOverrideText,
-                playbackSignalsText,
-                playbackText,
-                gestureHealth,
-                dialogHunterState,
+                foregroundText,
+                if (protectionActive) getString(R.string.status_yes) else getString(R.string.status_no),
                 selectedMode.name,
-                heartbeatAllowedText,
-                heartbeatReason,
                 originalTimeoutText,
                 requestedTimeoutText,
-                telemetry.currentPackage.ifEmpty { "-" },
-                telemetry.currentProfile.ifEmpty { "-" },
-                telemetry.currentMode,
-                telemetry.playbackSignalSource,
-                telemetry.playbackConfidence,
-                telemetry.lastGestureAttemptPackage.ifEmpty { "-" },
-                telemetry.lastGestureZoneIndex,
-                telemetry.lastGestureCoordinates.ifEmpty { "-" },
-                telemetry.lastGestureWasDialogDriven.toString(),
-                telemetry.lastGestureWasHeartbeatDriven.toString(),
-                telemetry.lastGestureCancelReasonHint.ifEmpty { "-" },
-                telemetry.consecutiveGestureCancels,
-                telemetry.lastDialogWindowCount,
-                dialogPackageText,
-                dialogPositivePhraseText,
-                dialogConfirmPhraseText,
-                dialogNegativeMatchText,
-                dialogNoTargetReasonText,
-                dialogBlockReasonText,
-                dialogTargetText,
-                dialogTargetWindowText,
-                dialogClickMethod
+                playbackSignalsText,
+                playbackText
             )
         } else {
             String.format(
                 Locale.US,
                 getString(R.string.quick_status_format),
                 accessibilityText,
-                protectionText,
-                selectedMode.name,
-                playbackText,
-                heartbeatAllowedText,
-                gestureHealth,
-                dialogHunterState
+                notificationText,
+                batteryText,
+                writeSettingsText,
+                timeoutOverrideText
             )
         }
         updateModeButtonLabel(selectedMode)
@@ -613,12 +528,6 @@ class MainActivity : AppCompatActivity() {
         if (!timeoutOverrideActive && protectionActive && writeSettingsGranted) {
             warningLines.add(getString(R.string.warning_timeout_override_missing))
         }
-        if (telemetry.gestureEngineHealth == "BROKEN") {
-            warningLines.add(getString(R.string.warning_gesture_broken))
-        } else if (telemetry.gestureEngineHealth == "DEGRADED") {
-            warningLines.add(getString(R.string.warning_gesture_degraded))
-        }
-
         if (warningLines.isNotEmpty()) {
             readinessWarningContainer.visibility = View.VISIBLE
             readinessWarningText.text = warningLines.joinToString("\n")
@@ -629,8 +538,8 @@ class MainActivity : AppCompatActivity() {
         openBatterySettingsButton.visibility = if (!batteryExempt) View.VISIBLE else View.GONE
         openWriteSettingsButton.visibility = if (!writeSettingsGranted) View.VISIBLE else View.GONE
 
-        startProtectionButton.isEnabled = !protectionActive
-        stopProtectionButton.isEnabled = protectionActive
+        startProtectionButton.isEnabled = true
+        stopProtectionButton.isEnabled = true
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
@@ -972,7 +881,7 @@ class MainActivity : AppCompatActivity() {
                 @Suppress("DEPRECATION")
                 pInfo.versionCode.toLong()
             }
-            "גרסה $versionName ($versionCode)"
+            getString(R.string.installed_version_format, versionName, versionCode)
         } catch (_: Exception) {
             getString(R.string.version_placeholder)
         }

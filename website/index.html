@@ -4,65 +4,104 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>מרכז קישוריות לטלוויזיה</title>
-  <meta name="description" content="כלי עזר ל-Android TV לקישוריות, קיצורי הגדרות ובדיקות מוכנות." />
+  <meta name="description" content="אפליקציית Utility ל-Android TV: קיצורי רשת ומערכת, בדיקות מוכנות, והנחיות פתרון תקלות." />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
     <header>
       <div class="brand">
-        <img src="logo.png" alt="לוגו מרכז קישוריות" />
+        <img src="logo.png" alt="לוגו" />
         <div>
           <h1>מרכז קישוריות לטלוויזיה</h1>
-          <div class="tagline">קיצורי קישוריות ובדיקות מוכנות ל-Android TV</div>
+          <div class="tagline">כלי עזר נקי ל-Android TV: רשת, מערכת, מוכנות ותמיכה</div>
         </div>
       </div>
-      <div class="hero-actions" dir="ltr" style="margin-top:10px;">
+      <div class="toolbar" dir="ltr">
         <a class="btn secondary" href="index-en.html">English</a>
       </div>
     </header>
 
     <section class="hero">
-      <h2>כלי טלוויזיה נקי לרשת, חשמל ותהליכי הגדרה</h2>
-      <p>האפליקציה נותנת גישה מהירה להגדרות חשובות, הקשחת זמן כיבוי מסך (אופציונלית) ולוח מוכנות ברור.</p>
+      <h2>מקום אחד לכל פעולות הקישוריות וההגדרות החשובות</h2>
+      <p>
+        במקום לקפוץ בין תפריטים עמוקים ב-Android TV, האפליקציה מרכזת קיצורי מערכת,
+        בדיקות מוכנות (YES/NO), וכלי פתרון תקלות בסיסיים למקרים של הרשאות/הגדרות חסרות.
+      </p>
       <div class="hero-actions" dir="ltr">
         <a class="btn" href="installer/install_mac.command">הורדה למק</a>
         <a class="btn" href="installer/install_windows.bat">הורדה לווינדוס</a>
-        <a class="btn secondary" href="guide.html">מדריך התקנה</a>
+        <a class="btn secondary" href="guide.html">מדריך התקנה מלא</a>
       </div>
     </section>
 
     <section>
-      <h2 class="section-title">מה האפליקציה עושה</h2>
+      <h2 class="section-title">למה זה שימושי</h2>
+      <div class="kpi">
+        <div class="tile"><b>גישה מהירה</b><span>קיצורים להגדרות רשת, מערכת והרשאות</span></div>
+        <div class="tile"><b>צ'קליסט ברור</b><span>מציג מה חסר כדי להגיע למוכנות מלאה</span></div>
+        <div class="tile"><b>TV Friendly</b><span>ניווט נוח עם שלט / D-Pad</span></div>
+        <div class="tile"><b>Best Effort</b><span>שקיפות מלאה על מה נתמך ומה תלוי מכשיר</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">פיצ'רים מרכזיים</h2>
       <div class="grid">
         <article class="card">
-          <h3>עוזר קישוריות / נקודת גישה</h3>
-          <p>כניסות מהירות לזרימות רשת מקומיות והגדרות נקודת גישה (תלוי מכשיר).</p>
+          <h3>1) עוזר קישוריות ונקודת גישה</h3>
+          <p>
+            פתיחה מהירה לזרימות רשת נפוצות (Wi-Fi/Network/Hotspot) עם fallbacks בהתאם ליצרן הטלוויזיה.
+          </p>
         </article>
         <article class="card">
-          <h3>קיצורי דרך להגדרות</h3>
-          <p>פתיחה מהירה של Wi-Fi, Bluetooth, אופטימיזציית סוללה, Write Settings ופרטי אפליקציה.</p>
+          <h3>2) Power &amp; System Helper</h3>
+          <p>
+            תפריט מרוכז ל-Battery Optimization, Write Settings, App Info, Accessibility ו-Notification Access.
+          </p>
         </article>
         <article class="card">
-          <h3>לוח מוכנות</h3>
-          <p>בדיקות YES/NO ברורות לנגישות, התראות, סוללה ו-Write Settings.</p>
+          <h3>3) Readiness Dashboard</h3>
+          <p>
+            מציג האם כל התנאים המרכזיים מוכנים: נגישות, התראות, החרגת סוללה והרשאת Write Settings.
+          </p>
         </article>
         <article class="card">
-          <h3>טלמטריה לפתרון תקלות</h3>
-          <p>דיאגנוסטיקה בזמן אמת מסייעת לזהות הרשאות חסרות או מגבלות מכשיר.</p>
+          <h3>4) Telemetry לפתרון תקלות</h3>
+          <p>
+            פרטי ריצה ודיבוג למשתמש מתקדם: מצב שירות, סטטוס הרשאות, Timeout hardening ועוד.
+          </p>
         </article>
       </div>
     </section>
 
     <section>
       <h2 class="section-title">התקנה מהירה</h2>
-      <ol class="steps card">
-        <li>התקן דרך מתקין Mac/Windows (ערוץ <b>main</b> מומלץ).</li>
-        <li>הפעל נגישות עבור האפליקציה.</li>
+      <ol class="card">
+        <li>התקן דרך המתקין למק/ווינדוס (ערוץ <b>main</b> מומלץ).</li>
+        <li>הפעל שירות נגישות לאפליקציה.</li>
         <li>הפעל גישת התראות (מומלץ).</li>
-        <li>פתח Power &amp; System ויישם המלצות.</li>
-        <li>הפעל Utility ובדוק סטטוס מוכנות.</li>
+        <li>פתח Power &amp; System והשלם הרשאות חסרות.</li>
+        <li>בדוק במסך הראשי שה-Checklist עובר ל-YES.</li>
       </ol>
+    </section>
+
+    <section>
+      <h2 class="section-title">הרשאות והסברים</h2>
+      <div class="card kv">
+        <div><b>Accessibility</b></div><div>נדרש לקיצורי פעולה מקומיים ולבדיקות מוכנות.</div>
+        <div><b>Notification Access</b></div><div>משפר נראות מצב בזמן ריצה ומסייע לדיאגנוסטיקה.</div>
+        <div><b>Battery Exemption</b></div><div>מומלץ לרציפות במכשירים עם חסכון אגרסיבי.</div>
+        <div><b>Write Settings</b></div><div>אופציונלי אך מומלץ להקשחת זמן כיבוי מסך.</div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">מגבלות ידועות (חשוב)</h2>
+      <div class="notice">
+        התנהגות Android TV משתנה בין יצרנים וגרסאות מערכת. חלק מהקיצורים תלויי מכשיר.
+        האפליקציה מספקת best-effort עם fallbacks, אבל לא מבטיחה תמיכה זהה בכל דגם.
+      </div>
     </section>
 
     <section>
@@ -72,23 +111,19 @@
           <summary>גרסאות אחרונות</summary>
           <div class="details-body">
             <ul>
-              <li><b>v2.0.0</b> - פיבוט מוצר ומיתוג מלא.</li>
-              <li><b>v1.8.x</b> - שיפורי יציבות ודיאגנוסטיקה.</li>
+              <li><b>v2.0.0</b>: פיבוט מוצר מלא ל-Connectivity Utility + מיתוג מחדש.</li>
+              <li><b>v1.8.x</b>: שיפורי יציבות, טלמטריה והקשחת מערכת.</li>
             </ul>
           </div>
         </details>
         <details>
           <summary>גרסאות קודמות</summary>
-          <div class="details-body">
-            <ul><li><b>v1.7 / v1.6 / v1.4 ...</b> איטרציות מוקדמות.</li></ul>
-          </div>
+          <div class="details-body"><ul><li><b>v1.7 / v1.6 / v1.4 ...</b> איטרציות מוקדמות.</li></ul></div>
         </details>
       </div>
     </section>
 
-    <footer>
-      © <span id="year"></span> מרכז קישוריות לטלוויזיה
-    </footer>
+    <footer>© <span id="year"></span> מרכז קישוריות לטלוויזיה</footer>
   </div>
   <script src="script.js"></script>
 </body>

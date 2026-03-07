@@ -2,35 +2,35 @@
 <resources>
     <string name="app_name">TV Connectivity Hub</string>
     <string name="version_placeholder">Version --</string>
-    <string name="app_subtitle">Hotspot, settings shortcuts, and readiness checks for Android TV</string>
+    <string name="installed_version_format">Version %1$s (%2$d)</string>
+    <string name="app_subtitle">Hotspot, system shortcuts, and readiness diagnostics for Android TV</string>
 
     <string name="status_active">✅ Ready</string>
     <string name="status_inactive">⏸ Setup needed</string>
 
-    <string name="description_active">Utility session is active.
-Use the dashboard for connectivity shortcuts, power hardening, and permission readiness.</string>
-    <string name="description_inactive">Utility session is currently off.
-Use Start Utility to enable the helper session and diagnostics.</string>
+    <string name="description_active">Connectivity tools are ready.
+Use the dashboard below to open settings and verify permissions.</string>
+    <string name="description_inactive">Complete setup to unlock all utility actions.
+Use the quick checklist and fix buttons below.</string>
 
     <string name="button_enable">Accessibility settings</string>
     <string name="button_disable">Accessibility settings</string>
     <string name="button_hotspot">Hotspot settings</string>
-    <string name="button_start_protection">Start Utility</string>
-    <string name="button_stop_protection">Stop Utility</string>
+    <string name="button_start_protection">Network Settings</string>
+    <string name="button_stop_protection">Power &amp; System</string>
     <string name="button_start_calibration">Calibration Run (12 min)</string>
     <string name="button_notification_access">Notification Access</string>
     <string name="button_power_settings">Power &amp; System Settings</string>
-    <string name="button_more_actions">More Actions</string>
-    <string name="button_mode_selector">Mode: NORMAL</string>
+    <string name="button_more_actions">More Tools</string>
+    <string name="button_mode_selector">Readiness Dashboard</string>
     <string name="mode_selector_format">Mode: %1$s</string>
 
-    <string name="protection_status_on">Utility Session: ON</string>
-    <string name="protection_status_off">Utility Session: OFF</string>
+    <string name="protection_status_on">Readiness: GOOD</string>
+    <string name="protection_status_off">Readiness: PARTIAL</string>
 
     <string name="status_indicator_desc">Utility status</string>
 
-    <string name="accessibility_service_description">This accessibility service powers quick actions and readiness diagnostics for TV Connectivity Hub.
-It runs locally on your Android TV and helps keep utility actions responsive.</string>
+    <string name="accessibility_service_description">Accessibility support for local TV utility actions and readiness diagnostics.</string>
 
     <string name="debug_title">Debug Telemetry</string>
     <string name="debug_waiting">Waiting for service telemetry...</string>
@@ -42,12 +42,15 @@ It runs locally on your Android TV and helps keep utility actions responsive.</s
     <string name="more_notification_access">Notification access</string>
     <string name="more_power_system">Power &amp; system settings</string>
     <string name="more_hotspot">Hotspot settings</string>
-    <string name="more_calibration">Calibration run (12 min)</string>
+    <string name="more_calibration">Calibration run (legacy, 12 min)</string>
     <string name="more_show_runtime">Show runtime details</string>
     <string name="more_hide_runtime">Hide runtime details</string>
     <string name="more_show_debug">Show debug telemetry</string>
     <string name="more_hide_debug">Hide debug telemetry</string>
     <string name="more_app_info">App info</string>
+    <string name="more_start_session">Start utility session (advanced)</string>
+    <string name="more_stop_session">Stop utility session (advanced)</string>
+    <string name="more_cycle_mode">Cycle session mode (advanced)</string>
     <string name="power_option_timeout_guidance">Display timeout guidance</string>
     <string name="power_option_battery_optimization">Battery optimization</string>
     <string name="power_option_screen_timeout_permission">Screen timeout permission</string>
@@ -57,26 +60,26 @@ It runs locally on your Android TV and helps keep utility actions responsive.</s
     <string name="power_guidance_title">Power hardening guidance</string>
     <string name="power_guidance_message">To improve session reliability on Android TV:
 
-1) Allow "Screen timeout permission" (WRITE_SETTINGS) so the app can temporarily extend timeout and restore it later.
-2) Disable battery optimization for this app for better continuity.
-3) If your TV supports a display timeout option, consider setting it to Never.
+1) Allow "Screen timeout permission" (WRITE_SETTINGS).
+2) Disable battery optimization for this app.
+3) If available, set TV display timeout to Never.
 
-This is practical hardening guidance, not a guarantee for every app behavior.</string>
+This is best-effort hardening, not a universal guarantee.</string>
     <string name="power_guidance_open_settings">Open TV settings</string>
 
     <string name="notification_channel_name">TV utility session</string>
-    <string name="notification_channel_description">Persistent notification while TV Connectivity Hub utility session is active</string>
+    <string name="notification_channel_description">Persistent notification while TV utility session is active</string>
     <string name="notification_protection_title">TV utility session active</string>
     <string name="notification_protection_text">Connectivity helper session is running (%1$s)</string>
     <string name="notification_action_stop">Stop</string>
 
-    <string name="notification_permission_needed">Allow notifications so the utility session status stays visible.</string>
-    <string name="boot_resume_reminder">Device rebooted. Open TV Connectivity Hub to resume your utility session.</string>
+    <string name="notification_permission_needed">Allow notifications so utility status stays visible.</string>
+    <string name="boot_resume_reminder">Device rebooted. Open TV Connectivity Hub to resume your session.</string>
     <string name="notification_listener_label">Playback Notification Listener</string>
     <string name="status_yes">YES</string>
     <string name="status_no">NO</string>
     <string name="playback_fallback_mode">Package-only fallback mode</string>
-    <string name="battery_optimization_required">Battery optimization exemption is strongly recommended so TV Connectivity Hub can stay active while TV is idle.</string>
+    <string name="battery_optimization_required">Battery optimization exemption is strongly recommended for reliability.</string>
     <string name="battery_optimization_title">Battery optimization</string>
     <string name="screen_timeout_permission_title">Screen timeout permission</string>
     <string name="screen_timeout_permission_message">Allowing this access lets the app extend screen timeout during an active utility session and restore your original timeout after the session ends.</string>
@@ -93,8 +96,6 @@ This is practical hardening guidance, not a guarantee for every app behavior.</s
     <string name="warning_battery_missing">Battery optimization exempt: MISSING</string>
     <string name="warning_write_settings_missing">Write settings permission: MISSING</string>
     <string name="warning_timeout_override_missing">Timeout override active: MISSING</string>
-    <string name="warning_gesture_broken">Gesture engine is broken on this device</string>
-    <string name="warning_gesture_degraded">Gesture engine is degraded on this device (cancellations)</string>
 
     <string name="calibration_package_title">Calibration package</string>
     <string name="calibration_no_steps">No calibration steps</string>
@@ -103,5 +104,6 @@ This is practical hardening guidance, not a guarantee for every app behavior.</s
     <string name="calibration_done_best">Calibration done: best zone=%1$d action=%2$s mode=%3$s</string>
     <string name="calibration_done_empty">Calibration completed with no measurable result</string>
 
-    <string name="quick_status_format">Quick Status: Accessibility %1$s  |  Session %2$s  |  Mode %3$s  |  Playback %4$s  |  Heartbeat %5$s  |  Gesture %6$s  |  Dialog Hunter %7$s</string>
+    <string name="quick_status_format">Checklist: Accessibility %1$s | Notifications %2$s | Battery %3$s | Write Settings %4$s | Timeout Override %5$s</string>
+    <string name="runtime_summary_format">Readiness\n• Accessibility: %1$s\n• Notification Access: %2$s\n• Battery Optimization Exempt: %3$s\n• Write Settings Permission: %4$s\n• Screen Timeout Override Active: %5$s\n\nSystem\n• Foreground Companion: %6$s\n• Utility Session Active: %7$s\n• Selected Mode: %8$s\n• Original Screen Timeout: %9$s\n• Current Override Timeout: %10$s\n• Playback Signals Available: %11$s\n• Active Playback: %12$s</string>
 </resources>

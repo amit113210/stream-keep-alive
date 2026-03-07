@@ -2,35 +2,35 @@
 <resources>
     <string name="app_name">מרכז קישוריות לטלוויזיה</string>
     <string name="version_placeholder">גרסה --</string>
-    <string name="app_subtitle">נקודת גישה, קיצורי הגדרות ובדיקות מוכנות ל-Android TV</string>
+    <string name="installed_version_format">גרסה %1$s (%2$d)</string>
+    <string name="app_subtitle">נקודת גישה, קיצורי מערכת ובדיקות מוכנות ל-Android TV</string>
 
     <string name="status_active">✅ מוכן</string>
     <string name="status_inactive">⏸ נדרשת הגדרה</string>
 
-    <string name="description_active">סשן כלי העזר פעיל.
-השתמש בלוח הבקרה לקיצורי קישוריות, הקשחת חשמל ובדיקות הרשאות.</string>
-    <string name="description_inactive">סשן כלי העזר כבוי כרגע.
-לחץ "הפעל כלי עזר" כדי להתחיל.</string>
+    <string name="description_active">כלי הקישוריות זמינים.
+השתמש בלוח הבקרה כדי לפתוח הגדרות ולאמת הרשאות.</string>
+    <string name="description_inactive">יש להשלים הגדרה כדי לפתוח את כל הכלים.
+השתמש בצקליסט ובכפתורי התיקון למטה.</string>
 
     <string name="button_enable">הגדרות נגישות</string>
     <string name="button_disable">הגדרות נגישות</string>
     <string name="button_hotspot">הגדרות נקודת גישה</string>
-    <string name="button_start_protection">הפעל כלי עזר</string>
-    <string name="button_stop_protection">עצור כלי עזר</string>
-    <string name="button_start_calibration">כיול (12 דקות)</string>
+    <string name="button_start_protection">הגדרות רשת</string>
+    <string name="button_stop_protection">חשמל ומערכת</string>
+    <string name="button_start_calibration">כיול (Legacy, 12 דקות)</string>
     <string name="button_notification_access">גישת התראות</string>
     <string name="button_power_settings">הגדרות חשמל ומערכת</string>
-    <string name="button_more_actions">פעולות נוספות</string>
-    <string name="button_mode_selector">מצב: NORMAL</string>
+    <string name="button_more_actions">כלים נוספים</string>
+    <string name="button_mode_selector">לוח מוכנות</string>
     <string name="mode_selector_format">מצב: %1$s</string>
 
-    <string name="protection_status_on">סשן כלי עזר: פעיל</string>
-    <string name="protection_status_off">סשן כלי עזר: כבוי</string>
+    <string name="protection_status_on">מוכנות: טובה</string>
+    <string name="protection_status_off">מוכנות: חלקית</string>
 
     <string name="status_indicator_desc">מצב כלי עזר</string>
 
-    <string name="accessibility_service_description">שירות הנגישות מפעיל פעולות מהירות ובדיקות מוכנות עבור מרכז קישוריות לטלוויזיה.
-השירות רץ מקומית על ה-Android TV שלך.</string>
+    <string name="accessibility_service_description">תמיכת נגישות עבור פעולות כלי עזר מקומיות ובדיקות מוכנות.</string>
 
     <string name="debug_title">טלמטריית ניפוי</string>
     <string name="debug_waiting">ממתין לנתוני טלמטריה...</string>
@@ -42,12 +42,15 @@
     <string name="more_notification_access">גישת התראות</string>
     <string name="more_power_system">הגדרות חשמל ומערכת</string>
     <string name="more_hotspot">הגדרות נקודת גישה</string>
-    <string name="more_calibration">כיול (12 דקות)</string>
+    <string name="more_calibration">כיול (Legacy, 12 דקות)</string>
     <string name="more_show_runtime">הצג פרטי ריצה</string>
     <string name="more_hide_runtime">הסתר פרטי ריצה</string>
     <string name="more_show_debug">הצג טלמטריה</string>
     <string name="more_hide_debug">הסתר טלמטריה</string>
     <string name="more_app_info">פרטי אפליקציה</string>
+    <string name="more_start_session">הפעל סשן Utility (מתקדם)</string>
+    <string name="more_stop_session">עצור סשן Utility (מתקדם)</string>
+    <string name="more_cycle_mode">החלף מצב סשן (מתקדם)</string>
     <string name="power_option_timeout_guidance">הנחיות זמן כיבוי מסך</string>
     <string name="power_option_battery_optimization">אופטימיזציית סוללה</string>
     <string name="power_option_screen_timeout_permission">הרשאת זמן כיבוי מסך</string>
@@ -57,7 +60,7 @@
     <string name="power_guidance_title">הנחיות הקשחת חשמל</string>
     <string name="power_guidance_message">כדי לשפר יציבות ב-Android TV:
 
-1) אשר "הרשאת זמן כיבוי מסך" (WRITE_SETTINGS) כדי להאריך זמנית את זמן הכיבוי ולהחזירו אחר כך.
+1) אשר "הרשאת זמן כיבוי מסך" (WRITE_SETTINGS).
 2) בטל אופטימיזציית סוללה לאפליקציה.
 3) אם קיימת בטלוויזיה אפשרות Screen timeout, מומלץ להגדיר Never.
 
@@ -70,7 +73,7 @@
     <string name="notification_protection_text">סשן קישוריות פעיל (%1$s)</string>
     <string name="notification_action_stop">עצור</string>
 
-    <string name="notification_permission_needed">אפשר התראות כדי שסטטוס הסשן יהיה גלוי.</string>
+    <string name="notification_permission_needed">אפשר התראות כדי שסטטוס הכלי יהיה גלוי.</string>
     <string name="boot_resume_reminder">המכשיר הופעל מחדש. פתח את האפליקציה כדי לחדש את הסשן.</string>
     <string name="notification_listener_label">מאזין התראות פלייבק</string>
     <string name="status_yes">כן</string>
@@ -88,13 +91,11 @@
     <string name="button_fix_write_settings">תקן Write Settings</string>
 
     <string name="toast_enable_accessibility_first">הפעל קודם נגישות</string>
-    <string name="toast_utility_started">סשן כלי עזר התחיל (%1$s)</string>
-    <string name="toast_utility_stopped">סשן כלי עזר נעצר</string>
+    <string name="toast_utility_started">סשן Utility התחיל (%1$s)</string>
+    <string name="toast_utility_stopped">סשן Utility נעצר</string>
     <string name="warning_battery_missing">חסרה החרגת אופטימיזציית סוללה</string>
     <string name="warning_write_settings_missing">חסרה הרשאת Write Settings</string>
     <string name="warning_timeout_override_missing">הקשחת זמן כיבוי מסך לא פעילה</string>
-    <string name="warning_gesture_broken">מנוע המחוות תקול במכשיר זה</string>
-    <string name="warning_gesture_degraded">מנוע המחוות חלש במכשיר זה (ביטולים רבים)</string>
 
     <string name="calibration_package_title">חבילת כיול</string>
     <string name="calibration_no_steps">אין שלבי כיול</string>
@@ -103,5 +104,6 @@
     <string name="calibration_done_best">הכיול הסתיים: אזור=%1$d פעולה=%2$s מצב=%3$s</string>
     <string name="calibration_done_empty">הכיול הסתיים ללא תוצאה מדידה</string>
 
-    <string name="quick_status_format">מצב מהיר: נגישות %1$s  |  סשן %2$s  |  מצב %3$s  |  פלייבק %4$s  |  Heartbeat %5$s  |  מחוות %6$s  |  צייד דיאלוג %7$s</string>
+    <string name="quick_status_format">צקליסט: נגישות %1$s | התראות %2$s | סוללה %3$s | Write Settings %4$s | Timeout Override %5$s</string>
+    <string name="runtime_summary_format">מוכנות\n• נגישות: %1$s\n• גישת התראות: %2$s\n• החרגת סוללה: %3$s\n• הרשאת Write Settings: %4$s\n• הקשחת זמן כיבוי פעילה: %5$s\n\nמערכת\n• Companion פעיל: %6$s\n• סשן Utility פעיל: %7$s\n• מצב נבחר: %8$s\n• Timeout מקורי: %9$s\n• Timeout נוכחי: %10$s\n• אותות Playback זמינים: %11$s\n• Playback פעיל: %12$s</string>
 </resources>

@@ -16,16 +16,51 @@
           <div class="tagline">TV Connectivity Hub</div>
         </div>
       </div>
-      <div class="hero-actions" style="margin-top:10px;"><a class="btn secondary" href="guide.html">עברית</a></div>
+      <div class="toolbar">
+        <a class="btn secondary" href="guide.html">עברית</a>
+        <a class="btn secondary" href="index-en.html">Homepage</a>
+      </div>
     </header>
 
-    <section class="card"><h2>1) Install</h2><ol><li>Download and run installer from homepage.</li><li>Use <b>main</b> channel unless you need release.</li><li>Verify versionName/versionCode in installer output.</li></ol></section>
-    <section class="card"><h2>2) Enable access</h2><ol><li>Accessibility: ON</li><li>Notification Access: recommended</li><li>Battery optimization exemption: recommended</li><li>Write Settings: optional but recommended</li></ol></section>
-    <section class="card"><h2>3) Start session</h2><p>Press <b>Start Utility</b> and verify readiness checks become YES.</p></section>
-    <section class="card"><h2>4) Troubleshooting</h2><ul><li>If Notification Access = NO, open notification listener settings.</li><li>If Battery = NO, exempt app from optimization.</li><li>If Write Settings = NO, grant permission from Power menu.</li></ul></section>
+    <section class="card">
+      <h2>Step 1 - Install</h2>
+      <ol>
+        <li>Run the Mac/Windows installer.</li>
+        <li>Select <b>main</b> channel (recommended for most users).</li>
+        <li>Confirm installed app version in installer output (`versionName/versionCode`).</li>
+      </ol>
+    </section>
 
-    <p><a class="btn secondary" href="index-en.html">Back to homepage</a></p>
-    <footer>TV Connectivity Hub</footer>
+    <section class="card">
+      <h2>Step 2 - Required access</h2>
+      <ol>
+        <li>Accessibility: required.</li>
+        <li>Notification Access: strongly recommended.</li>
+        <li>Battery optimization exemption: recommended for reliability.</li>
+        <li>Write Settings: optional but recommended for timeout hardening.</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>Step 3 - Readiness check</h2>
+      <p>
+        Open the app and verify checklist rows turn to YES.
+        If something is missing, use Fix buttons or Power &amp; System helper.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Common troubleshooting</h2>
+      <ul>
+        <li><b>Notification Access = NO</b> → open notification listener settings and grant access.</li>
+        <li><b>Battery Exemption = NO</b> → exempt the app from battery optimization.</li>
+        <li><b>Write Settings = NO</b> → grant permission via Power &amp; System menu.</li>
+        <li><b>Timeout Override = NO</b> → grant Write Settings and restart utility session.</li>
+      </ul>
+    </section>
+
+    <footer>© <span id="year"></span> TV Connectivity Hub</footer>
   </div>
+  <script src="script.js"></script>
 </body>
 </html>
