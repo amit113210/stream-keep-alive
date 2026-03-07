@@ -127,7 +127,8 @@ object PlaybackStateManager {
 
     fun shouldRunHeartbeatNow(
         sessionActive: Boolean,
-        supportedForegroundPackage: String?
+        supportedForegroundPackage: String?,
+        dialogPendingOverride: Boolean = false
     ): Pair<Boolean, String> {
         if (!sessionActive) return false to "session_inactive"
         val foreground = supportedForegroundPackage ?: return false to "unsupported_package"
@@ -140,7 +141,11 @@ object PlaybackStateManager {
                 if (packageMatch) true to "playing_high_confidence" else false to "playing_other_package"
             }
             PlaybackFriendlyState.PAUSED_OR_IDLE -> {
-                false to "paused_or_idle"
+                if (dialogPendingOverride) {
+                    true to "paused_but_dialog_pending"
+                } else {
+                    false to "paused_or_idle"
+                }
             }
             PlaybackFriendlyState.UNKNOWN -> {
                 val age = SystemClock.elapsedRealtime() - s.lastStateChangeAt
