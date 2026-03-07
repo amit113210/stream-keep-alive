@@ -139,5 +139,9 @@ This is best-effort hardening, not a universal guarantee.</string>
     <string name="hotspot_card_format">State: %1$s\nSSID: %2$s\nNote: %3$s</string>
     <string name="more_bluetooth_settings">Bluetooth settings</string>
     <string name="more_legacy_tools">Advanced / Legacy tools</string>
+    <string name="speed_quality_4k">Excellent (4K / Ultra HD ready)</string>
+    <string name="speed_quality_hd">Good (HD Streaming ready)</string>
+    <string name="speed_quality_sd">Slow (SD only)</string>
+    <string name="speed_quality_error">Error evaluating speed</string>
 
 </resources>

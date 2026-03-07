@@ -909,9 +909,9 @@ class MainActivity : AppCompatActivity() {
             if (Thread.interrupted()) return
 
             // Stage 2: Download
-            updateSpeedUi(33, "Testing Download (15MB)...")
+            updateSpeedUi(33, "Testing Download...")
             val downStart = System.currentTimeMillis()
-            val downConn = java.net.URL("https://speed.cloudflare.com/__down?bytes=15000000").openConnection() as java.net.HttpURLConnection
+            val downConn = java.net.URL("https://speed.cloudflare.com/__down?bytes=100000000").openConnection() as java.net.HttpURLConnection
             downConn.requestMethod = "GET"
             downConn.connectTimeout = 5000
             downConn.readTimeout = 10000
@@ -921,11 +921,25 @@ class MainActivity : AppCompatActivity() {
             
             var downloadedBytes = 0L
             val buffer = ByteArray(8192)
+            val maxTestTimeMs = 8000L
+            var lastDownUiUpdate = 0L
             downConn.inputStream.use { input ->
                 var bytesRead: Int
                 while (input.read(buffer).also { bytesRead = it } != -1) {
                     if (Thread.interrupted()) return
                     downloadedBytes += bytesRead
+                    val curTime = System.currentTimeMillis()
+                    
+                    if (curTime - lastDownUiUpdate > 500) {
+                        val elapsed = (curTime - downStart) / 1000.0
+                        if (elapsed > 0) {
+                            val currentMbps = ((downloadedBytes * 8) / elapsed) / 1000000.0
+                            uiHandler.post { downloadResultText.text = "${String.format(java.util.Locale.US, "%.1f", currentMbps)} Mbps" }
+                        }
+                        lastDownUiUpdate = curTime
+                    }
+
+                    if (curTime - downStart > maxTestTimeMs) break
                 }
             }
             val downEnd = System.currentTimeMillis()
@@ -938,41 +952,64 @@ class MainActivity : AppCompatActivity() {
             if (Thread.interrupted()) return
 
             // Stage 3: Upload
-            updateSpeedUi(66, "Testing Upload (5MB)...")
-            val payloadSize = 5 * 1024 * 1024
+            updateSpeedUi(66, "Testing Upload...")
+            val payloadSize = 25 * 1024 * 1024
             val upStart = System.currentTimeMillis()
             val upConn = java.net.URL("https://speed.cloudflare.com/__up").openConnection() as java.net.HttpURLConnection
             upConn.requestMethod = "POST"
             upConn.connectTimeout = 5000
             upConn.readTimeout = 10000
             upConn.doOutput = true
-            upConn.setFixedLengthStreamingMode(payloadSize)
+            upConn.setChunkedStreamingMode(8192)
             upConn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             upConn.setRequestProperty("Origin", "https://speed.cloudflare.com")
             upConn.setRequestProperty("Referer", "https://speed.cloudflare.com/")
             
-            upConn.outputStream.use { output ->
-                val chunk = ByteArray(8192)
-                var uploaded = 0
-                while (uploaded < payloadSize) {
-                    if (Thread.interrupted()) return
-                    val toWrite = java.lang.Math.min(chunk.size, payloadSize - uploaded)
-                    output.write(chunk, 0, toWrite)
-                    uploaded += toWrite
+            var uploaded = 0L
+            var lastUpUiUpdate = 0L
+            try {
+                upConn.outputStream.use { output ->
+                    val chunk = ByteArray(8192)
+                    while (uploaded < payloadSize) {
+                        if (Thread.interrupted()) return
+                        val toWrite = java.lang.Math.min(chunk.size.toLong(), payloadSize - uploaded).toInt()
+                        output.write(chunk, 0, toWrite)
+                        uploaded += toWrite
+
+                        val curTime = System.currentTimeMillis()
+                        if (curTime - lastUpUiUpdate > 500) {
+                            val elapsed = (curTime - upStart) / 1000.0
+                            if (elapsed > 0) {
+                                val currentMbps = ((uploaded * 8) / elapsed) / 1000000.0
+                                uiHandler.post { uploadResultText.text = "${String.format(java.util.Locale.US, "%.1f", currentMbps)} Mbps" }
+                            }
+                            lastUpUiUpdate = curTime
+                        }
+                        if (curTime - upStart > maxTestTimeMs) break
+                    }
                 }
+            } catch (e: Exception) {
+                // Breaking output stream early can cause IOException on some server configurations
             }
-            val upStatus = upConn.responseCode
+            
             val upEnd = System.currentTimeMillis()
             val upTimeSecs = (upEnd - upStart) / 1000.0
-            val upBits = payloadSize * 8
-            val uMbps = if (upTimeSecs > 0 && upStatus == 200) (upBits / upTimeSecs) / 1000000.0 else 0.0
+            val upBits = uploaded * 8
+            val uMbps = if (upTimeSecs > 0) (upBits / upTimeSecs) / 1000000.0 else 0.0
             upMbps = String.format(java.util.Locale.US, "%.1f", uMbps)
 
             uiHandler.post { uploadResultText.text = "$upMbps Mbps" }
             updateSpeedUi(100, "Done")
 
+            val qualityStr = when {
+                dMbps >= 25.0 -> getString(R.string.speed_quality_4k)
+                dMbps >= 5.0 -> getString(R.string.speed_quality_hd)
+                dMbps > 0.0 -> getString(R.string.speed_quality_sd)
+                else -> getString(R.string.speed_quality_error)
+            }
+
             // Save result
-            val resultStr = "P: ${pingMs}ms | D: ${downMbps}M | U: ${upMbps}M"
+            val resultStr = "Quality: $qualityStr\nP: ${pingMs}ms | D: ${downMbps}M | U: ${upMbps}M"
             val now = System.currentTimeMillis()
             getSharedPreferences(SPEED_PREFS, Context.MODE_PRIVATE).edit()
                 .putString(SPEED_LAST_RESULT, resultStr)

@@ -135,5 +135,9 @@
     <string name="hotspot_card_format">מצב: %1$s\nSSID: %2$s\nהערה: %3$s</string>
     <string name="more_bluetooth_settings">הגדרות Bluetooth</string>
     <string name="more_legacy_tools">כלים מתקדמים / Legacy</string>
+    <string name="speed_quality_4k">מצוין (מוכן לצפייה ב-4K)</string>
+    <string name="speed_quality_hd">טוב (מוכן לצפייה ב-HD)</string>
+    <string name="speed_quality_sd">איטי (מתאים ל-SD בלבד)</string>
+    <string name="speed_quality_error">שגיאה במדידה</string>
 
 </resources>
