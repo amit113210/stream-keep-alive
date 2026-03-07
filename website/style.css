@@ -145,6 +145,16 @@ header {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+.btn.btn-paypal {
+  background: linear-gradient(135deg, #0079C1, #00457C);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn.btn-paypal:hover {
+  background: linear-gradient(135deg, #0088d8, #005699);
+}
+
 .section-title {
   font-size: 1.8rem;
   margin: 40px 0 24px;
